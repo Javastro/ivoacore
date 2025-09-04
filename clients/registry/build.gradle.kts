@@ -3,6 +3,7 @@ plugins {
 }
 
 group = "org.javastro.ivoa.core.clients"
+description  = "IVOA Registry client"
 
 dependencies {
     implementation(project(":common"))
