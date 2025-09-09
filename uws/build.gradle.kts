@@ -4,5 +4,5 @@ plugins {
 description = "IVOA UWS server library"
 dependencies {
     implementation(project(":common"))
-    implementation("org.javastro.ivoa:ivoa-entities")
+    api("org.javastro.ivoa:ivoa-entities")
 }
