@@ -1,0 +1,12 @@
+<html>
+	<body>
+		<h1>Reading and Writing External values</h1>
+		This package contains code that enables external values (e.g. 'indirect' parameters -- whose values are stored in some external resource) 
+		to be read and written via a variety of protocols.
+		The package defines a library for handlers, and handlers for common protocols.
+		<p>
+			Start with a {@link org.javastro.ivoacore.uws.parameter.protocol.DefaultProtocolLibraryFactory} and use this to create an instance of
+			{@link  org.javastro.ivoacore.uws.parameter.protocol.ProtocolLibrary}. From this, {@link  org.javastro.ivoacore.uws.parameter.protocol.ExternalValue} instances can be
+			manufactured from URI or String references. <tt>ExternalValue</tt> instances provide methods to read / write to that location via streams.
+	</body>
+</html>

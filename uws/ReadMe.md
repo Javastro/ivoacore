@@ -9,3 +9,5 @@ A Generic UWS library based on the original ideas from the
 * although the bulk of the interfaces has been redesigned to take account modern requirements, 
 the parameter handling in org.javastro.ivoacore.uws.environment.parameter is 
 taken pretty much as is from the AstroGrid implementation, and as such does probably require some more redesign.
+* The use of CompletableFuture needs to be thoroughly stress tested - it might not be the best abstraction.
+* exception handling needs to be unified
