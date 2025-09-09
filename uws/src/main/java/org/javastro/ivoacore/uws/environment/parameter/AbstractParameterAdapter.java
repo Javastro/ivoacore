@@ -11,7 +11,7 @@ import org.javastro.ivoacore.uws.environment.parameter.protocol.DefaultProtocolL
 import org.javastro.ivoacore.uws.environment.parameter.protocol.ProtocolLibrary;
 
 /**
- * Base class for {@link org.javastro.ivoacore.uws.parameter.ParameterAdapter}. It contains the necessary fileds that the adapter wraps. 
+ * Base class for {@link org.javastro.ivoacore.uws.environment.parameter.ParameterAdapter}. It contains the necessary fileds that the adapter wraps.
  * @author Paul Harrison (pah@jb.man.ac.uk) 27-Oct-2004
  * @version $Name:  $
  * @since iteration6

@@ -2,8 +2,10 @@
 
 package org.javastro.ivoacore.uws.environment;
 
+import org.javastro.ivoacore.uws.JobManager;
+
 /**
- * Defines aspects of how an {@link ExecutionController} behaves.
+ * Defines aspects of how an {@link JobManager} behaves.
  * @author Paul Harrison (paul.harrison@manchester.ac.uk) 23 Apr 2008
  * @version $Name:  $
  * @since VOTech Stage 7

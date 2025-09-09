@@ -14,8 +14,8 @@ dependencyResolutionManagement {
 
 include("common")
 include("dal")
-include("tap")
 include("uws")
+include("tap")
 include(":clients:registry")
 include(":clients:vospace")
 include(":clients:tap")

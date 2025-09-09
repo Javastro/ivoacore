@@ -8,7 +8,7 @@ import java.io.OutputStream;
  * <p>
  * Because of this vagueness, the interface provides the bare minimum for working with the external value.
  * @TODO rename the methods in this interface so that the imply opening a stream rather than reading and writing...
- * @TODO add method to copyto local file - to take advantage of any any secialization that the protocol might have to do this...then the paramter adapters should be rewritten to use this. (also exportFrom & getURL)
+ * @TODO add method to copyto local file - to take advantage of any any secialization that the protocol might have to do this...then the parameter adapters should be rewritten to use this. (also exportFrom and getURL)
  * @TODO would be nice to have a string returning the "location" value also
  * @author Noel Winstanley nw@jb.man.ac.uk 16-Jun-2004
  * @author Paul Harrison (pah@jb.man.ac.uk)

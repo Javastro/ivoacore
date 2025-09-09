@@ -21,6 +21,7 @@ import java.util.List;
 
 public class TAPJob extends BaseUWSJob {
 
+   public static final String JOB_TYPE = "TAP";
    private final DataSource dataSource;
 
    private String adqlQuery;
@@ -53,13 +54,29 @@ public class TAPJob extends BaseUWSJob {
 
    @Override
    public List<ParameterValue> runJob() {
-      return List.of();
+      //FIXME - really query
+      return List.of(new ParameterValue() {
+         @Override
+         public String getValue() {
+            return "file://blah";//TODO really make this work
+         }
+
+         @Override
+         public boolean isIndirect() {
+            return true;
+         }
+
+         @Override
+         public String getId() {
+            return "result";
+         }
+      });
    }
 
    public static class JobFactory extends BaseJobFactory {
       private final DataSource ds;
       public JobFactory(DataSource ds) {
-         super("TAP", "Runs TAP jobs", true);
+         super(JOB_TYPE, "Runs TAP jobs", true);
          this.ds = ds;
       }
 

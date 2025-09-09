@@ -8,6 +8,7 @@ import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,7 +26,8 @@ class TAPJobTest {
    static void setup() throws IOException {
       File tmpdir = Files.createTempDirectory("managerTest").toFile();
       JobFactoryAggregator agg = new JobFactoryAggregator();
-      //FIXME agg.addFactory(new TAPJob.JobFactory(ds));
+      DataSource ds = null;//FIXME create a proper test DS
+      agg.addFactory(new TAPJob.JobFactory(ds));
       MemoryBasedJobStore store = new MemoryBasedJobStore();
       DefaultExecutionPolicy policy = new DefaultExecutionPolicy();
       jobManager = new JobManager(new DefaultExecutionEnvironment(tmpdir), agg, store, policy

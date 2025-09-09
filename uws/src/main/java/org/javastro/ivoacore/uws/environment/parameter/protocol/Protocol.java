@@ -5,8 +5,8 @@ import org.javastro.ivoacore.common.security.SecurityGuard;
 
 import java.net.URI;
 
-/** Factory interface for creating {@link org.javastro.ivoacore.uws.parameter.protocol.ExternalValue} instances.
- * @see org.javastro.ivoacore.uws.parameter.protocol.DefaultProtocolLibrary
+/** Factory interface for creating {@link org.javastro.ivoacore.uws.environment.parameter.protocol.ExternalValue} instances.
+ * @see org.javastro.ivoacore.uws.environment.parameter.protocol.DefaultProtocolLibrary
  * @author Noel Winstanley nw@jb.man.ac.uk 16-Jun-2004
  *
  */

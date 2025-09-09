@@ -9,7 +9,7 @@ import java.io.OutputStream;
 import java.net.URI;
 
 /** Protocol implementation for http:/
- * @todo replace with more robust implementation based on commons HttpClient.
+ * @TODO replace with more robust implementation based on commons HttpClient.
  * @author Noel Winstanley nw@jb.man.ac.uk 16-Jun-2004
  *
  */
@@ -22,13 +22,13 @@ public class HttpProtocol implements Protocol{
         super();
     }
     /**
-     * @see org.javastro.ivoacore.uws.parameter.protocol.Protocol#getProtocolName()
+     * @see org.javastro.ivoacore.uws.environment.parameter.protocol.Protocol#getProtocolName()
      */
     public String getProtocolName() {
         return "http";
     }
     /**
-     * @see org.javastro.ivoacore.uws.parameter.protocol.Protocol#createIndirectValue(URI, SecurityGuard)
+     * @see org.javastro.ivoacore.uws.environment.parameter.protocol.Protocol#createIndirectValue(URI, SecurityGuard)
      */
     public ExternalValue createIndirectValue(final URI reference, SecurityGuard secGuard) throws InaccessibleExternalValueException {
         return new ExternalValue() {

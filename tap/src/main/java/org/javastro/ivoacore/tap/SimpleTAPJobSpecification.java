@@ -14,9 +14,10 @@ import java.util.List;
 /**
  * A "default" simple TAP Job specification.
  * i.e.
+ * <ul>
  * <li>output VOTable</li>
  * <li>no upload</li>
- *
+ *</ul>
  */
 public class SimpleTAPJobSpecification extends BaseJobSpecification {
 

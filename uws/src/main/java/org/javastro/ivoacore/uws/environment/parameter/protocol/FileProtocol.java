@@ -14,14 +14,14 @@ import java.net.URI;
 public class FileProtocol implements Protocol {
 
     /**
-     * @see org.javastro.ivoacore.uws.parameter.protocol.Protocol#getProtocolName()
+     * @see org.javastro.ivoacore.uws.environment.parameter.protocol.Protocol#getProtocolName()
      */
     public String getProtocolName() {
         return "file";
     }
 
     /**
-     * @see org.javastro.ivoacore.uws.parameter.protocol.Protocol#createIndirectValue(URI, SecurityGuard)
+     * @see org.javastro.ivoacore.uws.environment.parameter.protocol.Protocol#createIndirectValue(URI, SecurityGuard)
      */
     public ExternalValue createIndirectValue(final URI reference, SecurityGuard secGuard) throws InaccessibleExternalValueException {
         final File f = new File(reference);

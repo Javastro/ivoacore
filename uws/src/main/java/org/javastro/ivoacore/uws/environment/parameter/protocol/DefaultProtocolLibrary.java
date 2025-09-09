@@ -9,7 +9,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Default implementation of {@link org.javastro.ivoacore.uws.parameter.protocol.ProtocolLibrary}
+/** Default implementation of {@link org.javastro.ivoacore.uws.environment.parameter.protocol.ProtocolLibrary}
  * @author Noel Winstanley nw@jb.man.ac.uk 16-Jun-2004
  * @author Paul Harrison (paul.harrison@manchester.ac.uk) 2 Apr 2008
  *
@@ -36,7 +36,7 @@ public class DefaultProtocolLibrary implements ProtocolLibrary{
     map;
     /**
      * @param secGuard 
-     * @see org.javastro.ivoacore.uws.parameter.protocol.ProtocolLibrary#getExternalValue(org.javastro.ivoacore.uws.beans.v1.parameters.ParameterValue, SecurityGuard)
+     *
      */
     public ExternalValue getExternalValue(ParameterValue pval, SecurityGuard secGuard)
         throws InaccessibleExternalValueException, UnrecognizedProtocolException{
@@ -51,7 +51,7 @@ public class DefaultProtocolLibrary implements ProtocolLibrary{
     }
     /**
      * @param secGuard 
-     * @see org.javastro.ivoacore.uws.parameter.protocol.ProtocolLibrary#getExternalValue(URI, SecurityGuard)
+     *
      */
     public ExternalValue getExternalValue(URI reference, SecurityGuard secGuard) throws InaccessibleExternalValueException, UnrecognizedProtocolException {
         Protocol p = (Protocol) map.get(reference.getScheme());
@@ -64,20 +64,19 @@ public class DefaultProtocolLibrary implements ProtocolLibrary{
 
 
     /**
-     * @param secGuard 
-     * @see org.javastro.ivoacore.uws.parameter.protocol.ProtocolLibrary#getExternalValue(String, SecurityGuard)
+     * @param secGuard
      */
     public ExternalValue getExternalValue(String location, SecurityGuard secGuard) throws InaccessibleExternalValueException, UnrecognizedProtocolException, URISyntaxException {
         return getExternalValue(new URI(location), secGuard);
     }    
     /**
-     * @see org.javastro.ivoacore.uws.parameter.protocol.ProtocolLibrary#listSupportedProtocols()
+     * @see org.javastro.ivoacore.uws.environment.parameter.protocol.ProtocolLibrary#listSupportedProtocols()
      */
     public String[] listSupportedProtocols() {
         return (String[])map.keySet().toArray(new String[]{});
     }
     /**
-     * @see org.javastro.ivoacore.uws.parameter.protocol.ProtocolLibrary#isProtocolSupported(String)
+     * @see org.javastro.ivoacore.uws.environment.parameter.protocol.ProtocolLibrary#isProtocolSupported(String)
      */
     public boolean isProtocolSupported(String protocol) {
         return map.containsKey(protocol.toLowerCase());

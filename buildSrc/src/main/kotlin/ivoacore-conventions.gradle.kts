@@ -58,6 +58,10 @@ configurations.named("integrationTestImplementation").configure {
     extendsFrom(configurations.getByName(JavaPlugin.IMPLEMENTATION_CONFIGURATION_NAME))
 }
 
+tasks.withType<Javadoc> {
+    (options as StandardJavadocDocletOptions).tags("TODO:a:\"To Do:\".")
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {

@@ -17,18 +17,18 @@ import java.io.OutputStream;
 
 /**
  * The default implementation of
- * {@link org.javastro.ivoacore.uws.parameter.ParameterAdapter}
- * <p/>
+ * {@link org.javastro.ivoacore.uws.environment.parameter.ParameterAdapter}
+ * <p>
  * Handles both direct and indirect parameters, returning them as an in-memory
  * string.
  * 
- * @see org.javastro.ivoacore.uws.parameter.protocol.ProtocolLibrary#getExternalValue(ParameterValue,
+ * @see org.javastro.ivoacore.uws.environment.parameter.protocol.ProtocolLibrary#getExternalValue(ParameterValue,
  *      SecurityGuard)
  * @author Noel Winstanley (nw@jb.man.ac.uk)
  * @author Paul Harrison (pah@jb.man.ac.uk)
- * @todo should really do different things according to what the type of the
+ * @TODO should really do different things according to what the type of the
  *       parameter is.
- * @FIXME - binary encode in some fashion
+ * @TODO - binary encode in some fashion
  */
 public class DefaultParameterAdapter extends AbstractParameterAdapter {
     /**
@@ -37,7 +37,6 @@ public class DefaultParameterAdapter extends AbstractParameterAdapter {
      * @param val
      * @param description
      * @param dir 
-     * @param externalVal
      */
     public DefaultParameterAdapter(ParameterValue val,
                                    ParameterDescription description, ParameterDirection dir, ExecutionEnvironment env ){
@@ -53,7 +52,7 @@ public class DefaultParameterAdapter extends AbstractParameterAdapter {
     /**
      * retrieves the value for this parameter if the parameter is direct, just
      * return the value of the parameter value itself, if indirect, retrieve the
-     * value from the {@link #externalVal}
+     * value from the {@link org.javastro.ivoacore.uws.environment.parameter.protocol.ExternalValue}
      * 
      * @return always returns the string value of this parameter
      * */
