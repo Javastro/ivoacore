@@ -27,7 +27,7 @@ class JobManagerTest {
       JobFactoryAggregator agg = new JobFactoryAggregator();
       agg.addFactory(new SimpleLambdaJob.JobFactory(s-> {
          try {
-            Thread.sleep(3000);
+            Thread.sleep(2300);
          } catch (InterruptedException e) {
             throw new RuntimeException(e); //TODO review exception handling
          }
@@ -49,7 +49,7 @@ class JobManagerTest {
       //poll for completion - could do things with the
       while(jobManager.getPhase(id) != ExecutionPhase.COMPLETED) {
          System.out.println("Waiting for job "+id);
-        Thread.sleep(1000);
+        Thread.sleep(500);
       }
       assertFalse(job.getResults().isEmpty());
       job.getResults().forEach(r->System.out.println(r.getValue()));
