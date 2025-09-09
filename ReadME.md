@@ -1,6 +1,8 @@
 IVOA Core
 =========
 
+[![Java CI with Gradle](https://github.com/Javastro/ivoacore/actions/workflows/gradle.yml/badge.svg)](https://github.com/Javastro/ivoacore/actions/workflows/gradle.yml)
+
 The libraries in this collection implement some core ivoa service functionality without being directly coupled to a particular web interface/instance. The design of the libraries tries to take into account that services are likely to be deployed in a distributed asynchronous microservices style environment.
 
 
