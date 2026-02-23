@@ -6,7 +6,7 @@ dependencyResolutionManagement {
         mavenCentral()
         mavenLocal()
         maven {
-            url= uri("https://central.sonatype.com/repository/maven-snapshots/")
+            url= uri("https://repo.dev.uksrc.org/repository/maven-snapshots/")
         }
     }
 }
@@ -16,6 +16,7 @@ include("common")
 include("dal")
 include("uws")
 include("tap")
+include("pgsphere")
 include(":clients:registry")
 include(":clients:vospace")
 include(":clients:tap")
