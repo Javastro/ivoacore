@@ -14,10 +14,20 @@ import java.lang.reflect.Type;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Circle Java Type.
+ */
 public class CircleJavaType extends AbstractPgSphereJavaType<Circle> {
 
-
+   /**
+    * the single necessary instance.
+    */
     public static final CircleJavaType INSTANCE = new CircleJavaType(Circle.class);
+
+   /**
+    * Constructor. Use instance variable instead.
+    * @param type Type.
+    */
     protected CircleJavaType(Type type) {
         super(type);
     }

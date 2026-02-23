@@ -15,13 +15,24 @@ import java.lang.reflect.Type;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 //below does not seem to work.
 //@JavaTypeRegistration(javaType = Point.class, descriptorClass = PointJavaType.class)
+
+/**
+ * The Point JavaType.
+ */
 public class PointJavaType extends AbstractPgSphereJavaType<Point> {
 
-
+   /**
+    * the single necessary instance.
+    */
     public static final PointJavaType INSTANCE = new PointJavaType(Point.class);
-    protected PointJavaType(Type type) {
+   /**
+    * Constructor. Use instance variable instead.
+    * @param type Type.
+    */
+   protected PointJavaType(Type type) {
         super(type);
     }
 

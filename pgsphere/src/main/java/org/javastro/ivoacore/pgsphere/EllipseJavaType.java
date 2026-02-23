@@ -14,11 +14,20 @@ import java.lang.reflect.Type;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Ellipse JavaType.
+ */
 public class EllipseJavaType extends AbstractPgSphereJavaType<Ellipse> {
 
-
+   /**
+    * the single necessary instance.
+    */
     public static final EllipseJavaType INSTANCE = new EllipseJavaType(Ellipse.class);
-    protected EllipseJavaType(Type type) {
+   /**
+    * Constructor. Use instance variable instead.
+    * @param type Type.
+    */
+   protected EllipseJavaType(Type type) {
         super(type);
     }
 

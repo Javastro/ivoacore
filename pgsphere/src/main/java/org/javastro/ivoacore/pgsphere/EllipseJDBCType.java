@@ -12,7 +12,13 @@ package org.javastro.ivoacore.pgsphere;
 
 import org.hibernate.type.descriptor.jdbc.JdbcType;
 
+/**
+ * Ellipse JDBCType.
+ */
 public class EllipseJDBCType extends AbstractJDBCType implements JdbcType {
+   /**
+    * the single necessary instance.
+    */
    public static final JdbcType INSTANCE = new EllipseJDBCType();
 
    @Override

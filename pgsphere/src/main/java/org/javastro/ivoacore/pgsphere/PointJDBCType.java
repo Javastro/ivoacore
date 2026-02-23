@@ -13,7 +13,14 @@ package org.javastro.ivoacore.pgsphere;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
 
 //@JdbcTypeRegistration(PointJDBCType.class)
+
+/**
+ * The Point JDBCType.
+ */
 public class PointJDBCType  extends AbstractJDBCType implements JdbcType {
+   /**
+    * the single necessary instance.
+    */
    public static final JdbcType INSTANCE = new PointJDBCType();
 
    @Override

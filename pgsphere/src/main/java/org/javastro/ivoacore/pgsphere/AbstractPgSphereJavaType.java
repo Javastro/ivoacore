@@ -17,7 +17,15 @@ import org.postgresql.util.PGobject;
 
 import java.lang.reflect.Type;
 
+/**
+ * Base Cladd for all of the JavaTypes in PGSphere.
+ * @param <S> The actual PGSphere type.
+ */
 public abstract class AbstractPgSphereJavaType<S> extends AbstractJavaType<S> {
+   /**
+    * Constructor.
+    * @param type the type.
+    */
    protected AbstractPgSphereJavaType(Type type) {
       super(type);
    }
@@ -28,6 +36,11 @@ public abstract class AbstractPgSphereJavaType<S> extends AbstractJavaType<S> {
       return asString(value);
    }
 
+   /**
+    * create a string representation of the type.
+    * @param p An instance of the type.
+    * @return the string representation.
+    */
    public abstract String asString(S p);
 
    @Override

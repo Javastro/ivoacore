@@ -20,6 +20,9 @@ import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
  */
 public class PgSphereDialect extends PostgreSQLDialect {
 
+    /**
+     * Constructor.
+     */
     public PgSphereDialect() {
         super();
     }

@@ -22,8 +22,16 @@ import org.postgresql.util.PGobject;
 
 import java.sql.*;
 
+/**
+ * base class for all of the JDBCTypes in pgsphere.
+ *
+ */
 public abstract class  AbstractJDBCType  implements JdbcType {
 
+   /**
+    * return the pgsphere name for the type.
+    * @return the actual pgsphere type name.
+    */
    public abstract String getPGSphereTypeName();
 
    @Override
