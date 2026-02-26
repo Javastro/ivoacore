@@ -23,7 +23,7 @@ repositories {
 }
 
 dependencies {
-    implementation(platform("org.javastro:bom:2025.4"))
+    implementation(platform("org.javastro:bom:2026.1"))
     implementation("org.slf4j:slf4j-api")
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -110,7 +110,19 @@ publishing {
                 }
             }
         }
+    repositories {
+        maven { //Only publish here whilst developing initial versions - ultimately want maven central.
+            name = "uksrcrepo"
+            url = uri("https://repo.dev.uksrc.org/repository/maven-snapshots/")
+            credentials {
+                username = (findProperty("uksrcNexusUsername") ?: System.getenv("UKSRC_REPO_USERNAME")) as String?
+                password = (findProperty("uksrcNexusPassword") ?: System.getenv("UKSRC_REPO_PASSWORD")) as String?
+            }
+        }
     }
+
+}
+
 
 
 tasks.withType<GenerateModuleMetadata> {
