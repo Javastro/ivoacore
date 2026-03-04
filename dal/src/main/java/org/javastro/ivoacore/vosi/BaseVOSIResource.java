@@ -11,17 +11,16 @@ import org.javastro.ivoa.entities.vosi.capabilities.Capabilities;
  * Created on 28/08/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
-public class BaseVOSIResource {
-
+public abstract class BaseVOSIResource implements VOSIResource{
+//IMPL - there is not much point in this class if this is all that it does.....
    VOSIProvider provider;
 
    public BaseVOSIResource(VOSIProvider provider) {
       this.provider = provider;
    }
 
-   @GET
-   @Path("capabilities")
-   @Produces(MediaType.APPLICATION_XML)
+
+   @Override
    public Capabilities capabilities() {
       return provider.getCapabilities();
    }
