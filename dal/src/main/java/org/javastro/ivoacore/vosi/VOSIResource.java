@@ -14,6 +14,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import org.javastro.ivoa.entities.vosi.availability.Availability;
 import org.javastro.ivoa.entities.vosi.capabilities.Capabilities;
 
 public interface VOSIResource {
@@ -21,4 +22,11 @@ public interface VOSIResource {
    @Path("capabilities")
    @Produces(MediaType.APPLICATION_XML)
    Capabilities capabilities();
+
+   @GET
+   @Path("availability")
+   @Produces(MediaType.APPLICATION_XML)
+   Availability availability();
+
+
 }

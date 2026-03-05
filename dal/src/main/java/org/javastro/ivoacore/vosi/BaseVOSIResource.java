@@ -5,6 +5,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import org.javastro.ivoa.entities.vosi.availability.Availability;
 import org.javastro.ivoa.entities.vosi.capabilities.Capabilities;
 
 /*
@@ -12,7 +13,6 @@ import org.javastro.ivoa.entities.vosi.capabilities.Capabilities;
  */
 
 public abstract class BaseVOSIResource implements VOSIResource{
-//IMPL - there is not much point in this class if this is all that it does.....
    VOSIProvider provider;
 
    public BaseVOSIResource(VOSIProvider provider) {
@@ -25,4 +25,9 @@ public abstract class BaseVOSIResource implements VOSIResource{
       return provider.getCapabilities();
    }
 
+
+   @Override
+   public Availability availability() {
+      return Availability.builder().withAvailable(true).build(); //TODO really want to have easy mechanism for overriding - however this VOSI end point is not that useful in reality if it is attached to the
+   }
 }
