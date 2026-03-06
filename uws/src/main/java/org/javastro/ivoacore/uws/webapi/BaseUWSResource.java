@@ -10,6 +10,9 @@ package org.javastro.ivoacore.uws.webapi;
  */
 
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 import org.javastro.ivoa.entities.uws.*;
 import org.javastro.ivoacore.uws.JobManager;
 import org.javastro.ivoacore.uws.UWSException;
@@ -52,4 +55,34 @@ public abstract class BaseUWSResource implements UWS {
       return new ShortJobDescription(job.getPhase(), job.getRunId(), job.getOwnerId(),job.getCreationTime(), job.getJobId(), "type", "href");
    }
 
+   @POST
+   @Path("/{jobid}/phase")
+   public Response setPhase(@PathParam("jobid") String jobid, @FormParam("PHASE") String phase, @Context UriInfo uriInfo) throws UWSException {
+      ExecutionPhase newphase = getJobManager().setPhase(jobid, phase);
+      Response retval = Response.seeOther(uriInfo.getAbsolutePathBuilder()
+            .path(jobid).build()).build();
+
+      return retval;
+   }
+
+   @Override
+   @POST
+   @Path("/{jobid}/destruction")
+   public Response setDestruction(@PathParam("jobid")String jobId, @FormParam("DESTRUCTION") ZonedDateTime destructionTime, @Context UriInfo uriInfo) throws UWSException {
+      throw new UWSException("Not implemented");
+   }
+
+   @POST
+   @Path("/{jobid}/executionduration")
+   @Override
+   public Response setExecutionDuration(@PathParam("jobid")String jobId, @FormParam("EXECUTIONDURATION") Long executionDuration, @Context UriInfo uriInfo) throws UWSException {
+      throw new UWSException("Not implemented");
+   }
+
+   @Override
+   @DELETE
+   @Path("/{jobid}")
+   public Response deleteJob(@PathParam("jobid")String jobid, @Context UriInfo uriInfo) throws UWSException {
+      throw new UWSException("Not supported yet.");
+   }
 }

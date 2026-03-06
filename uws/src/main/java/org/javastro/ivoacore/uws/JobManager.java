@@ -7,7 +7,6 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Jobs;
-import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;

@@ -5,7 +5,9 @@ package org.javastro.ivoacore.uws;
  * Created on 06/03/2026 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.time.ZonedDateTime;
 
@@ -19,7 +21,7 @@ public interface UWSControl extends UWSCore {
     * @return
     * @throws UWSException
     */
-   Response setDestruction(String jobId, ZonedDateTime destructionTime) throws UWSException;
+   Response setDestruction(String jobId, ZonedDateTime destructionTime, @Context UriInfo uriInfo) throws UWSException;
 
    /**
     * @param jobId
@@ -27,7 +29,7 @@ public interface UWSControl extends UWSCore {
     * @return
     * @throws UWSException
     */
-   Response setExecutionDuration(String jobId, Long Long) throws UWSException;
+   Response setExecutionDuration(String jobId, Long Long, @Context UriInfo uriInfo) throws UWSException;
 
    /**
     * Delete a job.
@@ -36,6 +38,6 @@ public interface UWSControl extends UWSCore {
     * @return
     * @throws UWSException
     */
-   Response deleteJob(String jobId) throws UWSException;
+   Response deleteJob(String jobId, @Context UriInfo uriInfo) throws UWSException;
 
 }
