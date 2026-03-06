@@ -23,37 +23,18 @@ public class TAPJob extends BaseUWSJob {
 
    public static final String JOB_TYPE = "TAP";
    private final DataSource dataSource;
+   private final TAPJobSpecification tapJobSpec;
 
-   private String adqlQuery;
-   private Long maxrec;
-   private String responseFormat;
 
-   public TAPJob(String id, JobSpecification spec, DataSource ds) {
+   public TAPJob(String id, TAPJobSpecification spec, DataSource ds) {
       super(id,spec);
       this.dataSource = ds;
-      for(ParameterValue p : spec.getParameters()) {
-         switch (p.getId().toUpperCase()) {
-            case "QUERY":
-               adqlQuery = p.getValue();
-               break;
-            case "MAXREC":
-               maxrec = Long.parseLong(p.getValue());
-               break;
-            case "LANG":
-               //TODO must be ADQL - should throw here?
-               break;
-            case "RESPONSEFORMAT":
-               responseFormat = p.getValue();
-               break;
-            //FIXME need to support upload - think about parameterValue more.
-
-         }
-      }
+      this.tapJobSpec = spec;
    }
 
 
    @Override
-   public List<ParameterValue> runJob() {
+   public List<ParameterValue> performAction() {
       //FIXME - really query
       return List.of(new ParameterValue() {
          @Override
@@ -82,7 +63,17 @@ public class TAPJob extends BaseUWSJob {
 
       @Override
       public BaseUWSJob createJob(JobSpecification jobDescription) throws UWSException {
-         return new TAPJob(idProvider.generateId(),  jobDescription, ds);
+         if(jobDescription.jobTypeIdentifier().equals("TAP")) {
+            return new TAPJob(idProvider.generateId(), (TAPJobSpecification) jobDescription, ds);
+         }
+         else throw new UWSException("Invalid job type");
+
       }
+
+      public TAPJob createJob(DataSource ds, String query, String lang,  String responseformat,  Long maxrec, String runid,
+                               String upload)  {
+          return new TAPJob(idProvider.generateId(),new TAPJobSpecification(query,lang,responseformat,maxrec,runid,upload),ds);
+      }
+
    }
 }

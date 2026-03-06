@@ -7,11 +7,11 @@ import java.util.List;
 
 public interface Job {
 
-
    /**
-    * What the job actually does.
+    * What the job actually does. This is where the business logic of each job type is
+    * implemented.
     * @return A list of parameter Values.
     */
-    List<ParameterValue> runJob();
+    List<ParameterValue> performAction();
 
 }

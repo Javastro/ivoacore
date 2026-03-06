@@ -39,7 +39,7 @@ class JobManagerTest {
    }
 
    @Test
-   public void runJob() throws UWSException, InterruptedException {
+   public void performAction() throws UWSException, InterruptedException {
       SimpleLambdaJob.Specification spec = new SimpleLambdaJob.Specification("world", "myrefID");
       BaseUWSJob job = jobManager.createJob(spec);
       assertNotNull(job);
@@ -47,7 +47,7 @@ class JobManagerTest {
       assertNotNull(id);
       jobManager.runJob(id);
       //poll for completion - could do things with the
-      while(jobManager.getPhase(id) != ExecutionPhase.COMPLETED) {
+      while(jobManager.jobDetail(id).getPhase() != ExecutionPhase.COMPLETED) {
          System.out.println("Waiting for job "+id);
         Thread.sleep(500);
       }

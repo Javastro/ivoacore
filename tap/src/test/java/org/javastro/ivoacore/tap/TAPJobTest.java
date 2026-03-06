@@ -35,15 +35,15 @@ class TAPJobTest {
    }
 
    @Test
-   public void runJob() throws UWSException, InterruptedException {
-      SimpleTAPJobSpecification spec = new SimpleTAPJobSpecification("select * from Table");
+   public void performAction() throws UWSException, InterruptedException {
+      TAPJobSpecification spec = new TAPJobSpecification("select * from Table");
       BaseUWSJob job = jobManager.createJob(spec);
       assertNotNull(job);
       String id = job.getID();
       assertNotNull(id);
       jobManager.runJob(id);
       //poll for completion - could do things with the
-      while(jobManager.getPhase(id) != ExecutionPhase.COMPLETED) {
+      while(jobManager.jobDetail(id).getPhase() != ExecutionPhase.COMPLETED) {
          System.out.println("Waiting for job "+id);
          Thread.sleep(1000);
       }

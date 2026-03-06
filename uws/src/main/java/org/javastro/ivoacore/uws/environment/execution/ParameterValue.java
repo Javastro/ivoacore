@@ -9,7 +9,7 @@ package org.javastro.ivoacore.uws.environment.execution;
 /*
  * Created on 14/08/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
-//TODO should make this generic
+//TODO should make this generic to include underlying type
 public interface ParameterValue {
    String getValue();
 

@@ -6,6 +6,7 @@ package org.javastro.ivoacore.uws;
  */
 
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
+import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
 import java.util.List;
 import java.util.function.Function;
@@ -21,7 +22,7 @@ public class SimpleLambdaJob  extends BaseUWSJob {
    }
 
    @Override
-   public List<ParameterValue> runJob() {
+   public List<ParameterValue> performAction() {
       String val = jobSpecification.getParameters().stream().filter(p -> p.getId().equals("input")).findFirst().orElseThrow(IllegalAccessError::new).getValue();
       String res = function.apply(val);
 
@@ -64,23 +65,8 @@ public class SimpleLambdaJob  extends BaseUWSJob {
    public static class Specification extends BaseJobSpecification {
 
       public Specification(final String input, final String runID) {
-         super(runID);
-         this.theParameter = new ParameterValue() {
-            @Override
-            public String getValue() {
-               return input;
-            }
-
-            @Override
-            public boolean isIndirect() {
-               return false;
-            }
-
-            @Override
-            public String getId() {
-               return "input";
-            }
-         };
+         super(runID,List.of(new ImmutableStringValue("input", input)));
+         this.theParameter = getParameters().get(0);
       }
 
       final ParameterValue theParameter;
@@ -94,11 +80,6 @@ public class SimpleLambdaJob  extends BaseUWSJob {
          return "";
       }
 
-      @Override
-      public List<ParameterValue> getParameters() {
-
-         return List.of(theParameter);
-      }
    }
 
 

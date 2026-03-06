@@ -6,19 +6,24 @@ package org.javastro.ivoacore.uws;
  */
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
+import org.javastro.ivoa.entities.uws.Jobs;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
+import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.persist.JobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class JobManager implements ExecutionControl {
+public class JobManager implements ExecutionControl, UWSCore {
 
+   private static final Logger log = LoggerFactory.getLogger(JobManager.class);
    private final JobStore jobStore;
    private final ExecutionEnvironment environment;
    private final JobFactory jobFactory;
@@ -31,6 +36,8 @@ public class JobManager implements ExecutionControl {
       this.jobStore = jobStore;
       this.executionPolicy = executionPolicy;
       this.executorService = Executors.newFixedThreadPool(executionPolicy.getMaxConcurrent());
+      log.info("Created JobManager");
+
    }
 
    @Override
@@ -41,43 +48,57 @@ public class JobManager implements ExecutionControl {
    }
 
    @Override
-   public Set<String> listJobs() throws UWSException {
+   public Set<String> listJobIDs() throws UWSException {
       return jobStore.getAllIds();
    }
 
    @Override
+   public Jobs listJobs(String phase, ZonedDateTime after, Integer last) throws UWSException {
+      throw new UWSException("Not yet implemented");
+   }
+
+   @Override
    public org.javastro.ivoa.entities.uws.Job jobDetail(String jobId) throws UWSException {
-      return null;
+      return jobStore.retrieve(jobId).asJob();
    }
 
    @Override
    public ExecutionPhase setPhase(String jobId, String newPhase) throws UWSException {
-      return null;
+      BaseUWSJob job = jobStore.retrieve(jobId);
+      switch (newPhase.toUpperCase()) {//IMPL
+         case "RUN":
+            job.submitJobToRun(executorService);
+            break;
+         case "ABORT":
+            job.abort();
+            break;
+         default:
+            throw new UWSException("illegal phase " + newPhase);
+      }
+      return job.executionPhase;
    }
 
-   @Override
-   public ExecutionPhase getPhase(String jobId) throws UWSException {
-      return jobStore.retrieve(jobId).getExecutionPhase();
-   }
 
    @Override
    public ZonedDateTime setDestruction(String jobId, ZonedDateTime destructionTime) throws UWSException {
-      return null;
+      throw new UWSException("Not yet implemented");
    }
 
    @Override
-   public Duration setExecutionDuration(String jobId, Duration time) throws UWSException {
-      return null;
+   public Long setExecutionDuration(String jobId, Long duration) throws UWSException {
+      throw new UWSException("Not yet implemented");
    }
+
 
    @Override
    public void deleteJob(String jobId) throws UWSException {
-
+      throw new UWSException("Not yet implemented");
    }
 
    @Override
-   public Results getResults(String jobId) throws UWSException {
-      return null;
+   public List<ParameterValue> getJobResults(String jobId) throws UWSException {
+      //FIXME we really do not want to do this simplistic thing, but rather have a component that translates job results into their location
+      return jobStore.retrieve(jobId).getResults();
    }
 
    @Override
@@ -88,6 +109,6 @@ public class JobManager implements ExecutionControl {
 
    @Override
    public void abortJob(String jobId) throws UWSException {
-
+      jobStore.retrieve(jobId).abort();
    }
 }

@@ -4,6 +4,7 @@
  */
 /**
  * TODO rework/modernise, as parameter handling has been carried over from astrogrid code without much modification.
+ *   consider generics.
  *
  * 	Managing and Manpulating parameter values.
  * 		This class defines the abstraction of a {@link org.javastro.ivoacore.uws.environment.parameter.ParameterAdapter} - which provides a uniform way of handling parameters as
