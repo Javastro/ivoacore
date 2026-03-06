@@ -36,15 +36,29 @@ public class TAPJobSpecification extends BaseJobSpecification {
     */
    public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
                               String upload) {
-      super(runId,List.of(new ImmutableStringValue("QUERY", query),
-            new ImmutableStringValue("MAXREC",maxrec.toString()),
-            new ImmutableStringValue("RESPONSEFORMAT",responseformat),
-            new ImmutableStringValue("LANG",lang)));
+      super(runId,buildParameters(query,maxrec,responseformat,upload));
       this.adqlQuery = query;
       this.maxrec = maxrec;
       this.responseFormat = responseformat;
       this.lang = lang;
 
+   }
+
+   private static List<ParameterValue> buildParameters(String query, Long maxrec, String responseformat, String lang) {
+      List<ParameterValue> parameters = new ArrayList<>();
+      if (query != null) {
+         parameters.add(new ImmutableStringValue("QUERY", query));
+      }
+      if (maxrec != null) {
+         parameters.add(new ImmutableStringValue("MAXREC", maxrec.toString()));
+      }
+      if (responseformat != null) {
+         parameters.add(new ImmutableStringValue("RESPONSEFORMAT", responseformat));
+      }
+      if (lang != null) {
+         parameters.add(new ImmutableStringValue("LANG", lang));
+      }
+     return parameters;
    }
 
    public TAPJobSpecification(String query){
