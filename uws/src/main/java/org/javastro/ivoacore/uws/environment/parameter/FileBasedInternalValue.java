@@ -19,6 +19,10 @@ public class FileBasedInternalValue implements MutableInternalValue {
 
     private File file;
 
+    /**
+     * Constructs a FileBasedInternalValue using the given file as the backing store.
+     * @param storeLocation the file to use for storing the value.
+     */
     public FileBasedInternalValue(File storeLocation) {
         file = storeLocation;
     }
@@ -136,6 +140,11 @@ public class FileBasedInternalValue implements MutableInternalValue {
     }
     }
 
+    /**
+     * Returns an output stream to write directly to the file backing store.
+     * @return an {@link java.io.OutputStream} for writing to the file.
+     * @throws IOException if the file cannot be opened for writing.
+     */
     public OutputStream getStreamTo() throws IOException {
         return new FileOutputStream(file);
     }

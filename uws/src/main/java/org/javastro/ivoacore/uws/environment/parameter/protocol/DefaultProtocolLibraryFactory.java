@@ -15,6 +15,11 @@ public class DefaultProtocolLibraryFactory {
         super();
     }
     
+    /**
+     * Creates a {@link DefaultProtocolLibrary} pre-configured with all standard protocol implementations
+     * (file, FTP, HTTP).
+     * @return a new {@link DefaultProtocolLibrary} with standard protocols registered.
+     */
     public DefaultProtocolLibrary createLibrary() {
         DefaultProtocolLibrary lib = new DefaultProtocolLibrary(new Protocol[]{
         new FileProtocol(),new FtpProtocol(),new HttpProtocol()});

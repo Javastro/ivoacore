@@ -15,5 +15,24 @@ package org.javastro.ivoacore.uws.description;
  * Yet an
  */
 public enum ParameterType {
-   INTEGER,REAL,STRING,COMPLEX,BOOLEAN, VOTABLE, IMAGE,SPECTRUM,FITS, DATETIME; // etc...
+   /** Integer numeric parameter. */
+   INTEGER,
+   /** Real (floating point) numeric parameter. */
+   REAL,
+   /** String parameter. */
+   STRING,
+   /** Complex number parameter. */
+   COMPLEX,
+   /** Boolean parameter. */
+   BOOLEAN,
+   /** VOTable parameter. */
+   VOTABLE,
+   /** Image data parameter. */
+   IMAGE,
+   /** Spectrum data parameter. */
+   SPECTRUM,
+   /** FITS file parameter. */
+   FITS,
+   /** Date/time parameter. */
+   DATETIME; // etc...
 }

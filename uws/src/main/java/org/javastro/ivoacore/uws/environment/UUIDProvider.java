@@ -7,6 +7,9 @@ package org.javastro.ivoacore.uws.environment;
 
 import java.util.UUID;
 
+/**
+ * An {@link IdProvider} that generates random UUID-based identifiers.
+ */
 public class UUIDProvider implements IdProvider {
 
    @Override

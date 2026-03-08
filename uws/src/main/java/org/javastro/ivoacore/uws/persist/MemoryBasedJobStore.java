@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * An in-memory implementation of {@link JobStore} using a {@link java.util.concurrent.ConcurrentHashMap}.
+ */
 public class MemoryBasedJobStore implements JobStore {
 
    final Map<String, BaseUWSJob> jobs = new ConcurrentHashMap<>();

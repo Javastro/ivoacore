@@ -11,11 +11,19 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
+/**
+ * Default implementation of {@link ExecutionEnvironment} that uses the local file system for working directories.
+ */
 public class DefaultExecutionEnvironment implements ExecutionEnvironment {
 
     File baseDir;
    SecurityGuard securityGuard;
    private static final Logger logger = LoggerFactory.getLogger(DefaultExecutionEnvironment.class.getName());
+
+   /**
+    * Constructs a DefaultExecutionEnvironment with the given base directory for job working directories.
+    * @param baseDir the base directory under which per-job working directories will be created.
+    */
    public DefaultExecutionEnvironment(File baseDir) {
       this.baseDir = baseDir;
       logger.info("Execution Environment baseDir: {} ", baseDir.getAbsolutePath());

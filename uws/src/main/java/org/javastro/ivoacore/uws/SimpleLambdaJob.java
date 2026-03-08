@@ -11,11 +11,20 @@ import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * A simple UWS job that delegates its execution to a Java {@link java.util.function.Function}.
+ */
 public class SimpleLambdaJob  extends BaseUWSJob {
 
    private static final String SIMPLE_LAMBDA = "simpleLambda";
    final Function<String,String> function;
 
+   /**
+    * Constructs a SimpleLambdaJob with the given ID, function, and specification.
+    * @param jobID the unique identifier for this job.
+    * @param func the function that implements the job's action.
+    * @param jobSpecification the specification for this job.
+    */
    protected SimpleLambdaJob(String jobID, Function<String, String> func, JobSpecification jobSpecification) {
       super(jobID, jobSpecification);
       this.function = func;
@@ -45,10 +54,17 @@ public class SimpleLambdaJob  extends BaseUWSJob {
       });
    }
 
+   /**
+    * Factory for creating {@link SimpleLambdaJob} instances.
+    */
    public static class JobFactory extends BaseJobFactory {
 
       private final Function<String, String> theFunc;
 
+      /**
+       * Constructs a JobFactory for SimpleLambdaJob using the given function.
+       * @param func the function that the created jobs will execute.
+       */
       public JobFactory(Function<String, String> func) {
          super(SIMPLE_LAMBDA, "a job that runs natively in JVM ", true);
          this.theFunc = func;
@@ -62,8 +78,16 @@ public class SimpleLambdaJob  extends BaseUWSJob {
       }
    }
 
+   /**
+    * Job specification for a {@link SimpleLambdaJob}, providing a single string input parameter.
+    */
    public static class Specification extends BaseJobSpecification {
 
+      /**
+       * Constructs a Specification with the given input value and run ID.
+       * @param input the input string to pass to the lambda function.
+       * @param runID the run identifier for this job.
+       */
       public Specification(final String input, final String runID) {
          super(runID,List.of(new ImmutableStringValue("input", input)));
          this.theParameter = getParameters().get(0);

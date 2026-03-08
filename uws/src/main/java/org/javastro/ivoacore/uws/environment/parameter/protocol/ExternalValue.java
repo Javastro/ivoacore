@@ -17,11 +17,13 @@ import java.io.OutputStream;
 public interface ExternalValue {
     /** access a stream to read the contents of the external value from 
      * @return an input stream containing the content of the external value
-     * @throws InaccessibleExternalValueException*/
+     * @throws InaccessibleExternalValueException if the external value cannot be accessed.
+     */
     InputStream read() throws InaccessibleExternalValueException;
     /** access a stream to write the contents of the external value to 
      * @return an output stream.
-     * @throws InaccessibleExternalValueException*/
+     * @throws InaccessibleExternalValueException if the external value cannot be accessed.
+     */
     OutputStream write() throws InaccessibleExternalValueException;
     
     /**

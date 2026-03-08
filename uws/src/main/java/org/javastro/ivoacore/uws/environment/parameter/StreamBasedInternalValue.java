@@ -29,6 +29,12 @@ public class StreamBasedInternalValue implements MutableInternalValue {
     private ProtocolLibrary lib;
     private ExecutionEnvironment env;
     
+    /**
+     * Constructs a StreamBasedInternalValue wrapping the given parameter value.
+     * @param val the parameter value providing the reference.
+     * @param lib the protocol library for resolving indirect references.
+     * @param env the execution environment.
+     */
     public StreamBasedInternalValue(ParameterValue val, ProtocolLibrary lib, ExecutionEnvironment env) {
         this.val = val;
         this.lib = lib;
@@ -88,6 +94,12 @@ public class StreamBasedInternalValue implements MutableInternalValue {
         throw new UnsupportedOperationException(
                 "StreamBasedInternalValue.writeToStream() not implemented");
     }
+    /**
+     * Returns an output stream to write a value to the backing store (for indirect parameters only).
+     * @return an output stream for the external storage location.
+     * @throws ParameterAdapterException if the external value cannot be accessed.
+     * @throws UnrecognizedProtocolException if the URI protocol is not recognized.
+     */
     public OutputStream getStreamTo() throws ParameterAdapterException, UnrecognizedProtocolException {
         if(val.isIndirect())
         {

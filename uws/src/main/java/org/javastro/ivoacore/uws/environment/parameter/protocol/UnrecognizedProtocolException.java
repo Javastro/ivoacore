@@ -10,14 +10,14 @@ import org.javastro.ivoacore.uws.environment.parameter.ParameterAdapterException
  */
 public class UnrecognizedProtocolException extends ParameterAdapterException {
     /** Construct a new UnrecognizedIndirectParameterProtocolException
-     * @param message
+     * @param message the detail message.
      */
     public UnrecognizedProtocolException(String message) {
         super(message);
     }
     /** Construct a new UnrecognizedIndirectParameterProtocolException
-     * @param message
-     * @param cause
+     * @param message the detail message.
+     * @param cause the cause of this exception.
      */
     public UnrecognizedProtocolException(String message, Throwable cause) {
         super(message, cause);

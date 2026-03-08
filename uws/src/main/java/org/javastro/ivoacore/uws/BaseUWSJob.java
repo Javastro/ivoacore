@@ -28,16 +28,29 @@ import java.util.function.Supplier;
  */
 public abstract class BaseUWSJob implements Job {
    private static final Logger logger = LoggerFactory.getLogger(BaseUWSJob.class.getName());
+   /** The unique identifier for this job. */
    private final String jobID;
+   /** The current execution phase of this job. */
    protected ExecutionPhase executionPhase;
+   /** The time at which this job was created. */
    protected ZonedDateTime creationTime;
+   /** The time at which this job started executing. */
    protected ZonedDateTime startTime;
+   /** The time at which this job finished executing. */
    protected ZonedDateTime endTime;
+   /** The specification describing this job's parameters and type. */
    protected final JobSpecification jobSpecification;
+   /** The list of result parameter values produced by this job. */
    protected List<ParameterValue> results = new ArrayList<>();
+   /** The future representing the asynchronous execution of this job. */
    protected CompletableFuture<List<ParameterValue>> jobFuture;
 
 
+   /**
+    * Constructs a new BaseUWSJob with the given job ID and specification.
+    * @param jobID the unique identifier for this job.
+    * @param jobSpecification the specification describing the job's parameters and type.
+    */
    protected BaseUWSJob(String jobID,JobSpecification jobSpecification) {
       this.jobSpecification = jobSpecification;
       this.jobID = jobID;
@@ -45,22 +58,42 @@ public abstract class BaseUWSJob implements Job {
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
 
+   /**
+    * Returns the future representing the asynchronous execution of this job.
+    * @return the {@link CompletableFuture} for this job's execution.
+    */
    public CompletableFuture<List<ParameterValue>> getJobFuture() {
       return jobFuture;
    }
 
+   /**
+    * Returns the unique identifier for this job.
+    * @return the job ID string.
+    */
    public String getID() {
       return jobID;
    }
 
+   /**
+    * Returns the specification describing this job.
+    * @return the {@link JobSpecification} for this job.
+    */
    public JobSpecification getJobSpecification() {
       return jobSpecification;
    }
 
+   /**
+    * Returns the list of result parameter values produced by this job.
+    * @return the list of result {@link ParameterValue} objects.
+    */
    public List<ParameterValue> getResults() {
       return results;
    }
 
+   /**
+    * Returns the current execution phase of this job.
+    * @return the current {@link ExecutionPhase}.
+    */
    public ExecutionPhase getExecutionPhase() {
       return executionPhase;
    }
@@ -78,6 +111,10 @@ public abstract class BaseUWSJob implements Job {
       };
    }
 
+   /**
+    * Submits this job for asynchronous execution using the given executor service.
+    * @param executorService the executor service to use for running the job.
+    */
     void submitJobToRun(ExecutorService executorService)  {
       jobFuture = CompletableFuture.supplyAsync(getJobCallable(),executorService).thenApply(p->results=p);//TODO perhaps the API should really deal with the CompletableFuture, with that stored in the JobStore
    }
@@ -85,7 +122,7 @@ public abstract class BaseUWSJob implements Job {
 
    /**
     * creates an interface version of the job.
-    * @return
+    * @return the UWS {@link org.javastro.ivoa.entities.uws.Job} representation of this job.
     */
    public org.javastro.ivoa.entities.uws.Job asJob() {
       org.javastro.ivoa.entities.uws.Job.Builder<Void> builder = org.javastro.ivoa.entities.uws.Job.builder()
@@ -109,6 +146,10 @@ public abstract class BaseUWSJob implements Job {
       return builder.build();
    }
 
+   /**
+    * Returns the results of this job as a UWS {@link Results} object.
+    * @return the {@link Results} containing references to the job's output parameters.
+    */
    public Results getJobResults() {
       //FIXME - this is too simplistic at the moment - need to fetch things properly - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
      Results.Builder<Void> resultsBuilder = Results.builder();
@@ -120,6 +161,9 @@ public abstract class BaseUWSJob implements Job {
 
    }
 
+   /**
+    * Aborts this job if it is currently running.
+    */
    public void abort() {
       boolean cancelled = jobFuture.cancel(true);//TODO need to set the status when this happens
       if (cancelled) {

@@ -17,10 +17,17 @@ public class DefaultInternalValue implements MutableInternalValue {
     
     private String value = null;
 
+    /**
+     * Constructs a DefaultInternalValue with the given string value.
+     * @param value2 the initial string value.
+     */
     public DefaultInternalValue(String value2) {
        this.value = value2;
     }
 
+    /**
+     * Constructs a DefaultInternalValue with no initial value.
+     */
     public DefaultInternalValue() {
        
     }
@@ -41,6 +48,11 @@ public class DefaultInternalValue implements MutableInternalValue {
         return BinaryEncodings.NONE;
     }
 
+    /**
+     * Sets the internal value by reading from the given {@link InputStreamReader}.
+     * @param ir the reader to read the value from.
+     * @throws ParameterStorageException if the value cannot be read.
+     */
     public void setValue(InputStreamReader ir) throws ParameterStorageException {
         StringWriter sw = null;
         try {

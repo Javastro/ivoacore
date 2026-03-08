@@ -5,6 +5,9 @@ import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 
 import java.util.List;
 
+/**
+ * Represents the executable part of a UWS job that performs the actual work.
+ */
 public interface Job {
 
    /**

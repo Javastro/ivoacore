@@ -10,14 +10,14 @@ import org.javastro.ivoacore.uws.environment.parameter.ParameterAdapterException
  */
 public class InaccessibleExternalValueException extends ParameterAdapterException {
     /** Construct a new InaccessibleIndirectParameterException
-     * @param message
+     * @param message the detail message.
      */
     public InaccessibleExternalValueException(String message) {
         super(message);
     }
     /** Construct a new InaccessibleIndirectParameterException
-     * @param message
-     * @param cause
+     * @param message the detail message.
+     * @param cause the cause of this exception.
      */
     public InaccessibleExternalValueException(String message, Throwable cause) {
         super(message, cause);

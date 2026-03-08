@@ -15,7 +15,9 @@ import java.util.Map;
  *
  */
 public class DefaultProtocolLibrary implements ProtocolLibrary{
-    /** add a protocol to the set supported by this library */
+    /** add a protocol to the set supported by this library
+     * @param p the protocol to add.
+     */
     public void addProtocol(Protocol p) {
         map.put(p.getProtocolName().toLowerCase(),p);
         
@@ -24,6 +26,7 @@ public class DefaultProtocolLibrary implements ProtocolLibrary{
     
     /** Construct a new DefaultIndirectionProtocolLibrary
      * n.b. this will not work with picocontainer now
+     * @param protocols the array of protocols to register in this library.
      */
     public DefaultProtocolLibrary(Protocol[]protocols) {
         super();
@@ -32,11 +35,16 @@ public class DefaultProtocolLibrary implements ProtocolLibrary{
           addProtocol(protocol);
        }
     }
+    /** The map of protocol name to protocol handler. */
     protected final Map<String,Protocol>
     map;
     /**
-     * @param secGuard 
-     *
+     * Builds an external value for a particular indirect parameter value.
+     * @param pval the parameter value containing the reference URI.
+     * @param secGuard the security guard for access control.
+     * @return an external value for this parameter.
+     * @throws InaccessibleExternalValueException if the external value cannot be accessed.
+     * @throws UnrecognizedProtocolException if the protocol scheme is not recognized.
      */
     public ExternalValue getExternalValue(ParameterValue pval, SecurityGuard secGuard)
         throws InaccessibleExternalValueException, UnrecognizedProtocolException{
@@ -50,8 +58,12 @@ public class DefaultProtocolLibrary implements ProtocolLibrary{
         return getExternalValue(reference, secGuard);
     }
     /**
-     * @param secGuard 
-     *
+     * Builds an external value from a URI.
+     * @param reference the URI to resolve.
+     * @param secGuard the security guard for access control.
+     * @return an external value for this URI.
+     * @throws InaccessibleExternalValueException if the external value cannot be accessed.
+     * @throws UnrecognizedProtocolException if the URI protocol / scheme is not recognized.
      */
     public ExternalValue getExternalValue(URI reference, SecurityGuard secGuard) throws InaccessibleExternalValueException, UnrecognizedProtocolException {
         Protocol p = (Protocol) map.get(reference.getScheme());
@@ -64,7 +76,13 @@ public class DefaultProtocolLibrary implements ProtocolLibrary{
 
 
     /**
-     * @param secGuard
+     * Builds an external value from a URI string.
+     * @param location the string representation of the URI.
+     * @param secGuard the security guard for access control.
+     * @return an external value for this location.
+     * @throws InaccessibleExternalValueException if the external value cannot be accessed.
+     * @throws UnrecognizedProtocolException if the URI protocol / scheme is not recognized.
+     * @throws URISyntaxException if the location string is not a valid URI.
      */
     public ExternalValue getExternalValue(String location, SecurityGuard secGuard) throws InaccessibleExternalValueException, UnrecognizedProtocolException, URISyntaxException {
         return getExternalValue(new URI(location), secGuard);

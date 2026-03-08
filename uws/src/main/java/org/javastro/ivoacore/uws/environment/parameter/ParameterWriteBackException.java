@@ -13,15 +13,17 @@ package org.javastro.ivoacore.uws.environment.parameter;
 public class ParameterWriteBackException extends ParameterAdapterException {
 
    /**
-    * @param message
+    * Constructs a ParameterWriteBackException with the given message.
+    * @param message the detail message.
     */
    public ParameterWriteBackException(String message) {
       super(message);
    }
 
    /**
-    * @param message
-    * @param cause
+    * Constructs a ParameterWriteBackException with the given message and cause.
+    * @param message the detail message.
+    * @param cause the cause of this exception.
     */
    public ParameterWriteBackException(String message, Throwable cause) {
       super(message, cause);

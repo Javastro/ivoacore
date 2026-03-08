@@ -18,7 +18,8 @@ public interface Protocol {
      * @param reference the uri to build an instance for.
      * @param secGuard TODO
      * @return a handler for this uri.
-     * @throws InaccessibleExternalValueException*/
+     * @throws InaccessibleExternalValueException if the value cannot be accessed for the given URI.
+     */
     ExternalValue createIndirectValue(final URI reference, final SecurityGuard secGuard) throws InaccessibleExternalValueException;
 }
 
