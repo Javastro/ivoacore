@@ -124,7 +124,17 @@ publishing {
         }
     }
 
+extra["isReleaseVersion"] = !version.toString().endsWith("SNAPSHOT")
 
+signing {
+    useGpgCmd()
+    sign(publishing.publications["maven"])
+
+}
+
+tasks.withType<Sign>().configureEach {
+    onlyIf("isReleaseVersion is set") { project.extra["isReleaseVersion"] as Boolean }
+}
 
 
 
