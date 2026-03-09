@@ -17,12 +17,23 @@ import jakarta.ws.rs.core.MediaType;
 import org.javastro.ivoa.entities.vosi.availability.Availability;
 import org.javastro.ivoa.entities.vosi.capabilities.Capabilities;
 
+/**
+ * JAX-RS resource interface exposing the IVOA VOSI (Virtual Observatory Support Interface) endpoints.
+ */
 public interface VOSIResource {
+   /**
+    * Returns the capabilities of this service.
+    * @return the VOSI {@link Capabilities} document.
+    */
    @GET
    @Path("capabilities")
    @Produces(MediaType.APPLICATION_XML)
    Capabilities capabilities();
 
+   /**
+    * Returns the availability of this service.
+    * @return the VOSI {@link Availability} document.
+    */
    @GET
    @Path("availability")
    @Produces(MediaType.APPLICATION_XML)

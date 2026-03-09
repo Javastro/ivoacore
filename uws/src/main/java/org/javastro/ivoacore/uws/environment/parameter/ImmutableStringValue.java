@@ -12,11 +12,19 @@ package org.javastro.ivoacore.uws.environment.parameter;
 
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 
+/**
+ * An immutable {@link ParameterValue} backed by a fixed string.
+ */
 public class ImmutableStringValue implements ParameterValue {
 
    private final String val;
    private final String name;
 
+   /**
+    * Constructs an ImmutableStringValue with the given name and value.
+    * @param name the parameter identifier.
+    * @param val the parameter value string.
+    */
    public ImmutableStringValue(String name,String val) {
       this.val = val;
       this.name = name;

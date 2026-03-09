@@ -16,10 +16,18 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility class for building IVOA VOSI capability lists.
+ */
 public class CapabilityBuilder {
 
    private CapabilityBuilder(){}
 
+   /**
+    * Creates a list of standard VOSI capabilities for the given service URL.
+    * @param url the base URL of the service.
+    * @return a list of {@link Capability} objects for the VOSI capabilities and availability endpoints.
+    */
    static public List<Capability> createCapabilities(URL url) {
       List<Capability> capabilities = new ArrayList<>();
       capabilities.add(Capability.builder().withStandardID("ivo://ivoa.net/std/VOSI#capabilities").build());//FIXE add sufficient detail

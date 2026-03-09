@@ -13,13 +13,13 @@ public interface ParameterAdapter {
     /** do what it takes to get the actual value for this parameter (used for input parameters).
      * 
      * @return the actual value for this parameter ( or some symbolic representation of it)
-     * @throws UWSException
+     * @throws UWSException if the parameter value cannot be retrieved.
      */
     MutableInternalValue getInternalValue() throws UWSException;
     /**
      * write out this parameter (used for output parameters).
      * 
-     * @throws UWSException
+     * @throws UWSException if the parameter cannot be written back.
      */
     void writeBack() throws UWSException;
     

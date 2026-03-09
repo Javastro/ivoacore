@@ -19,6 +19,10 @@ import org.javastro.ivoacore.uws.UWSException;
 
 import java.time.ZonedDateTime;
 
+/**
+ * Base JAX-RS resource implementation of the {@link UWS} interface, providing default
+ * HTTP endpoint implementations delegating to a {@link JobManager}.
+ */
 public abstract class BaseUWSResource implements UWS {
 
    /**
@@ -50,11 +54,24 @@ public abstract class BaseUWSResource implements UWS {
    }
 
 
+   /**
+    * Creates a {@link ShortJobDescription} from the given {@link Job}.
+    * @param job the job to shorten.
+    * @return a short description of the job.
+    */
    private ShortJobDescription shorten(Job job)
    {
       return new ShortJobDescription(job.getPhase(), job.getRunId(), job.getOwnerId(),job.getCreationTime(), job.getJobId(), "type", "href");
    }
 
+   /**
+    * Sets the execution phase of a job (e.g., to "RUN" or "ABORT") and redirects to the job resource.
+    * @param jobid the identifier of the job.
+    * @param phase the new phase string.
+    * @param uriInfo JAX-RS URI information for building the redirect response.
+    * @return a 303 redirect response to the job resource.
+    * @throws UWSException if the phase transition fails.
+    */
    @POST
    @Path("/{jobid}/phase")
    public Response setPhase(@PathParam("jobid") String jobid, @FormParam("PHASE") String phase, @Context UriInfo uriInfo) throws UWSException {

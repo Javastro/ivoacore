@@ -15,6 +15,10 @@ public class JobFactoryAggregator implements JobFactory {
 
    private final Map<String, JobFactory> jobFactoryMap=new HashMap<>();
 
+   /**
+    * Adds a {@link JobFactory} to this aggregator, registering it by its job type.
+    * @param factory the factory to add.
+    */
    public void addFactory(JobFactory factory)
    {
       jobFactoryMap.put(factory.jobType(), factory);

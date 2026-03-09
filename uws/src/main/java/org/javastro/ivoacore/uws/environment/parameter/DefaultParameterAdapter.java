@@ -34,9 +34,10 @@ public class DefaultParameterAdapter extends AbstractParameterAdapter {
     /**
      * Constructor.
      * 
-     * @param val
-     * @param description
-     * @param dir 
+     * @param val the parameter value to adapt.
+     * @param description the description associated with this parameter.
+     * @param dir the direction (input or output) of the parameter.
+     * @param env the execution environment providing access to working directories and security.
      */
     public DefaultParameterAdapter(ParameterValue val,
                                    ParameterDescription description, ParameterDirection dir, ExecutionEnvironment env ){
@@ -83,6 +84,10 @@ public class DefaultParameterAdapter extends AbstractParameterAdapter {
         return internalVal;
     }
 
+    /**
+     * Creates a new empty {@link InternalValue} for this parameter.
+     * @return a new {@link DefaultInternalValue} instance.
+     */
     protected InternalValue createInternalValue() {
         return new DefaultInternalValue();
     }

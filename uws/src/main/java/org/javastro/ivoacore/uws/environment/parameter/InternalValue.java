@@ -23,15 +23,15 @@ public interface InternalValue {
      * Return the internal value as a string. If the internal value is actually
      * binary in nature then the value should be text encoded in some fashion.
      * 
-     * @return
-     * @throws ParameterAdapterException 
+     * @return the string representation of the internal value.
+     * @throws ParameterAdapterException if the value cannot be retrieved as a string.
      */
     String asString() throws ParameterAdapterException;
 
     /**
      * Return the type of the binary encoding.
      * 
-     * @return
+     * @return the {@link BinaryEncodings} type used for this value.
      */
     BinaryEncodings getStringEncoding();
 
@@ -45,7 +45,7 @@ public interface InternalValue {
     /**
      * The size of the value in bytes.
      * 
-     * @return
+     * @return the size in bytes.
      */
     long size();
 
@@ -55,7 +55,7 @@ public interface InternalValue {
      * @param os
      *            the outputstream to write the value to. Note that the stream
      *            is not closed.
-     * @throws IOException
+     * @throws IOException if the value cannot be written to the stream.
      */
     void writeToStream(OutputStream os) throws IOException;
     
@@ -63,8 +63,8 @@ public interface InternalValue {
     /**
      * Get a stream to read the internal value;
      * @TODO do we really want to support this in the interface - not possible for String based internal values.
-     * @return
-     * @throws UWSException
+     * @return an {@link InputStream} to read the internal value.
+     * @throws UWSException if the stream cannot be opened.
      */
     InputStream getStreamFrom() throws UWSException;
 

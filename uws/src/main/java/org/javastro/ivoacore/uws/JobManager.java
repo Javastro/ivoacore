@@ -20,6 +20,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Manager for UWS jobs that handles creation, execution, and lifecycle management of jobs.
+ */
 public class JobManager implements ExecutionControl, UWSCore {
 
    private static final Logger log = LoggerFactory.getLogger(JobManager.class);
@@ -29,6 +32,13 @@ public class JobManager implements ExecutionControl, UWSCore {
    private final ExecutionPolicy executionPolicy;
    final ExecutorService executorService;
 
+   /**
+    * Constructs a new JobManager with the given environment, factory, store and policy.
+    * @param environment the execution environment for jobs.
+    * @param jobFactory the factory for creating jobs.
+    * @param jobStore the persistent store for job instances.
+    * @param executionPolicy the policy governing execution constraints.
+    */
    public JobManager(ExecutionEnvironment environment, JobFactory jobFactory, JobStore jobStore, ExecutionPolicy executionPolicy) {
       this.environment = environment;
       this.jobFactory = jobFactory;

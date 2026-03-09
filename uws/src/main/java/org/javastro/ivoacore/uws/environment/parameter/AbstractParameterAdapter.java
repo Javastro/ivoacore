@@ -21,6 +21,7 @@ public abstract class AbstractParameterAdapter implements ParameterAdapter {
 /** Construct a new AbstractParameterAdapter
     * @param val the parameter value to adapt.
     * @param description the description associated with this value.
+    * @param direction the direction of the parameter (input or output).
     * @param env wrapper around the external location that contains the true value of the parameter (in case of direct parameters, is null) 
     */
    public AbstractParameterAdapter(ParameterValue val, ParameterDescription description, ParameterDirection direction, ExecutionEnvironment env) {
@@ -39,12 +40,21 @@ public abstract class AbstractParameterAdapter implements ParameterAdapter {
    /** the parameter direction - whether input or output */
 protected ParameterDirection direction;
   
+   /** cached internal value - populated lazily on first access */
    protected MutableInternalValue internalVal = null;
    
+   /**
+    * Returns the wrapped parameter value.
+    * @return the {@link ParameterValue} this adapter wraps.
+    */
    public ParameterValue getWrappedParameter() {
         return val;
     }
 
+   /**
+    * Returns the protocol library used for resolving indirect parameter values.
+    * @return the {@link ProtocolLibrary} instance.
+    */
    protected ProtocolLibrary getProtocolLib() {
        return new DefaultProtocolLibraryFactory().createLibrary();
    }

@@ -14,7 +14,7 @@ public interface ExecutionPolicy {
     
     /**
      * Returns the maximum run time for applications in seconds. A value of 0 implies unlimited run times;
-     * @return
+     * @return the maximum run time in seconds, or 0 for unlimited.
      */
     int getMaxRunTime();
 
@@ -28,7 +28,7 @@ public interface ExecutionPolicy {
     
     /**
      * Returns the default lifetime for a job record in seconds.
-     * @return
+     * @return the default lifetime in seconds.
      */
     int getDefaultLifetime();
     
@@ -41,7 +41,7 @@ public interface ExecutionPolicy {
 
     /**
      * The maximum number of jobs that can run concurrently
-     * @return
+     * @return the maximum number of concurrently running jobs.
      */
     int getMaxConcurrent();
 }

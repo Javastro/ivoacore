@@ -9,14 +9,14 @@ import org.javastro.ivoacore.uws.UWSException;
  */
 public class ParameterAdapterException extends UWSException {
     /** Construct a new ParameterAdapterException
-     * @param message
+     * @param message the detail message.
      */
     public ParameterAdapterException(String message) {
         super(message);
     }
     /** Construct a new ParameterAdapterException
-     * @param message
-     * @param cause
+     * @param message the detail message.
+     * @param cause the cause of this exception.
      */
     public ParameterAdapterException(String message, Throwable cause) {
         super(message, cause);
