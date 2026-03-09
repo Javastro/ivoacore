@@ -17,7 +17,7 @@ repositories {
 
     //TODO - Vollt TAP dependencies from our repo (updated to Jakarta)
     maven {
-        url= uri("https://repo.dev.uksrc.org/repository/maven-snapshots/")
+        url= uri("https://repo.dev.uksrc.org/repository/maven-public/")
     }
 
 }
@@ -113,22 +113,25 @@ publishing {
     repositories {
         maven { //Only publish here whilst developing initial versions - ultimately want maven central.
             name = "uksrcrepo"
-            url = uri("https://repo.dev.uksrc.org/repository/maven-snapshots/")
             credentials {
                 username = (findProperty("uksrcNexusUsername") ?: System.getenv("UKSRC_REPO_USERNAME")) as String?
                 password = (findProperty("uksrcNexusPassword") ?: System.getenv("UKSRC_REPO_PASSWORD")) as String?
             }
+            val releasesRepoUrl = uri("https://repo.dev.uksrc.org/repository/maven-releases/")
+            val snapshotsRepoUrl = uri("https://repo.dev.uksrc.org/repository/maven-snapshots/")
+            url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
+            }
         }
     }
 
-}
 
 
 
-tasks.withType<GenerateModuleMetadata> {
-    // gradle does not like to publish the 'enforced-platform' and so warns against it
-    // not sure if it is harmful in our case - have changed to just platform to avoid the warning.
-    // perhaps look
-    // https://dev.to/mfvanek/creation-and-usage-of-bom-in-gradle-ca1
-    //suppressedValidationErrors.add("enforced-platform")
-}
+
+//tasks.withType<GenerateModuleMetadata> {
+//    // gradle does not like to publish the 'enforced-platform' and so warns against it
+//    // not sure if it is harmful in our case - have changed to just platform to avoid the warning.
+//    // perhaps look
+//    // https://dev.to/mfvanek/creation-and-usage-of-bom-in-gradle-ca1
+//    //suppressedValidationErrors.add("enforced-platform")
+//}
