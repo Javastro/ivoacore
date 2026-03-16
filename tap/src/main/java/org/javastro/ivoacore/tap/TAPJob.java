@@ -19,13 +19,21 @@ import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import javax.sql.DataSource;
 import java.util.List;
 
+/**
+ * A UWS {@link org.javastro.ivoacore.uws.Job} that executes a TAP (Table Access Protocol) query.
+ */
 public class TAPJob extends BaseUWSJob {
 
    public static final String JOB_TYPE = "TAP";
    private final DataSource dataSource;
    private final TAPJobSpecification tapJobSpec;
 
-
+   /**
+    * Constructs a new TAPJob with the given identifier, specification and data source.
+    * @param id the unique identifier for this job.
+    * @param spec the TAP job specification containing query parameters.
+    * @param ds the JDBC data source to execute the query against.
+    */
    public TAPJob(String id, TAPJobSpecification spec, DataSource ds) {
       super(id,spec);
       this.dataSource = ds;
@@ -54,8 +62,16 @@ public class TAPJob extends BaseUWSJob {
       });
    }
 
+   /**
+    * Factory for creating {@link TAPJob} instances.
+    */
    public static class JobFactory extends BaseJobFactory {
       private final DataSource ds;
+
+      /**
+       * Constructs a JobFactory using the given data source.
+       * @param ds the JDBC data source used to execute TAP queries.
+       */
       public JobFactory(DataSource ds) {
          super(JOB_TYPE, "Runs TAP jobs", true);
          this.ds = ds;
@@ -70,9 +86,25 @@ public class TAPJob extends BaseUWSJob {
 
       }
 
+      /**
+       * Creates a TAP job from individual query parameters.
+       * @param ds the JDBC data source to execute the query against. Note that the factory's
+       *           configured data source is used when creating the job to ensure consistency.
+       * @param query the ADQL query string.
+       * @param lang the query language (e.g. "ADQL").
+       * @param responseformat the desired response format (e.g. "votable").
+       * @param maxrec the maximum number of records to return.
+       * @param runid the run identifier for this job.
+       * @param upload the upload parameter value, or {@code null} if not used.
+       * @return a new {@link TAPJob} with the specified parameters.
+       */
       public TAPJob createJob(DataSource ds, String query, String lang,  String responseformat,  Long maxrec, String runid,
                                String upload)  {
-          return new TAPJob(idProvider.generateId(),new TAPJobSpecification(query,lang,responseformat,maxrec,runid,upload),ds);
+          return new TAPJob(
+                  idProvider.generateId(),
+                  new TAPJobSpecification(query, lang, responseformat, maxrec, runid, upload),
+                  this.ds
+          );
       }
 
    }

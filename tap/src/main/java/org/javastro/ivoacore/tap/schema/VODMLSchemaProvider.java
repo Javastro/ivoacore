@@ -27,6 +27,10 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A {@link SchemaProvider} that reads TAP schema definitions from VO-DML model resources
+ * and converts them to the VOSI tables representation.
+ */
 public class VODMLSchemaProvider implements SchemaProvider {
 
    private static final Logger log = LoggerFactory.getLogger(VODMLSchemaProvider.class);
@@ -36,6 +40,11 @@ public class VODMLSchemaProvider implements SchemaProvider {
    final private XsltCompiler compiler;
    private final Tableset tableSet;
 
+   /**
+    * Constructs a VODMLSchemaProvider by loading the named TAP schema resource.
+    * The standard TAP_SCHEMA is always loaded in addition to the named resource.
+    * @param tapSchemaResource the classpath resource path of the VO-DML TAP schema XML file.
+    */
    public VODMLSchemaProvider(String tapSchemaResource) {
       processor = new Processor(false);
       compiler = processor.newXsltCompiler();

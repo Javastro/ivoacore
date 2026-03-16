@@ -32,7 +32,11 @@ public class TAPJobSpecification extends BaseJobSpecification {
    /**
     * Create the Job Specification.
     * @param query the ADQL query.
-    * @param runId
+    * @param lang the query language (e.g. "ADQL").
+    * @param responseformat the desired response format (e.g. "votable").
+    * @param maxrec the maximum number of records to return.
+    * @param runId the run identifier for this job.
+    * @param upload the upload parameter value, or {@code null} if not used.
     */
    public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
                               String upload) {
@@ -61,6 +65,10 @@ public class TAPJobSpecification extends BaseJobSpecification {
      return parameters;
    }
 
+   /**
+    * Convenience constructor for a simple TAP query using default settings.
+    * @param query the ADQL query string.
+    */
    public TAPJobSpecification(String query){
       this(query,"ADQL","votable", 5000L,null,null);
    }
