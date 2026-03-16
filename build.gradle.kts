@@ -26,6 +26,7 @@ val aggregateJavadoc by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     setDestinationDir(layout.buildDirectory.dir("docs/javadoc").get().asFile)
     title = "${rootProject.name} ${rootProject.version} API"
+    (options as StandardJavadocDocletOptions).tags("TODO:a:\"To Do:\".")
 }
 
 subprojects {

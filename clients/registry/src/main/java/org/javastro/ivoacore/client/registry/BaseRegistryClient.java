@@ -17,12 +17,20 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Base implementation of {@link MinimalRegistryInterface} that retrieves registry resources
+ * via an OAI-PMH {@link OAIInterface}.
+ */
 public class BaseRegistryClient implements MinimalRegistryInterface {
 
 
    OAIInterface oaiInterface;
    XMLUtils xmlutils = new XMLUtils();
 
+   /**
+    * Constructs a BaseRegistryClient using the given OAI-PMH interface.
+    * @param oaiInterface the OAI-PMH interface to communicate with the registry.
+    */
    BaseRegistryClient(OAIInterface oaiInterface) {
       this.oaiInterface = oaiInterface;
    }
