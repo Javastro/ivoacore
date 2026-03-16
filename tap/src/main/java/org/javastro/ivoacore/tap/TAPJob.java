@@ -88,7 +88,8 @@ public class TAPJob extends BaseUWSJob {
 
       /**
        * Creates a TAP job from individual query parameters.
-       * @param ds the JDBC data source to execute the query against.
+       * @param ds the JDBC data source to execute the query against. Note that the factory's
+       *           configured data source is used when creating the job to ensure consistency.
        * @param query the ADQL query string.
        * @param lang the query language (e.g. "ADQL").
        * @param responseformat the desired response format (e.g. "votable").
@@ -99,7 +100,11 @@ public class TAPJob extends BaseUWSJob {
        */
       public TAPJob createJob(DataSource ds, String query, String lang,  String responseformat,  Long maxrec, String runid,
                                String upload)  {
-          return new TAPJob(idProvider.generateId(),new TAPJobSpecification(query,lang,responseformat,maxrec,runid,upload),ds);
+          return new TAPJob(
+                  idProvider.generateId(),
+                  new TAPJobSpecification(query, lang, responseformat, maxrec, runid, upload),
+                  this.ds
+          );
       }
 
    }
