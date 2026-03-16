@@ -1,6 +1,5 @@
 plugins {
 //    id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
-    id("kr.motd.sphinx") version "2.10.1"
 }
 
 //TODO when finished with SNAPSHOT phase revert to publishing to maven-central
@@ -46,12 +45,22 @@ subprojects {
 }
 
 // ---------------------------------------------------------------------------
-// Sphinx documentation configuration (kr.motd.sphinx plugin)
+// Sphinx documentation configuration
 // ---------------------------------------------------------------------------
 
-tasks.named("sphinx", kr.motd.gradle.sphinx.gradle.SphinxTask::class.java) {
-    setSourceDirectory("${projectDir}/doc")
-    setOutputDirectory("${layout.buildDirectory.get().asFile}/site")
+tasks.register<Exec>("sphinx") {
+    description = "Runs sphinx command. N.B sphinx needs to be already installed on the path"
+    val sourceDir = layout.projectDirectory.dir("doc")
+    val outputDir = layout.buildDirectory.dir("site").get()
+
+    executable = "sphinx-build"
+
+    // Arguments for sphinx-build: [options] <sourcedir> <outputdir>
+    args("-b", "html", sourceDir.asFile.absolutePath, outputDir.asFile.absolutePath)
+
+    inputs.dir(sourceDir)
+    outputs.dir(outputDir)
+
     dependsOn(aggregateJavadoc)
     doLast {
         copy {
