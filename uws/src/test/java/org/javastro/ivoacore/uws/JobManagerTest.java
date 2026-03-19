@@ -1,6 +1,7 @@
 package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
+import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
@@ -31,10 +32,10 @@ class JobManagerTest {
          } catch (InterruptedException e) {
             throw new RuntimeException(e); //TODO review exception handling
          }
-         return "hello "+s;}));
+         return "hello "+s;},new DefaultEnvironmentFactory(tmpdir)));
       MemoryBasedJobStore store = new MemoryBasedJobStore();
       DefaultExecutionPolicy policy = new DefaultExecutionPolicy();
-      jobManager = new JobManager(new DefaultExecutionEnvironment(tmpdir), agg, store, policy
+      jobManager = new JobManager( agg, store, policy
       );
    }
 

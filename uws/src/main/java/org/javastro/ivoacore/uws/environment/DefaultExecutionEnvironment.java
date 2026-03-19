@@ -16,16 +16,19 @@ import java.io.File;
  */
 public class DefaultExecutionEnvironment implements ExecutionEnvironment {
 
-    File baseDir;
+   File baseDir;
    SecurityGuard securityGuard;
    private static final Logger logger = LoggerFactory.getLogger(DefaultExecutionEnvironment.class.getName());
+
+   private final String jobID;
 
    /**
     * Constructs a DefaultExecutionEnvironment with the given base directory for job working directories.
     * @param baseDir the base directory under which per-job working directories will be created.
     */
-   public DefaultExecutionEnvironment(File baseDir) {
+   public DefaultExecutionEnvironment(File baseDir, String jobID) {
       this.baseDir = baseDir;
+      this.jobID = jobID;
       logger.info("Execution Environment baseDir: {} ", baseDir.getAbsolutePath());
    }
 
@@ -35,8 +38,8 @@ public class DefaultExecutionEnvironment implements ExecutionEnvironment {
    }
 
    @Override
-   public File getWorkDir(String id) {
-      File retval = new File(this.baseDir, id);
+   public File getWorkDir() {
+      File retval = new File(this.baseDir, jobID);
       if(!retval.mkdirs())
       {
          throw new RuntimeException("Unable to create work dir "+retval.getAbsolutePath());

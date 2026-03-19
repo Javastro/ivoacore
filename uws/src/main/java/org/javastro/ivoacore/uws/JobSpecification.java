@@ -10,7 +10,9 @@ import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import java.util.List;
 
 /**
- * defines the specification of the Job.
+ * Defines the specification of the Job.  This is external to the Job itself and is used to create the Job.
+ * It contains the parameters and other information needed to create and execute the job. It does not contain any information about
+ * *how* the job is run, that is the responsibility of the {@link JobManager} and the {@link JobFactory}.
  */
 public interface JobSpecification {
 

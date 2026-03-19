@@ -5,11 +5,6 @@
 
 package org.javastro.ivoacore.tap.schema;
 
-
-/*
- * Created on 02/03/2026 by Paul Harrison (paul.harrison@manchester.ac.uk).
- */
-
 import org.ivoa.dm.tapschema.Schema;
 import org.javastro.ivoa.entities.vosi.tables.Tableset;
 

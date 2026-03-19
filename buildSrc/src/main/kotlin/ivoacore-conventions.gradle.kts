@@ -2,6 +2,7 @@ plugins {
     `java-library`
     `jvm-test-suite`
     `maven-publish`
+    jacoco
     signing
 }
 

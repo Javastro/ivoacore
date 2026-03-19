@@ -17,10 +17,10 @@ public interface ExecutionEnvironment {
 
    /**
     * Returns the working directory for the job with the given identifier.
-    * @param id the job identifier.
+    *
     * @return the working directory {@link File} for the job.
     */
-   File getWorkDir(String id);
+   File getWorkDir();
 
    /**
     * Returns a temporary file for the given identifier.

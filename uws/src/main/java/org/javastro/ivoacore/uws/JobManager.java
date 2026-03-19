@@ -7,7 +7,7 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Jobs;
-import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
+import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.persist.JobStore;
@@ -27,20 +27,17 @@ public class JobManager implements ExecutionControl, UWSCore {
 
    private static final Logger log = LoggerFactory.getLogger(JobManager.class);
    private final JobStore jobStore;
-   private final ExecutionEnvironment environment;
    private final JobFactory jobFactory;
    private final ExecutionPolicy executionPolicy;
    final ExecutorService executorService;
 
    /**
     * Constructs a new JobManager with the given environment, factory, store and policy.
-    * @param environment the execution environment for jobs.
     * @param jobFactory the factory for creating jobs.
     * @param jobStore the persistent store for job instances.
     * @param executionPolicy the policy governing execution constraints.
     */
-   public JobManager(ExecutionEnvironment environment, JobFactory jobFactory, JobStore jobStore, ExecutionPolicy executionPolicy) {
-      this.environment = environment;
+   public JobManager(JobFactory jobFactory, JobStore jobStore, ExecutionPolicy executionPolicy) {
       this.jobFactory = jobFactory;
       this.jobStore = jobStore;
       this.executionPolicy = executionPolicy;

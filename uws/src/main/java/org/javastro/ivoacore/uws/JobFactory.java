@@ -10,6 +10,7 @@ public interface JobFactory extends JobType { //TODO not quite right that JobFac
 
    /**
     * Creates a new {@link BaseUWSJob} from the given job specification.
+    *
     * @param jobDescription the specification describing the job to create.
     * @return the created job.
     * @throws UWSException if the job cannot be created.

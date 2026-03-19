@@ -11,6 +11,7 @@ package org.javastro.ivoacore.uws;
  */
 
 import org.javastro.ivoa.entities.uws.*;
+import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,12 +52,16 @@ public abstract class BaseUWSJob implements Job {
     * @param jobID the unique identifier for this job.
     * @param jobSpecification the specification describing the job's parameters and type.
     */
-   protected BaseUWSJob(String jobID,JobSpecification jobSpecification) {
+   protected BaseUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment) {
       this.jobSpecification = jobSpecification;
       this.jobID = jobID;
+      this.executionEnvironment = executionEnvironment;
       this.executionPhase = ExecutionPhase.PENDING;
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
+
+   /** The execution environment for this job. */
+   protected final ExecutionEnvironment executionEnvironment;
 
    /**
     * Returns the future representing the asynchronous execution of this job.
@@ -104,10 +109,19 @@ public abstract class BaseUWSJob implements Job {
          logger.info("Starting job execution of {}", jobID);
          executionPhase = ExecutionPhase.EXECUTING;
          startTime = ZonedDateTime.now(ZoneId.of("UTC"));
-         List<ParameterValue> retval = performAction();
-         executionPhase = ExecutionPhase.COMPLETED;
-         endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-         return retval;
+         try {
+            List<ParameterValue> retval = performAction();
+            executionPhase = ExecutionPhase.COMPLETED;
+            endTime = ZonedDateTime.now(ZoneId.of("UTC"));
+            return retval;
+         }
+         catch (Exception e) {
+            logger.error("Error during execution of job {}: {}", jobID, e.getMessage(), e);
+            executionPhase = ExecutionPhase.ERROR;
+            endTime = ZonedDateTime.now(ZoneId.of("UTC"));
+            throw new RuntimeException("Error during job execution: " + e.getMessage(), e);
+         }
+
       };
    }
 

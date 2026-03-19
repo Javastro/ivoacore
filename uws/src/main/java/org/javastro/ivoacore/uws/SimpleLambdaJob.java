@@ -5,6 +5,8 @@ package org.javastro.ivoacore.uws;
  * Created on 04/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
+import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
@@ -25,8 +27,8 @@ public class SimpleLambdaJob  extends BaseUWSJob {
     * @param func the function that implements the job's action.
     * @param jobSpecification the specification for this job.
     */
-   protected SimpleLambdaJob(String jobID, Function<String, String> func, JobSpecification jobSpecification) {
-      super(jobID, jobSpecification);
+   protected SimpleLambdaJob(String jobID, ExecutionEnvironment executionEnvironment, Function<String, String> func, JobSpecification jobSpecification) {
+      super(jobID, jobSpecification, executionEnvironment);
       this.function = func;
    }
 
@@ -65,8 +67,8 @@ public class SimpleLambdaJob  extends BaseUWSJob {
        * Constructs a JobFactory for SimpleLambdaJob using the given function.
        * @param func the function that the created jobs will execute.
        */
-      public JobFactory(Function<String, String> func) {
-         super(SIMPLE_LAMBDA, "a job that runs natively in JVM ", true);
+      public JobFactory(Function<String, String> func, EnvironmentFactory environmentFactory) {
+         super(SIMPLE_LAMBDA, "a job that runs natively in JVM ", true, environmentFactory);
          this.theFunc = func;
       }
 
@@ -74,7 +76,8 @@ public class SimpleLambdaJob  extends BaseUWSJob {
 
       @Override
       public BaseUWSJob createJob(JobSpecification jobDescription) throws UWSException {
-         return new SimpleLambdaJob(idProvider.generateId(),  theFunc, jobDescription);
+         final String jobID = idProvider.generateId();
+         return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription);
       }
    }
 
