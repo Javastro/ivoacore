@@ -44,8 +44,10 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
    protected final XsltCompiler compiler;
    final List<Schema> schemas = new ArrayList<>();
    protected final Tableset tableSet;
+   protected final boolean dbCaseSensitive;
 
-   public BaseSchemaProvider() {
+   public BaseSchemaProvider(boolean dbCaseSensitive) {
+      this.dbCaseSensitive = dbCaseSensitive;
       processor = new Processor(false);
       compiler = processor.newXsltCompiler();
       schemas.addAll(provideSchemas());
@@ -69,11 +71,16 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
     return tableSet;
    }
 
+   @Override
+   public boolean isDBCaseSensitive() {
+      return dbCaseSensitive;
+   }
+
    /*
-      IMPL it might be more efficient to try to do this, but actually as only fairly small does not really matter.
-      https://stackoverflow.com/questions/56590224/is-it-possible-to-create-an-xsl-transformer-output-stream
-      so go via string representations.
-       */
+         IMPL it might be more efficient to try to do this, but actually as only fairly small does not really matter.
+         https://stackoverflow.com/questions/56590224/is-it-possible-to-create-an-xsl-transformer-output-stream
+         so go via string representations.
+          */
    private Tableset writeVOSI() throws SaxonApiException, JAXBException {
          XsltExecutable stylesheet = null;
          try {

@@ -38,6 +38,7 @@ public class TestSchemaProvider extends BaseSchemaProvider implements SchemaProv
    private final XsltExecutable stylesheet;
 
    public TestSchemaProvider() {
+      super(false);
       try {
          stylesheet = compiler.compile(new StreamSource(TapschemaModel.class.getResourceAsStream("/tap2schemaDDL.xsl")));
       } catch (SaxonApiException e) {

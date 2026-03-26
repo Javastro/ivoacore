@@ -21,6 +21,7 @@ import adql.translator.PgSphereTranslator;
 import adql.translator.TranslationException;
 import org.javastro.ivoacore.tap.schema.MetadataTransformer;
 import org.javastro.ivoacore.tap.schema.SchemaProvider;
+import org.javastro.ivoacore.tap.schema.TapADQLColumn;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
@@ -39,7 +40,10 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A UWS {@link Job} that executes a TAP (Table Access Protocol) query.
@@ -79,11 +83,11 @@ public class TAPJob extends BaseUWSJob {
          // Set the DBChecker to the parser:
          parser.setQueryChecker(checker);
          // Parse ADQL:
-         ADQLSet query = parser.parseQuery(tapJobSpec.adqlQuery); //IMPL do we need this again? can it be safely cast to ADQLQuery?
+         ADQLSet query = parser.parseQuery(tapJobSpec.adqlQuery);
 
          ADQLTranslator translator = new PgSphereTranslator();
          String sql = translator.translate(query);
-         log.debug("Translated ADQL query to SQL: {}", sql);
+         log.info("Translated ADQL query to SQL: {}", sql);
 
 
          Connector connector = () -> dataSource.getConnection(); //IMPL new connection each time requested - STIL documentation implies that is what is desired.
@@ -98,6 +102,27 @@ public class TAPJob extends BaseUWSJob {
                new DefaultValueInfo("RUNID", String.class, "TAP run identifier"),
                tapJobSpec.getRunId()
          ));
+
+         Arrays.stream(query.getResultingColumns())
+               .forEach(col -> {
+                  log.info( "ADQL column: {} table {}", col.getADQLName(), col.getTable().getADQLName());
+               });
+         Map<String, TapADQLColumn> columnMap = Arrays.stream(query.getResultingColumns())
+               .collect(Collectors.toMap(
+                     col -> col.getADQLName(),
+                     col -> (TapADQLColumn) col
+
+               ));
+
+         for (int i = 0; i < table.getColumnCount(); i++) {
+            ColumnInfo colInfo = table.getColumnInfo(i);
+            log.info(" Stil Column {}: name={}, class={}, description={}", i, colInfo.getName(), colInfo.getContentClass(), colInfo.getDescription());
+            TapADQLColumn adqlColInfo = columnMap.get(colInfo.getName());
+            colInfo.setDescription(adqlColInfo.getDescription());
+            colInfo.setUnitString(adqlColInfo.getUnitString());
+            colInfo.setUCD(adqlColInfo.getUcd());
+            colInfo.setUtype(adqlColInfo.getUtype());
+         }
 //TODO would like to write nice metadata about the columns
 
 //                 ColumnInfo col0 = table.getColumnInfo(0);

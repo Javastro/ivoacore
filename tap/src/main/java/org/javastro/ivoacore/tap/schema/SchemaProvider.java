@@ -25,4 +25,10 @@ public interface SchemaProvider {
     * @return the {@link Tableset} representation of the TAP schema.
     */
    Tableset asVOSI();
+
+   /**
+    * Is the database case sensitive. This is needed by ADQLLib to determine how to handle identifiers.
+    * @return
+    */
+   boolean isDBCaseSensitive();
 }

@@ -11,7 +11,6 @@ package org.javastro.ivoacore.tap.schema;
  */
 
 import jakarta.xml.bind.*;
-import net.sf.saxon.s9api.*;
 import org.ivoa.dm.tapschema.ColNameKeys;
 import org.ivoa.dm.tapschema.Schema;
 import org.ivoa.dm.tapschema.TapschemaModel;
@@ -36,9 +35,12 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
    /**
     * Constructs a VODMLSchemaProvider by loading the named TAP schema resource.
     * The standard TAP_SCHEMA is always loaded in addition to the named resource.
-    * @param tapSchemaResource the classpath resource path of the VO-DML TAP schema XML file.
+    *
+    * @param tapSchemaResource   the classpath resource path of the VO-DML TAP schema XML file.
+    * @param isDbCaseSensitive is the database case sensitive.
     */
-   public VODMLSchemaProvider(String tapSchemaResource) {
+   public VODMLSchemaProvider(String tapSchemaResource, boolean isDbCaseSensitive) {
+      super(isDbCaseSensitive);
       this.tapSchemaResource = tapSchemaResource;
 
    }

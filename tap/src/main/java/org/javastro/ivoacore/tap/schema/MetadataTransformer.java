@@ -7,8 +7,6 @@ package org.javastro.ivoacore.tap.schema;
 
 import adql.db.DBTable;
 import adql.db.DBType;
-import adql.db.DefaultDBColumn;
-import adql.db.DefaultDBTable;
 import org.ivoa.dm.tapschema.TAPType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,14 +37,8 @@ public class MetadataTransformer {
       List<DBTable> result = new ArrayList<DBTable>();
       for (var s : schemaProvider.getSchemas()) {
          for (var t : s.getTables()) {
-            //TODO need to worry about case sensitivity - possibly mapping different ADQL names to DB names
-            DefaultDBTable dbTable = new DefaultDBTable(t.getTable_name().toUpperCase(), null);
-            dbTable.setADQLSchemaName(s.getSchema_name().toUpperCase());
-            dbTable.setDBSchemaName(null);
-            for (var c : t.getColumns()) {
-               DefaultDBColumn dbColumn = new DefaultDBColumn(c.getColumn_name().toUpperCase(), null, mapDbType(c.getDatatype()), dbTable);
-               dbTable.addColumn(dbColumn);
-            }
+            TapADQLTable dbTable = new TapADQLTable(s, t, schemaProvider.isDBCaseSensitive());
+            t.getColumns().forEach(c->new TapADQLColumn(dbTable, c));
             result.add(dbTable);
          }
       }
@@ -54,7 +46,7 @@ public class MetadataTransformer {
       return result;
    }
 
-   private DBType mapDbType(TAPType datatype) {
+   public static  DBType mapDbType(TAPType datatype) {
       //IMPL this is a bit ugly, would be much better to have a mapping table of some sort, but for now this is fine
       //TODO there are some ADQL types that are not in TAPSchema - e.g. circle, interval, etc. - need to decide how to handle these
       DBType result;
