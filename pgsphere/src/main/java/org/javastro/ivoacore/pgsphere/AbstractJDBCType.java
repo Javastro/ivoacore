@@ -17,7 +17,6 @@ import org.hibernate.type.descriptor.java.JavaType;
 import org.hibernate.type.descriptor.jdbc.BasicBinder;
 import org.hibernate.type.descriptor.jdbc.BasicExtractor;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
-import org.javastro.ivoacore.pgsphere.types.Shape;
 import org.postgresql.util.PGobject;
 
 import java.sql.*;
@@ -35,13 +34,8 @@ public abstract class  AbstractJDBCType  implements JdbcType {
    public abstract String getPGSphereTypeName();
 
    @Override
-   public int getDefaultSqlTypeCode() {
-      return Types.OTHER;
-   }
-
-   @Override
    public int getJdbcTypeCode() {
-      return Types.OTHER;
+      return getDdlTypeCode(); // make this code the standard JDBC type code the same as the DDL type code, which is what we use in the database.
    }
 
    @Override

@@ -2,7 +2,7 @@ plugins {
     id("ivoacore-conventions")
 }
 description = "IVOA Spherical Geometry library"
-version = "0.9-SNAPSHOT"
+version = "0.9.1-SNAPSHOT"
 
 dependencies {
     implementation("org.postgresql:postgresql:42.7.3")
