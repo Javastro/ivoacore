@@ -30,8 +30,8 @@ public interface UWS extends UWSControl {
      */
     @GET
     @Path("/{jobid}/phase")
-    default ExecutionPhase getPhase(@PathParam("jobid") String jobid) throws UWSException {
-        return  jobDetail(jobid).getPhase();
+    default String getPhase(@PathParam("jobid") String jobid) throws UWSException {
+        return  jobDetail(jobid).getPhase().value();
     }
 
     /**
