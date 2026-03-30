@@ -44,7 +44,7 @@ public abstract class BaseUWSJob implements Job {
    /** The list of result parameter values produced by this job. */
    protected List<ParameterValue> results = new ArrayList<>();
    /** The future representing the asynchronous execution of this job. */
-   protected CompletableFuture<List<ParameterValue>> jobFuture;
+   protected CompletableFuture<ExecutionPhase> jobFuture;
    /** Any exception that occurred during the execution of this job. */
    protected UWSException exception;
 
@@ -69,7 +69,7 @@ public abstract class BaseUWSJob implements Job {
     * Returns the future representing the asynchronous execution of this job.
     * @return the {@link CompletableFuture} for this job's execution.
     */
-   public CompletableFuture<List<ParameterValue>> getJobFuture() {
+   public CompletableFuture<ExecutionPhase> getJobFuture() {
       return jobFuture;
    }
 
@@ -106,23 +106,24 @@ public abstract class BaseUWSJob implements Job {
    }
 
 
-   private Supplier<List<ParameterValue>> getJobCallable() {
+   private Supplier<ExecutionPhase> getJobCallable() {
       return () -> {
          logger.info("Starting job execution of {}", jobID);
          executionPhase = ExecutionPhase.EXECUTING;
          startTime = ZonedDateTime.now(ZoneId.of("UTC"));
          try {
-            List<ParameterValue> retval = performAction();
+            results = performAction();
             executionPhase = ExecutionPhase.COMPLETED;
             endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-            return retval;
+            logger.info("Finished execution of {}", jobID);
+            return executionPhase;
          }
          catch (UWSException e) {
             logger.error("Error during execution of job {}: {}", jobID, e.getMessage(), e);
             executionPhase = ExecutionPhase.ERROR;
             endTime = ZonedDateTime.now(ZoneId.of("UTC"));
             exception = e;
-            return List.of(); // no results -- TODO what about partial results if job failed after producing some results?
+            return executionPhase;
          }
 
       };
@@ -133,7 +134,7 @@ public abstract class BaseUWSJob implements Job {
     * @param executorService the executor service to use for running the job.
     */
     void submitJobToRun(ExecutorService executorService)  {
-      jobFuture = CompletableFuture.supplyAsync(getJobCallable(),executorService).thenApply(p->results=p);//TODO perhaps the API should really deal with the CompletableFuture, with that stored in the JobStore
+      jobFuture = CompletableFuture.supplyAsync(getJobCallable(),executorService).thenApply(e ->{logger.info("Job {} completed with phase {}", jobID, e); return e;});//TODO perhaps the API should really deal with the CompletableFuture, with that stored in the JobStore
    }
 
 
@@ -161,7 +162,7 @@ public abstract class BaseUWSJob implements Job {
          builder.withErrorSummary(new ErrorSummary(exception.getMessage(),ErrorType.FATAL,true));
       }
       if (!results.isEmpty()) {
-         builder.withResults(getJobResults());
+         builder.withResults(createExternalJobResult());
       }
 
       return builder.build();
@@ -171,16 +172,7 @@ public abstract class BaseUWSJob implements Job {
     * Returns the results of this job as a UWS {@link Results} object.
     * @return the {@link Results} containing references to the job's output parameters.
     */
-   public Results getJobResults() {
-      //FIXME - this is too simplistic at the moment - need to fetch things properly - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
-     Results.Builder<Void> resultsBuilder = Results.builder();
-
-           for (ParameterValue pv : results) {
-              resultsBuilder.addResults(ResultReference.builder().withId(pv.getId()).withHref("./results/"+pv.getId()).build()); //IMPL will not work
-           }
-     return resultsBuilder.build();
-
-   }
+   public abstract Results createExternalJobResult();
 
    /**
     * Aborts this job if it is currently running.

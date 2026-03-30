@@ -5,6 +5,8 @@ package org.javastro.ivoacore.uws;
  * Created on 04/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import org.javastro.ivoa.entities.uws.ResultReference;
+import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
@@ -33,6 +35,18 @@ public class SimpleLambdaJob  extends BaseUWSJob {
    }
 
    @Override
+   public Results createExternalJobResult() {
+      //FIXME - this is too simplistic at the moment - need to fetch things properly - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
+      Results.Builder<Void> resultsBuilder = Results.builder();
+
+      for (ParameterValue pv : results) {
+         resultsBuilder.addResults(ResultReference.builder().withId(pv.getId()).withHref("./results/"+pv.getId()).build()); //IMPL will not work
+      }
+      return resultsBuilder.build();
+
+   }
+
+   @Override
    public List<ParameterValue> performAction() {
       String val = jobSpecification.getParameters().stream().filter(p -> p.getId().equals("input")).findFirst().orElseThrow(IllegalAccessError::new).getValue();
       String res = function.apply(val);
@@ -54,6 +68,8 @@ public class SimpleLambdaJob  extends BaseUWSJob {
             return "result";
          }
       });
+
+
    }
 
    /**
@@ -79,6 +95,8 @@ public class SimpleLambdaJob  extends BaseUWSJob {
          final String jobID = idProvider.generateId();
          return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription);
       }
+
+
    }
 
    /**

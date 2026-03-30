@@ -15,6 +15,6 @@ public interface Job {
     * implemented.
     * @return A list of parameter Values.
     */
-    List<ParameterValue> performAction() throws UWSException; //FIXME this should just be a void - have a separate method to return results
+    List<ParameterValue> performAction() throws UWSException;
 
 }

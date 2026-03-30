@@ -19,6 +19,8 @@ import adql.query.ADQLSet;
 import adql.translator.ADQLTranslator;
 import adql.translator.PgSphereTranslator;
 import adql.translator.TranslationException;
+import org.javastro.ivoa.entities.uws.ResultReference;
+import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.tap.schema.MetadataTransformer;
 import org.javastro.ivoacore.tap.schema.SchemaProvider;
 import org.javastro.ivoacore.tap.schema.TapADQLColumn;
@@ -105,7 +107,7 @@ public class TAPJob extends BaseUWSJob {
 
          Arrays.stream(query.getResultingColumns())
                .forEach(col -> {
-                  log.info( "ADQL column: {} table {}", col.getADQLName(), col.getTable().getADQLName());
+                  log.debug( "ADQL column: {} table {}", col.getADQLName(), col.getTable().getADQLName());
                });
          Map<String, TapADQLColumn> columnMap = Arrays.stream(query.getResultingColumns())
                .collect(Collectors.toMap(
@@ -116,7 +118,7 @@ public class TAPJob extends BaseUWSJob {
 
          for (int i = 0; i < table.getColumnCount(); i++) {
             ColumnInfo colInfo = table.getColumnInfo(i);
-            log.info(" Stil Column {}: name={}, class={}, description={}", i, colInfo.getName(), colInfo.getContentClass(), colInfo.getDescription());
+            log.debug(" Stil Column {}: name={}, class={}, description={}", i, colInfo.getName(), colInfo.getContentClass(), colInfo.getDescription());
             TapADQLColumn adqlColInfo = columnMap.get(colInfo.getName());
             colInfo.setDescription(adqlColInfo.getDescription());
             colInfo.setUnitString(adqlColInfo.getUnitString());
@@ -159,6 +161,26 @@ public class TAPJob extends BaseUWSJob {
             return "result";
          }
       });
+   }
+
+   @Override
+   public Results createExternalJobResult() {
+      //FIXME - this is too simplistic at the moment - need to fetch things properly - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
+      Results.Builder<Void> resultsBuilder = Results.builder();
+
+      if(!results.isEmpty()) {
+         ParameterValue pv = results.get(0); //IMPL assuming the only result....
+         final ResultReference.Builder<Void> builder = ResultReference.builder().withId(pv.getId());
+         if (pv.isIndirect()) {
+            builder.withHref("./results/" + pv.getId());
+            builder.withMimeType("application/x-votable+xml");
+            builder.withSize(new File(pv.getValue()).length());
+         }
+         resultsBuilder.addResults(builder.build());
+      }
+
+      return resultsBuilder.build();
+
    }
 
    /**

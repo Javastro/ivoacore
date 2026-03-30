@@ -78,12 +78,13 @@ public interface ExecutionControl  {
    void deleteJob(String jobId) throws UWSException;
 
    /**
-    * return the list of results.
+    * return the list of results. This in an internal view.
     * @param jobId the identifier of the job.
     * @return the list of result {@link ParameterValue} objects.
     * @throws UWSException if the results cannot be retrieved.
     */
    List<ParameterValue> getJobResults(String jobId) throws UWSException;
+
 
    /**
     * Get any job error detail message.
