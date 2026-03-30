@@ -11,9 +11,9 @@ package org.javastro.ivoacore.tap.schema;
  */
 
 import jakarta.xml.bind.*;
-import org.ivoa.dm.tapschema.ColNameKeys;
 import org.ivoa.dm.tapschema.Schema;
 import org.ivoa.dm.tapschema.TapschemaModel;
+import org.ivoa.dm.tapschema.XMLNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +46,16 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
    }
 
    /**
+    * Constructs a VODMLSchemaProvider by loading only the standard TAP_SCHEMA itself.
+    * Probably only useful for unit testing where there is always a TAP_SCHEMA resource available.
+    * @param isDbCaseSensitive
+    */
+   VODMLSchemaProvider(boolean isDbCaseSensitive) {
+      super(isDbCaseSensitive);
+      this.tapSchemaResource = null;
+   }
+
+   /**
     * read the schema in.
     *
     * @return The marshalled schemata.
@@ -58,7 +68,7 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
          JAXBElement<TapschemaModel> el = unmarshaller.unmarshal(new StreamSource(is), TapschemaModel.class);
          TapschemaModel model_in = el.getValue();
          if (model_in != null) {
-            ColNameKeys.normalize(model_in);
+            new XMLNormalizer().prepareForDB(model_in);
             List<Schema> schemas = model_in.getContent(Schema.class);
             for(var s:schemas){
                log.info("loaded tap schema {} from VO-DML model",s.getSchema_name());
@@ -73,7 +83,9 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
    protected List<Schema> provideSchemas() {
       List<Schema> retval = new ArrayList<>();
       try {
-         retval.addAll(readSchema(this.getClass().getResourceAsStream("/"+tapSchemaResource)));
+         if(tapSchemaResource!=null)
+            retval.addAll(readSchema(this.getClass().getResourceAsStream("/"+tapSchemaResource)));
+
          retval.addAll(readSchema(TapschemaModel.TAPSchema()));
       } catch (JAXBException e) {
          log.error("problem loading schemas",e);
