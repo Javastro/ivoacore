@@ -45,6 +45,8 @@ public abstract class BaseUWSJob implements Job {
    protected List<ParameterValue> results = new ArrayList<>();
    /** The future representing the asynchronous execution of this job. */
    protected CompletableFuture<List<ParameterValue>> jobFuture;
+   /** Any exception that occurred during the execution of this job. */
+   protected UWSException exception;
 
 
    /**
@@ -115,11 +117,12 @@ public abstract class BaseUWSJob implements Job {
             endTime = ZonedDateTime.now(ZoneId.of("UTC"));
             return retval;
          }
-         catch (Exception e) {
+         catch (UWSException e) {
             logger.error("Error during execution of job {}: {}", jobID, e.getMessage(), e);
             executionPhase = ExecutionPhase.ERROR;
             endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-            throw new RuntimeException("Error during job execution: " + e.getMessage(), e);
+            exception = e;
+            return List.of(); // no results -- TODO what about partial results if job failed after producing some results?
          }
 
       };
@@ -148,15 +151,19 @@ public abstract class BaseUWSJob implements Job {
                   }).toList()
             ))
             ;
-      switch (executionPhase) {
-         case EXECUTING:
-            builder.withStartTime(startTime);
-            break;
-         case COMPLETED:
-            builder.withEndTime(startTime);
-            builder.withResults(getJobResults());
-            break;
+      if (startTime != null) {
+         builder.withStartTime(startTime);
       }
+      if (endTime != null) {
+         builder.withEndTime(endTime);
+      }
+      if (exception != null) {
+         builder.withErrorSummary(new ErrorSummary(exception.getMessage(),ErrorType.FATAL,true));
+      }
+      if (!results.isEmpty()) {
+         builder.withResults(getJobResults());
+      }
+
       return builder.build();
    }
 
@@ -183,9 +190,10 @@ public abstract class BaseUWSJob implements Job {
       if (cancelled) {
          logger.info("Job {} aborted", jobID);
          executionPhase = ExecutionPhase.ABORTED;
+         endTime = ZonedDateTime.now(ZoneId.of("UTC"));
       }
       else  {
-         logger.info("Falied top abort job {}", jobID);
+         logger.info("Failed top abort job {}", jobID);
       }
    }
 }

@@ -74,7 +74,7 @@ public class TAPJob extends BaseUWSJob {
 
 
    @Override
-   public List<ParameterValue> performAction() {
+   public List<ParameterValue> performAction() throws UWSException {
       final File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
       try {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
@@ -123,32 +123,25 @@ public class TAPJob extends BaseUWSJob {
             colInfo.setUCD(adqlColInfo.getUcd());
             colInfo.setUtype(adqlColInfo.getUtype());
          }
-//TODO would like to write nice metadata about the columns
-
-//                 ColumnInfo col0 = table.getColumnInfo(0);
-//                 col0.setDescription("Right ascension");
-//                 col0.setUnitString("deg");
-//                 col0.setUCD("pos.eq.ra;meta.main");
-//                 col0.setUtype("Char.SpatialAxis.Coverage.Location.Coord.Position2D.Value2.C1");
-
 
          final OutputStream outputStream = Files.newOutputStream(votable.toPath());
          StarTableWriter tablewriter = new VOTableWriter();
          new StarTableOutput().writeStarTable(table, outputStream, tablewriter);
 
 
-      } catch (SQLException e) {
+      } catch (SQLException e) { //FIXME actually need to get the error into the result VOTable...
+         //TODO remove the logging here  - it is just duplicating other logging I think
          log.error("Database error while executing TAP query", e);
-         throw new RuntimeException(e); //FIXME need to decide how to handle fail properly - should we fail the job? retry? etc.
+         throw new UWSException("Database error while executing TAP query",e); //FIXME need to decide how to handle fail properly - should we fail the job? retry? etc.
       } catch (ParseException e) {
          log.error("Parse error while executing TAP query", e);
-         throw new RuntimeException(e);
+         throw new UWSException("Parse error while executing TAP query",e);
       } catch (TranslationException e) {
          log.error("Translation error while executing TAP query", e);
-         throw new RuntimeException(e);
+         throw new UWSException("Translation error while executing TAP query",e);
       } catch (IOException e) {
          log.error("IO error while executing TAP query", e);
-         throw new RuntimeException(e);
+         throw new UWSException("IO error while executing TAP query",e);
       }
       return List.of(new ParameterValue() {
          @Override

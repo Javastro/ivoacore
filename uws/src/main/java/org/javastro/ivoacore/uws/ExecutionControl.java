@@ -85,4 +85,10 @@ public interface ExecutionControl  {
     */
    List<ParameterValue> getJobResults(String jobId) throws UWSException;
 
+   /**
+    * Get any job error detail message.
+    * @param jobid the identifier for the Job
+    * @return the detail message - or Null is there is no message.
+    */
+   String jobErrorDetail(String jobid);
 }

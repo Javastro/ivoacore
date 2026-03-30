@@ -82,6 +82,21 @@ public abstract class BaseUWSResource implements UWS {
       return retval;
    }
 
+   /**
+    * Get the error detail message for a job.
+    * @param jobid the identifier of the job.
+    * @return the error message string, or {@code null} if no error.
+    * @throws UWSException if the job cannot be found or accessed.
+    */
+   @GET
+   @Path("/{jobid}/error")
+   public String getJobErrorDetail(@PathParam("jobid") String jobid) throws UWSException
+   {
+      return getJobManager().jobErrorDetail(jobid);
+   }
+
+
+
    @Override
    @POST
    @Path("/{jobid}/destruction")

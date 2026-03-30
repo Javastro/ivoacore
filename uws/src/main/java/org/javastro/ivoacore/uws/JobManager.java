@@ -14,6 +14,8 @@ import org.javastro.ivoacore.uws.persist.JobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
@@ -105,6 +107,29 @@ public class JobManager implements ExecutionControl, UWSCore {
    public List<ParameterValue> getJobResults(String jobId) throws UWSException {
       //FIXME we really do not want to do this simplistic thing, but rather have a component that translates job results into their location
       return jobStore.retrieve(jobId).getResults();
+   }
+
+   @Override
+   public String jobErrorDetail(String jobid) {
+
+         BaseUWSJob job = jobStore.retrieve(jobid);
+         if (job.getExecutionPhase() == ExecutionPhase.ERROR) {
+            BaseUWSJob thisjob = jobStore.retrieve(jobid);
+            if (thisjob.exception != null) {
+               StringWriter sw = new StringWriter();
+               PrintWriter pw = new PrintWriter(sw);
+               thisjob.exception.printStackTrace(pw);
+               pw.close();
+               return sw.toString();
+            }
+            else {
+               return "No error message available";
+            }
+         }
+         else {
+            return "No error - job is in phase " + job.getExecutionPhase();
+         }
+
    }
 
    @Override
