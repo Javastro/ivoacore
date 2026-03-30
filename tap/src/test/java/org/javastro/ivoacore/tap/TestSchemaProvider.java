@@ -37,8 +37,8 @@ public class TestSchemaProvider extends BaseSchemaProvider implements SchemaProv
    private static final Logger log = LoggerFactory.getLogger(TestSchemaProvider.class);
    private final XsltExecutable stylesheet;
 
-   public TestSchemaProvider() {
-      super(false);
+   public TestSchemaProvider(boolean caseSensitive) {
+      super(caseSensitive);
       try {
          stylesheet = compiler.compile(new StreamSource(TapschemaModel.class.getResourceAsStream("/tap2schemaDDL.xsl")));
       } catch (SaxonApiException e) {
@@ -49,7 +49,7 @@ public class TestSchemaProvider extends BaseSchemaProvider implements SchemaProv
    }
    
    public static final List<Schema> SCHEMA_LIST = List.of(Schema.createSchema(s -> {
-      s.schema_name = "test_schema";
+      s.schema_name = "TEST_schema";
       s.description = "A test schema for unit testing";
       s.tables = List.of(Table.createTable(t -> {
          t.table_name = "test_table";

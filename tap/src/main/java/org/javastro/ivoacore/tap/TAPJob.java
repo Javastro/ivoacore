@@ -131,7 +131,7 @@ public class TAPJob extends BaseUWSJob {
          new StarTableOutput().writeStarTable(table, outputStream, tablewriter);
 
 
-      } catch (SQLException e) { //FIXME actually need to get the error into the result VOTable...
+      } catch (SQLException e) {
          //TODO remove the logging here  - it is just duplicating other logging I think
          log.error("Database error while executing TAP query", e);
          throw new UWSException("Database error while executing TAP query",e); //FIXME need to decide how to handle fail properly - should we fail the job? retry? etc.
