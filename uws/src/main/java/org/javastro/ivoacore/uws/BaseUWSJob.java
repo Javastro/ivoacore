@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 /**
  * A UWS Job.
  */
-public abstract class BaseUWSJob implements Job {
+public abstract class BaseUWSJob implements Job { //IMPL should probably pull some of the methods in this class
    private static final Logger logger = LoggerFactory.getLogger(BaseUWSJob.class.getName());
    /** The unique identifier for this job. */
    private final String jobID;
@@ -186,6 +186,24 @@ public abstract class BaseUWSJob implements Job {
       }
       else  {
          logger.info("Failed top abort job {}", jobID);
+      }
+   }
+
+   /**
+    * This is a blocking call to wait for the job to finish - either successfully or not.
+    * Use with caution as it will block the calling thread until the job completes.
+    * {@see #getJobFuture()} for a non-blocking way to monitor job completion.
+    */
+   public void blockingWaitForFinish() {
+       // wait for the endTime to be non-null
+      while (endTime == null) {
+         try {
+            Thread.sleep(200); // Sleep for a shortish time to avoid busy waiting
+         } catch (InterruptedException e) { // If the thread is interrupted, we should exit the loop and restore the interrupted status - TODO not sure this is the cleanest...
+            Thread.currentThread().interrupt(); // Restore the interrupted status
+            logger.warn("Thread interrupted while waiting for job {} to finish", jobID);
+            break;
+         }
       }
    }
 }

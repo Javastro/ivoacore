@@ -22,7 +22,9 @@ import java.util.List;
 public class TAPJobSpecification extends BaseJobSpecification {
 
 
-    String adqlQuery;
+
+
+   String adqlQuery;
     Long maxrec;
     String responseFormat;
     String lang;
@@ -81,8 +83,11 @@ public class TAPJobSpecification extends BaseJobSpecification {
 
    @Override
    public String getJDL() {
-      return "";
+      return ""; //IMPL
    }
 
 
+   public String getAdqlQuery() {
+      return adqlQuery;
+   }
 }
