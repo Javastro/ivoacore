@@ -33,14 +33,12 @@ import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
 import uk.ac.starlink.table.jdbc.Connector;
 import uk.ac.starlink.table.jdbc.JDBCStarTable;
-import uk.ac.starlink.votable.VOTableWriter;
 
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -95,16 +93,7 @@ public class TAPJob extends BaseUWSJob {
          Connector connector = () -> dataSource.getConnection(); //IMPL new connection each time requested - STIL documentation implies that is what is desired.
          JDBCStarTable table = new JDBCStarTable(connector, sql, false);
 
-         table.setName("tap_result");
-         table.setParameter(new DescribedValue(
-               new DefaultValueInfo("QUERY", String.class, "Original ADQL query"),
-               tapJobSpec.adqlQuery
-         ));
-         table.setParameter(new DescribedValue(
-               new DefaultValueInfo("RUNID", String.class, "TAP run identifier"),
-               tapJobSpec.getRunId()
-         ));
-
+         table.setName("result");
          Arrays.stream(query.getResultingColumns())
                .forEach(col -> {
                   log.debug( "ADQL column: {} table {}", col.getADQLName(), col.getTable().getADQLName());
@@ -127,7 +116,7 @@ public class TAPJob extends BaseUWSJob {
          }
 
          final OutputStream outputStream = Files.newOutputStream(votable.toPath());
-         StarTableWriter tablewriter = new VOTableWriter();
+         StarTableWriter tablewriter = new TAPWriter(this);
          new StarTableOutput().writeStarTable(table, outputStream, tablewriter);
 
 
@@ -163,6 +152,10 @@ public class TAPJob extends BaseUWSJob {
       });
    }
 
+   UWSException getException()
+   {
+      return exception;
+   }
    @Override
    public Results createExternalJobResult() {
       //FIXME - this is too simplistic at the moment - need to fetch things properly - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
@@ -232,6 +225,8 @@ public class TAPJob extends BaseUWSJob {
                this.schemaProvider
          );
       }
+
+
 
    }
 }
