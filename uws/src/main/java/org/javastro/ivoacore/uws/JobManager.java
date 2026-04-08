@@ -7,6 +7,7 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Jobs;
+import org.javastro.ivoa.entities.uws.ShortJobDescription;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
@@ -62,7 +63,15 @@ public class JobManager implements ExecutionControl, UWSCore {
 
    @Override
    public Jobs listJobs(String phase, ZonedDateTime after, Integer last) throws UWSException {
-      throw new UWSException("Not yet implemented");
+      //FIXME we need to filter the jobs based on the query parameters, but for now we just return them all
+
+         List<ShortJobDescription> joblist = new java.util.ArrayList<>();
+      for (String jobId : jobStore.getAllIds()) {
+         joblist.add(jobStore.retrieve(jobId).asShortDescription());
+      }
+
+      Jobs retval = new Jobs(joblist, "1.1");
+      return retval;
    }
 
    @Override

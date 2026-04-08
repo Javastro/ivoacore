@@ -119,7 +119,7 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
             return executionPhase;
          }
          catch (UWSException e) {
-            logger.error("Error during execution of job {}: {}", jobID, e.getMessage(), e);
+            logger.error("Error during execution of job {}: {}\n", jobID, e.getMessage(), e);
             executionPhase = ExecutionPhase.ERROR;
             endTime = ZonedDateTime.now(ZoneId.of("UTC"));
             exception = e;
@@ -205,5 +205,19 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
             break;
          }
       }
+   }
+
+   public ShortJobDescription asShortDescription() {
+
+      ShortJobDescription.Builder builder = ShortJobDescription.builder()
+            .withId(jobID)
+            .withPhase(executionPhase)
+            .withCreationTime(creationTime)
+            //.withOwnerId(jobSpecification.getOwnerId()) //FIXME add owner
+            .withRunId(jobSpecification.getRunId())
+            //.withType("type")//TODO
+            //.withHref("href")//TODO
+            ;
+      return builder.build();
    }
 }
