@@ -14,6 +14,10 @@ import org.ivoa.dm.tapschema.Column;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Implementation of {@link DBColumn} and {@link VOTableColumnMetadata} for a TAP column, based on the TAPSchema column metadata.
+ * This class is immutable.
+ */
 public class TapADQLColumn extends DBIdentifier implements DBColumn, VOTableColumnMetadata {
    private static final Logger log = LoggerFactory.getLogger(TapADQLColumn.class);
    private final Column column;
@@ -73,7 +77,8 @@ public class TapADQLColumn extends DBIdentifier implements DBColumn, VOTableColu
 
    @Override
    public DBColumn copy(String dbName, String adqlName, DBTable dbTable) {
-      log.error("copy not implemented for TapADQLColumn");
-      return null;//FIXME
+      log.info("copy TapADQLColumn new {} {} table={}, orig {} table={}", dbName, adqlName, dbTable.getADQLName(),column.getColumn_name(),table.getADQLName());
+      //TODO what to do when dbName is allowed to be different.
+      return new TapADQLColumn(dbTable instanceof TapADQLTable ? (TapADQLTable) dbTable : table, column); //FIXME is this OK - not really dealt with new name etc - need to understand the purpose of the copy
    }
 }
