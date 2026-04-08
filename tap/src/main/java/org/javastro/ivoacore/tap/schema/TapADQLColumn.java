@@ -38,6 +38,13 @@ public class TapADQLColumn extends DBIdentifier implements DBColumn, VOTableColu
       this.setCaseSensitive(dbTable.isCaseSensitive());
       this.datatype = MetadataTransformer.mapDbType(column.getDatatype());
    }
+   private TapADQLColumn(TapADQLTable dbTable, String dbName, String adqlName, Column column) {
+      super( adqlName, dbName);
+      this.table =  dbTable;
+      this.column = column;
+      this.setCaseSensitive(dbTable.isCaseSensitive());
+      this.datatype = MetadataTransformer.mapDbType(column.getDatatype());
+   }
 
    @Override
    public String getName() {
@@ -89,8 +96,11 @@ public class TapADQLColumn extends DBIdentifier implements DBColumn, VOTableColu
        //  retval = new DefaultDBColumn(adqlName, dbName, datatype, dbTable);
         retval =  new TapADQLColumn((DBTableAlias) dbTable,  dbName, adqlName, column);
       }
+      else if (dbTable instanceof TapADQLTable) {
+         retval =  new TapADQLColumn((TapADQLTable) dbTable,  dbName, adqlName, column);
+      }
       else {
-         throw new UnsupportedOperationException("Don't know how to copy TapADQLColumn when dbTable is not a DBTableAlias.");
+         throw new UnsupportedOperationException("Don't know how to copy TapADQLColumn when dbTable is "+dbTable.getClass().getCanonicalName());
       }
 
       return retval;

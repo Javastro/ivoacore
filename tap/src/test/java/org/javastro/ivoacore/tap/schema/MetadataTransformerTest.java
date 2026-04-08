@@ -52,8 +52,8 @@ class MetadataTransformerTest {
                   col -> col.getADQLName(),
                   col ->  col
             ));
-
-
+      query = parser.parseQuery("SELECT principal, indexed, std, \"size\" FROM TAP_SCHEMA.columns");
+      assertNotNull(query);
    }
    @Test
    void standardMetadataTest() throws ParseException {
