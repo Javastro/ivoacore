@@ -44,7 +44,9 @@ public abstract class BaseUWSResource implements UWS {
    @Path("/{jobid}")
    @Override
    public Job jobDetail(@PathParam("jobid") String jobid) throws UWSException {
-      return getJobManager().jobDetail(jobid);
+      final Job job = getJobManager().jobDetail(jobid);
+
+      return job; //FIXME need 404 for not found...when job is null - perhaps do with exception handler...
    }
 
    @GET
@@ -117,6 +119,16 @@ public abstract class BaseUWSResource implements UWS {
    @DELETE
    @Path("/{jobid}")
    public Response deleteJob(@PathParam("jobid")String jobid, @Context UriInfo uriInfo) throws UWSException {
-      throw new UWSException("Not supported yet.");
+      boolean success = getJobManager().deleteJob(jobid);
+      if (success) {
+
+         return Response.seeOther(uriInfo.getAbsolutePathBuilder()
+               .build()).build();
+      } else {
+
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+               .entity("Failed to delete job " + jobid)
+               .build();
+      }
    }
 }

@@ -32,7 +32,7 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
    /** The unique identifier for this job. */
    private final String jobID;
    /** The current execution phase of this job. */
-   protected ExecutionPhase executionPhase;
+   protected ExecutionPhase executionPhase; //TODO think about thread safety of executionPhase - should it be volatile? should we use an AtomicReference? should we synchronize access to it?
    /** The time at which this job was created. */
    protected ZonedDateTime creationTime;
    /** The time at which this job started executing. */
@@ -175,17 +175,19 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
    public abstract Results createExternalJobResult();
 
    /**
-    * Aborts this job if it is currently running.
+    * Aborts this job.
     */
    public void abort() {
-      boolean cancelled = jobFuture.cancel(true);//TODO need to set the status when this happens
+      //if it has not started just set the phase to aborted and end time to now, otherwise try to cancel the future
+      boolean cancelled = jobFuture!= null?jobFuture.cancel(true):true;//TODO need to set the status when this happens
       if (cancelled) {
          logger.info("Job {} aborted", jobID);
          executionPhase = ExecutionPhase.ABORTED;
          endTime = ZonedDateTime.now(ZoneId.of("UTC"));
       }
       else  {
-         logger.info("Failed top abort job {}", jobID);
+         executionPhase = ExecutionPhase.UNKNOWN;
+         logger.error("Failed top abort job {}", jobID);
       }
    }
 
@@ -209,7 +211,7 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
 
    public ShortJobDescription asShortDescription() {
 
-      ShortJobDescription.Builder builder = ShortJobDescription.builder()
+      ShortJobDescription.Builder<Void> builder = ShortJobDescription.builder()
             .withId(jobID)
             .withPhase(executionPhase)
             .withCreationTime(creationTime)

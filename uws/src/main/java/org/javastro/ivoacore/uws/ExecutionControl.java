@@ -2,7 +2,6 @@ package org.javastro.ivoacore.uws;
 
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
-import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 
 import java.time.ZonedDateTime;
@@ -72,10 +71,12 @@ public interface ExecutionControl  {
 
    /**
     * Delete a job.
+    *
     * @param jobId the identifier of the job to delete.
+    * @return
     * @throws UWSException if the job cannot be deleted.
     */
-   void deleteJob(String jobId) throws UWSException;
+   boolean deleteJob(String jobId) throws UWSException;
 
    /**
     * return the list of results. This in an internal view.

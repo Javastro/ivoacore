@@ -8,7 +8,6 @@ package org.javastro.ivoacore.uws;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Jobs;
 import org.javastro.ivoa.entities.uws.ShortJobDescription;
-import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.persist.JobStore;
@@ -76,7 +75,8 @@ public class JobManager implements ExecutionControl, UWSCore {
 
    @Override
    public org.javastro.ivoa.entities.uws.Job jobDetail(String jobId) throws UWSException {
-      return jobStore.retrieve(jobId).asJob();
+      final BaseUWSJob job = jobStore.retrieve(jobId);
+      return job!=null?job.asJob():null;
    }
 
    @Override
@@ -108,8 +108,10 @@ public class JobManager implements ExecutionControl, UWSCore {
 
 
    @Override
-   public void deleteJob(String jobId) throws UWSException {
-      throw new UWSException("Not yet implemented");
+   public boolean deleteJob(String jobId) throws UWSException {
+      BaseUWSJob thisjob = jobStore.retrieve(jobId);
+      thisjob.abort();
+      return jobStore.delete(jobId);
    }
 
    @Override
