@@ -41,10 +41,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -78,6 +80,7 @@ public class TAPJob extends BaseUWSJob {
    @Override
    public List<ParameterValue> performAction() throws UWSException {
       final File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
+      final AtomicReference<Connection> thisConnection = new AtomicReference<>();
       try {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
          ADQLParser parser = new ADQLParser();
@@ -85,6 +88,7 @@ public class TAPJob extends BaseUWSJob {
          // Set the DBChecker to the parser:
          parser.setQueryChecker(checker);
          // Parse ADQL:
+         log.info("Parsing original ADQL query: {}", tapJobSpec.adqlQuery);
          ADQLSet query = parser.parseQuery(tapJobSpec.adqlQuery);
 
          ADQLTranslator translator = new PgSphereTranslator();
@@ -92,7 +96,10 @@ public class TAPJob extends BaseUWSJob {
          log.info("Translated ADQL query to SQL: {}", sql);
 
 
-         Connector connector = () -> dataSource.getConnection(); //IMPL new connection each time requested - STIL documentation implies that is what is desired.
+         Connector connector = () -> {
+           thisConnection.set(dataSource.getConnection());//IMPL new connection each time requested - STIL documentation implies that is what is desired.
+           return thisConnection.get();
+         };
          JDBCStarTable table = new JDBCStarTable(connector, sql, false);
 
          table.setName("result");
@@ -131,7 +138,9 @@ public class TAPJob extends BaseUWSJob {
          tablewriter.setResourceType(ResourceType.RESULTS);
          new StarTableOutput().writeStarTable(table, outputStream, tablewriter);
 
-
+         if (thisConnection.get() != null) {
+            thisConnection.get().close(); //IMPL close the connection - STIL documentation implies that this is what is desired - but we should check whether this causes any issues with connection pooling etc.
+         }
       } catch (SQLException e) {
          //TODO remove the logging here  - it is just duplicating other logging I think
          log.error("Database error while executing TAP query", e);
@@ -145,6 +154,16 @@ public class TAPJob extends BaseUWSJob {
       } catch (IOException e) {
          log.error("IO error while executing TAP query", e);
          throw new UWSException("IO error while executing TAP query",e);
+      }
+      finally {
+         try {
+            if (thisConnection.get() != null) {
+            thisConnection.get().close();
+            }
+         } catch (SQLException e) {
+
+            log.warn("Failed to close database connection", e);
+         }
       }
       return List.of(new ParameterValue() {
          @Override
