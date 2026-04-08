@@ -11,6 +11,7 @@ package org.javastro.ivoacore.uws.webapi;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.javastro.ivoa.entities.uws.*;
@@ -23,6 +24,7 @@ import java.time.ZonedDateTime;
  * Base JAX-RS resource implementation of the {@link UWS} interface, providing default
  * HTTP endpoint implementations delegating to a {@link JobManager}.
  */
+@Produces(MediaType.APPLICATION_XML)
 public abstract class BaseUWSResource implements UWS {
 
    /**

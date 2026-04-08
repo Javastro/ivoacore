@@ -1,6 +1,8 @@
 package org.javastro.ivoacore.vosi;
 
 
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 import org.javastro.ivoa.entities.vosi.availability.Availability;
 import org.javastro.ivoa.entities.vosi.capabilities.Capabilities;
 
@@ -11,6 +13,7 @@ import org.javastro.ivoa.entities.vosi.capabilities.Capabilities;
 /**
  * Base implementation of {@link VOSIResource} that delegates to a {@link VOSIProvider}.
  */
+@Produces(MediaType.APPLICATION_XML)
 public abstract class BaseVOSIResource implements VOSIResource{
    VOSIProvider provider;
 
