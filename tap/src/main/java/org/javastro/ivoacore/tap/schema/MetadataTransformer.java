@@ -7,6 +7,8 @@ package org.javastro.ivoacore.tap.schema;
 
 import adql.db.DBTable;
 import adql.db.DBType;
+import adql.db.DefaultDBColumn;
+import adql.db.DefaultDBTable;
 import org.ivoa.dm.tapschema.TAPType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,9 @@ public class MetadataTransformer {
    }
 
    /**
-    * This returns database metadata that can be used by ADQLLib parser.
+    * This returns database metadata that can be used by ADQLLib parser. It includes links to the
+    * extra TAPSchema Metadata by using {@link TapADQLTable} and {@link TapADQLColumn}
+    * implementations of the ADQLLib {@link DBTable} and {@link adql.db.DBColumn} interfaces.
     *
     * @return
     * @see <a href="https://cdsportal.u-strasbg.fr/adqltuto/gettingstarted.html">ADQLLib Getting Started</a>
@@ -45,6 +49,23 @@ public class MetadataTransformer {
 
       return result;
    }
+   List<DBTable> transformToADQLLibStd() {
+      List<DBTable> result = new ArrayList<DBTable>();
+      for (var s : schemaProvider.getSchemas()) {
+         for (var t : s.getTables()) {
+            DefaultDBTable dbTable = new DefaultDBTable(schemaProvider.isDBCaseSensitive() ? t.getTable_name() : t.getTable_name().toUpperCase());
+            dbTable.setCaseSensitive(schemaProvider.isDBCaseSensitive());
+            t.getColumns().forEach(c->{
+               final DefaultDBColumn column = new DefaultDBColumn(schemaProvider.isDBCaseSensitive() ? c.getColumn_name() : c.getColumn_name().toUpperCase(), dbTable);
+               column.setCaseSensitive(schemaProvider.isDBCaseSensitive());
+               dbTable.addColumn(column);
+            });
+            result.add(dbTable);
+         }
+      }
+      return result;
+   }
+
 
    public static  DBType mapDbType(TAPType datatype) {
       //IMPL this is a bit ugly, would be much better to have a mapping table of some sort, but for now this is fine

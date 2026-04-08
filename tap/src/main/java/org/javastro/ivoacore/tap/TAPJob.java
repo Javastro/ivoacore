@@ -120,6 +120,10 @@ public class TAPJob extends BaseUWSJob {
                colInfo.setUCD(adqlColInfo.getUcd());
                colInfo.setUtype(adqlColInfo.getUtype());
             }
+            else {
+               log.warn(" Column {} is not a TapADQLColumn", colInfo.getName());
+            }
+
          }
 
          final OutputStream outputStream = Files.newOutputStream(votable.toPath());

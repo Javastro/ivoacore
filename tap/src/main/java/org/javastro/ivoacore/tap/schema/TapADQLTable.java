@@ -11,12 +11,15 @@ import adql.db.DBIdentifier;
 import adql.db.DBTable;
 import org.ivoa.dm.tapschema.Schema;
 import org.ivoa.dm.tapschema.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class TapADQLTable extends DBIdentifier implements DBTable {
 
 
+   private static final Logger log = LoggerFactory.getLogger(TapADQLTable.class);
    private final Table table;
    private final List<TapADQLColumn> columns = new ArrayList<>();
    private final Map<String, TapADQLColumn> columnMap = new HashMap<>();
@@ -60,7 +63,8 @@ public class TapADQLTable extends DBIdentifier implements DBTable {
 
    @Override
    public DBTable copy(String dbName, String adqlName) {
-      // FIXME need to implement
+      // FIXME need to implement?
+      log.error("copy not implemented for TapADQLTable");
       return null;
    }
 
