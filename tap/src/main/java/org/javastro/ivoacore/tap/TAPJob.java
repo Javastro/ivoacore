@@ -11,6 +11,7 @@ package org.javastro.ivoacore.tap;
  */
 
 import adql.db.DBChecker;
+import adql.db.DBColumn;
 import adql.db.DBTable;
 import adql.parser.ADQLParser;
 import adql.parser.QueryChecker;
@@ -33,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
 import uk.ac.starlink.table.jdbc.Connector;
 import uk.ac.starlink.table.jdbc.JDBCStarTable;
+import uk.ac.starlink.votable.ResourceType;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -96,27 +98,33 @@ public class TAPJob extends BaseUWSJob {
          table.setName("result");
          Arrays.stream(query.getResultingColumns())
                .forEach(col -> {
+                  if(col.getTable() != null) {
                   log.debug( "ADQL column: {} table {}", col.getADQLName(), col.getTable().getADQLName());
+                  } else {
+                     log.debug( "ADQL column: {} table null", col.getADQLName());
+                  }
                });
-         Map<String, TapADQLColumn> columnMap = Arrays.stream(query.getResultingColumns())
+         Map<String, ? extends DBColumn> columnMap = Arrays.stream(query.getResultingColumns())
                .collect(Collectors.toMap(
                      col -> col.getADQLName(),
-                     col -> (TapADQLColumn) col
-
+                     col ->  col
                ));
 
          for (int i = 0; i < table.getColumnCount(); i++) {
             ColumnInfo colInfo = table.getColumnInfo(i);
             log.debug(" Stil Column {}: name={}, class={}, description={}", i, colInfo.getName(), colInfo.getContentClass(), colInfo.getDescription());
-            TapADQLColumn adqlColInfo = columnMap.get(colInfo.getName());
-            colInfo.setDescription(adqlColInfo.getDescription());
-            colInfo.setUnitString(adqlColInfo.getUnitString());
-            colInfo.setUCD(adqlColInfo.getUcd());
-            colInfo.setUtype(adqlColInfo.getUtype());
+            DBColumn dbcolInfo = columnMap.get(colInfo.getName());
+            if (dbcolInfo instanceof TapADQLColumn adqlColInfo) { // if the column is a normal column reference (rather than synthetic one like count(*)
+               colInfo.setDescription(adqlColInfo.getDescription());
+               colInfo.setUnitString(adqlColInfo.getUnitString());
+               colInfo.setUCD(adqlColInfo.getUcd());
+               colInfo.setUtype(adqlColInfo.getUtype());
+            }
          }
 
          final OutputStream outputStream = Files.newOutputStream(votable.toPath());
-         StarTableWriter tablewriter = new TAPWriter(this);
+         TAPWriter tablewriter = new TAPWriter(this);
+         tablewriter.setResourceType(ResourceType.RESULTS);
          new StarTableOutput().writeStarTable(table, outputStream, tablewriter);
 
 

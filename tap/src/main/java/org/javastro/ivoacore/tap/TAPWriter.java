@@ -50,8 +50,11 @@ public class TAPWriter extends VOTableWriter {
       if(!timeout) {
          if (job.getExecutionPhase() == org.javastro.ivoa.entities.uws.ExecutionPhase.ERROR) {
             sbuf.append("<INFO name=\"QUERY_STATUS\" value=\"ERROR\">\n");
-            sbuf.append(job.getException().getMessage()); //TODO - do we want stack trace here?
-            sbuf.append("</INFO>\n");
+            sbuf.append(job.getException().getMessage());
+            if(job.getException().getCause() != null) {
+               sbuf.append(job.getException().getCause().getMessage());//TODO - do we want stack trace here?
+            }
+            sbuf.append("\n</INFO>\n");
          } else {
             sbuf.append("<INFO name=\"QUERY_STATUS\" value=\"OK\"/>\n");
          }
