@@ -24,5 +24,6 @@ public class TapADQLMetadataTest {
       Column c = new Column().withColumn_name("test_column").withDatatype(TAPType.BIGINT);
       TapADQLColumn column = new TapADQLColumn(table, c);
       System.out.println(column.getName());
+      column.getADQLName();
    }
 }
