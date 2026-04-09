@@ -62,15 +62,22 @@ public class JobManager implements ExecutionControl, UWSCore {
 
    @Override
    public Jobs listJobs(String phase, ZonedDateTime after, Integer last) throws UWSException {
-      //FIXME we need to filter the jobs based on the query parameters, but for now we just return them all
-
-         List<ShortJobDescription> joblist = new java.util.ArrayList<>();
-      for (String jobId : jobStore.getAllIds()) {
-         joblist.add(jobStore.retrieve(jobId).asShortDescription());
+      final ExecutionPhase parsedPhase;
+      if (phase == null || phase.isBlank()) {
+         parsedPhase = null;
+      } else {
+         try {
+            parsedPhase = ExecutionPhase.valueOf(phase.trim().toUpperCase());
+         } catch (IllegalArgumentException e) {
+            throw new UWSException("Invalid PHASE value: " + phase, e);
+         }
       }
 
-      Jobs retval = new Jobs(joblist, "1.1");
-      return retval;
+      List<ShortJobDescription> joblist = jobStore.getJobs(parsedPhase, after, last).stream()
+            .map(BaseUWSJob::asShortDescription)
+            .toList();
+
+      return new Jobs(joblist, "1.1");
    }
 
    @Override

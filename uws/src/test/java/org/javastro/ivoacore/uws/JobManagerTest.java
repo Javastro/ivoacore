@@ -1,8 +1,8 @@
 package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
+import org.javastro.ivoa.entities.uws.Jobs;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
-import org.javastro.ivoacore.uws.environment.DefaultExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
 import org.junit.jupiter.api.BeforeAll;
@@ -11,9 +11,16 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /*
  * Created on 04/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
@@ -56,5 +63,54 @@ class JobManagerTest {
       job.getResults().forEach(r->System.out.println(r.getValue()));
 
    }
+
+   @Test
+   void listJobsFiltersByPhase() throws UWSException, InterruptedException {
+      BaseUWSJob completedJob = jobManager.createJob(new SimpleLambdaJob.Specification("phase-completed", "run-completed"));
+      BaseUWSJob pendingJob = jobManager.createJob(new SimpleLambdaJob.Specification("phase-pending", "run-pending"));
+
+      jobManager.runJob(completedJob.getID());
+      while(jobManager.jobDetail(completedJob.getID()).getPhase() != ExecutionPhase.COMPLETED) {
+         Thread.sleep(200);
+      }
+
+      Jobs completedOnly = jobManager.listJobs("COMPLETED", null, null);
+      List<String> ids = extractIds(completedOnly);
+
+      assertTrue(ids.contains(completedJob.getID()));
+      assertFalse(ids.contains(pendingJob.getID()));
+   }
+
+   @Test
+   void listJobsAppliesAfterAndLast() throws Exception {
+      BaseUWSJob oldJob = jobManager.createJob(new SimpleLambdaJob.Specification("old", "run-old"));
+      ZonedDateTime cutoff = ZonedDateTime.now(ZoneId.of("UTC"));
+      Thread.sleep(25);
+      BaseUWSJob middleJob = jobManager.createJob(new SimpleLambdaJob.Specification("middle", "run-middle"));
+      Thread.sleep(25);
+      BaseUWSJob newJob = jobManager.createJob(new SimpleLambdaJob.Specification("new", "run-new"));
+
+      Jobs afterCutoff = jobManager.listJobs(null, cutoff, null);
+      List<String> afterIds = extractIds(afterCutoff);
+      assertFalse(afterIds.contains(oldJob.getID()));
+      assertTrue(afterIds.contains(middleJob.getID()));
+      assertTrue(afterIds.contains(newJob.getID()));
+
+      Jobs lastTwoAfterCutoff = jobManager.listJobs(null, cutoff, 2);
+      List<String> lastIds = extractIds(lastTwoAfterCutoff);
+      assertEquals(List.of(middleJob.getID(), newJob.getID()), lastIds);
+   }
+
+   @Test
+   void listJobsRejectsInvalidPhase() {
+      assertThrows(UWSException.class, () -> jobManager.listJobs("NOT_A_PHASE", null, null));
+   }
+
+   private static List<String> extractIds(Jobs jobs) {
+
+       return  jobs.getJobreves().stream().map(j->j.getId()).collect(Collectors.toList());
+   }
+
+
 
 }

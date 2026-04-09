@@ -6,7 +6,11 @@ package org.javastro.ivoacore.uws.persist;
  */
 
 import org.javastro.ivoacore.uws.BaseUWSJob;
+import org.javastro.ivoa.entities.uws.ExecutionPhase;
 
+import java.time.ZonedDateTime;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,5 +39,20 @@ public class MemoryBasedJobStore implements JobStore {
    @Override
    public Set<String> getAllIds() {
       return jobs.keySet();
+   }
+
+   @Override
+   public List<BaseUWSJob> getJobs(ExecutionPhase phase, ZonedDateTime after, Integer last) {
+      List<BaseUWSJob> filtered = jobs.values().stream()
+            .filter(job -> phase == null || job.getExecutionPhase() == phase)
+            .filter(job -> after == null || !job.asJob().getCreationTime().isBefore(after))
+            .sorted(Comparator.comparing(job -> job.asJob().getCreationTime()))
+            .toList();
+
+      if (last == null || last < 0 || last >= filtered.size()) {
+         return filtered;
+      }
+
+      return filtered.subList(filtered.size() - last, filtered.size());
    }
 }

@@ -1,8 +1,12 @@
 package org.javastro.ivoacore.uws.persist;
 
 
+import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.BaseUWSJob;
+import org.javastro.ivoacore.uws.UWSException;
 
+import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -35,4 +39,14 @@ public interface JobStore {
     * @return the set of job ID strings.
     */
    Set<String> getAllIds();
+   /**
+    * List of jobs known to the UWS system.
+    *
+    * @param phase filter jobs by execution phase; may be {@code null} for no filtering.
+    * @param after filter jobs created after this time; may be {@code null} for no filtering.
+    * @param last return only the last N jobs; may be {@code null} for no limit.
+    * @return the list of jobs matching the filter criteria.
+    *
+    */
+   List<BaseUWSJob> getJobs(ExecutionPhase phase, ZonedDateTime after, Integer last);
 }
