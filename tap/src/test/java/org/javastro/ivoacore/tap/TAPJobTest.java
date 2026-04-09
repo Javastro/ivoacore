@@ -3,7 +3,6 @@ package org.javastro.ivoacore.tap;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
-import org.javastro.ivoacore.uws.environment.DefaultExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
 import org.junit.jupiter.api.BeforeAll;

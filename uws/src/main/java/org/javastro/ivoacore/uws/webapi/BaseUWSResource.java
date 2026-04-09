@@ -10,10 +10,7 @@ package org.javastro.ivoacore.uws.webapi;
  */
 
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
+import jakarta.ws.rs.core.*;
 import org.javastro.ivoa.entities.uws.*;
 import org.javastro.ivoacore.uws.JobManager;
 import org.javastro.ivoacore.uws.UWSException;
@@ -32,6 +29,13 @@ public abstract class BaseUWSResource implements UWS {
     * @return the JobManager.
     */
    protected abstract JobManager getJobManager();
+
+   /**
+    * return the correct job redirection. Abstract as that depended on the implementation.
+    * @param jobid the job identifier. Note if this is null the redirect will be to the job list.
+    * @return
+    */
+   protected abstract Response redirectToJob(String jobid);
 
 
    @GET
@@ -72,18 +76,14 @@ public abstract class BaseUWSResource implements UWS {
     * Sets the execution phase of a job (e.g., to "RUN" or "ABORT") and redirects to the job resource.
     * @param jobid the identifier of the job.
     * @param phase the new phase string.
-    * @param uriInfo JAX-RS URI information for building the redirect response.
     * @return a 303 redirect response to the job resource.
     * @throws UWSException if the phase transition fails.
     */
    @POST
    @Path("/{jobid}/phase")
-   public Response setPhase(@PathParam("jobid") String jobid, @FormParam("PHASE") String phase, @Context UriInfo uriInfo) throws UWSException {
+   public Response setPhase(@PathParam("jobid") String jobid, @FormParam("PHASE") String phase) throws UWSException {
       ExecutionPhase newphase = getJobManager().setPhase(jobid, phase);
-      Response retval = Response.seeOther(uriInfo.getAbsolutePathBuilder()
-            .path(jobid).build()).build();
-
-      return retval;
+      return redirectToJob(jobid);
    }
 
    /**
@@ -104,26 +104,24 @@ public abstract class BaseUWSResource implements UWS {
    @Override
    @POST
    @Path("/{jobid}/destruction")
-   public Response setDestruction(@PathParam("jobid")String jobId, @FormParam("DESTRUCTION") ZonedDateTime destructionTime, @Context UriInfo uriInfo) throws UWSException {
+   public Response setDestruction(@PathParam("jobid")String jobId, @FormParam("DESTRUCTION") ZonedDateTime destructionTime) throws UWSException {
       throw new UWSException("Not implemented");
    }
 
    @POST
    @Path("/{jobid}/executionduration")
    @Override
-   public Response setExecutionDuration(@PathParam("jobid")String jobId, @FormParam("EXECUTIONDURATION") Long executionDuration, @Context UriInfo uriInfo) throws UWSException {
+   public Response setExecutionDuration(@PathParam("jobid")String jobId, @FormParam("EXECUTIONDURATION") Long executionDuration) throws UWSException {
       throw new UWSException("Not implemented");
    }
 
    @Override
    @DELETE
    @Path("/{jobid}")
-   public Response deleteJob(@PathParam("jobid")String jobid, @Context UriInfo uriInfo) throws UWSException {
+   public Response deleteJob(@PathParam("jobid")String jobid) throws UWSException {
       boolean success = getJobManager().deleteJob(jobid);
       if (success) {
-
-         return Response.seeOther(uriInfo.getAbsolutePathBuilder()
-               .build()).build();
+         return redirectToJob(null);
       } else {
 
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -131,4 +129,5 @@ public abstract class BaseUWSResource implements UWS {
                .build();
       }
    }
+
 }
