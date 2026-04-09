@@ -82,6 +82,10 @@ public class TAPJob extends BaseUWSJob {
       final File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
       final AtomicReference<Connection> thisConnection = new AtomicReference<>();
       try {
+
+         if(tapJobSpec.adqlQuery == null || tapJobSpec.adqlQuery.isBlank()) {
+            throw new UWSException("ADQL query is missing or empty");
+         }
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
          ADQLParser parser = new ADQLParser();
          QueryChecker checker = new DBChecker(tables);
