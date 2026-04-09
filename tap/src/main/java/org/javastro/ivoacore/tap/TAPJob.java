@@ -85,14 +85,25 @@ public class TAPJob extends BaseUWSJob {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
          ADQLParser parser = new ADQLParser();
          QueryChecker checker = new DBChecker(tables);
-         // Set the DBChecker to the parser:
          parser.setQueryChecker(checker);
-         // Parse ADQL:
+         // Parse ADQL
          log.info("Parsing original ADQL query: {}", tapJobSpec.adqlQuery);
          ADQLSet query = parser.parseQuery(tapJobSpec.adqlQuery);
-
+         if (tapJobSpec.maxrec != null && tapJobSpec.maxrec >= 0) {
+            // Apply MAXREC at SQL level to avoid fetching unnecessary rows.
+            //TODO need to add system wide MAXREC - needs to get from ExecutionPolicy / environment
+            if(query.hasLimit() && query.getLimit() > tapJobSpec.maxrec) {
+               log.info("Applying MAXREC limit of {} to query with existing limit of {}", tapJobSpec.maxrec, query.getLimit());
+               query.setLimit(Math.toIntExact(tapJobSpec.maxrec));
+            }
+            else if (!query.hasLimit()) {
+               log.info("Applying MAXREC limit of {} to query with no existing limit", tapJobSpec.maxrec);
+               query.setLimit(Math.toIntExact(tapJobSpec.maxrec));
+            }
+         }
          ADQLTranslator translator = new PgSphereTranslator();
          String sql = translator.translate(query);
+
          log.info("Translated ADQL query to SQL: {}", sql);
 
 
@@ -187,6 +198,7 @@ public class TAPJob extends BaseUWSJob {
    {
       return exception;
    }
+
    @Override
    public Results createExternalJobResult() {
       //FIXME - this is too simplistic at the moment - need to fetch things properly - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
