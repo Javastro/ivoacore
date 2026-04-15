@@ -42,7 +42,7 @@ public class TAPJobSpecification extends BaseJobSpecification {
     */
    public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
                               String upload) {
-      super(runId,buildParameters(query,maxrec,responseformat,upload));
+      super(runId,buildParameters(query,maxrec,responseformat,lang)); //FIXME need to implement upload
       this.adqlQuery = query;
       this.maxrec = maxrec;
       this.responseFormat = responseformat;
