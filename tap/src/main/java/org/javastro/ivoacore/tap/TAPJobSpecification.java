@@ -5,6 +5,7 @@ package org.javastro.ivoacore.tap;
  * Created on 09/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.javastro.ivoacore.uws.BaseJobSpecification;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
@@ -19,6 +20,7 @@ import java.util.List;
  * <li>no upload</li>
  *</ul>
  */
+@JsonTypeName("TAP")
 public class TAPJobSpecification extends BaseJobSpecification {
 
 
