@@ -6,7 +6,7 @@ import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import java.time.ZonedDateTime;
 
 @Entity
-@Table(name = "uws_jobs")
+@Table(name = "uws_jobs", schema = "uws")
 public class UWSJobEntity {
 
     @Id
