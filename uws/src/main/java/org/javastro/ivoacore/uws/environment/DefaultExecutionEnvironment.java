@@ -40,9 +40,10 @@ public class DefaultExecutionEnvironment implements ExecutionEnvironment {
    @Override
    public File getWorkDir() {
       File retval = new File(this.baseDir, jobID);
-      if(!retval.mkdirs())
-      {
-         throw new RuntimeException("Unable to create work dir "+retval.getAbsolutePath());
+      if (!retval.exists()) {
+         if (!retval.mkdirs()) {
+            throw new RuntimeException("Unable to create work dir " + retval.getAbsolutePath());
+         }
       }
       return retval;
    }
