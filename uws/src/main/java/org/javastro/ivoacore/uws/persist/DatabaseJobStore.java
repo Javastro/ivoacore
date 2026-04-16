@@ -2,6 +2,7 @@ package org.javastro.ivoacore.uws.persist;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.BaseUWSJob;
 import org.javastro.ivoacore.uws.persist.mappers.JobEntityMapper;
@@ -40,9 +41,18 @@ public class DatabaseJobStore implements JobStore {
     public void store(BaseUWSJob job) {
         try {
             UWSJobEntity entity = mapper.toEntity(job);
+
+            if (!entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().begin();
+            }
+
             entityManager.merge(entity);
+            entityManager.getTransaction().commit();
             logger.debug("Stored/Updated job {} in database", job.getID());
         } catch (Exception e) {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
             logger.error("Failed to store job {}", job.getID(), e);
             throw new RuntimeException("Failed to store job", e);
         }
