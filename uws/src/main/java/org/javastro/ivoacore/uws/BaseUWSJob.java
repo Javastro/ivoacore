@@ -105,6 +105,24 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
       return executionPhase;
    }
 
+   /**
+    * Retrieves the creation time of this job.
+    * @return the creation time as a {@link ZonedDateTime} instance.
+    */
+   public ZonedDateTime getCreationTime() {return creationTime; }
+
+   /**
+    * Retrieves the start time of this job.
+    * @return the start time as a {@link ZonedDateTime} instance.
+    */
+   public ZonedDateTime getStartTime() {return startTime; }
+
+   /**
+    * Retrieves the end time of this job.
+    * @return the end time as a {@link ZonedDateTime} instance, or {@code null} if the end time is not set.
+    */
+   public ZonedDateTime getEndTime() {return endTime; }
+
 
    private Supplier<ExecutionPhase> getJobCallable() {
       return () -> {
