@@ -66,7 +66,7 @@ public class BackingStoreTest {
         jpa.em().clear();
 
         //Check that the job is in the database
-        List<?> rows = jpa.em().createNativeQuery("SELECT job_id, executionPhase, creationTime FROM uws.uws_jobs WHERE job_id = ?")
+        List<?> rows = jpa.em().createNativeQuery("SELECT job_id, executionPhase, creationTime, job_spec FROM uws.uws_jobs WHERE job_id = ?")
                 .setParameter(1, job.getID())
                 .getResultList();
 
@@ -75,6 +75,8 @@ public class BackingStoreTest {
 
         Object[] row = (Object[]) rows.get(0);
         assertEquals(job.getID(), row[0]);
+
+        assertEquals(job.getExecutionPhase().name(), row[1]);
     }
 
     /**

@@ -21,16 +21,16 @@ public abstract class JobEntityMapper {
     }
 
     @Mapping(target = "jobId", source = "ID")
-  //  @Mapping(target = "jobSpecificationJson", expression = "java(serializeSpec(job.getJobSpecification()))")
+    @Mapping(target = "jobSpecificationJson", expression = "java(serializeSpec(job.getJobSpecification()))")
   //  @Mapping(target = "exceptionMessage", expression = "java(mapExceptionMessage(job))")
   //  @Mapping(target = "exceptionType", expression = "java(mapExceptionType(job))")
     public abstract UWSJobEntity toEntity(BaseUWSJob job);
 
-   /* protected String serializeSpec(JobSpecification spec) {
+    protected String serializeSpec(JobSpecification spec) {
         try {
             return objectMapper.writeValueAsString(spec);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize JobSpecification", e);
         }
-    }*/
+    }
 }
