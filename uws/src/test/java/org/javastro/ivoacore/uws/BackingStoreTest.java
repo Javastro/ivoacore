@@ -1,5 +1,6 @@
 package org.javastro.ivoacore.uws;
 
+import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.persist.DatabaseJobStore;
 import org.javastro.ivoacore.uws.tools.JpaTestSupport;
 import org.javastro.ivoacore.uws.tools.TestJobManagerFactory;
@@ -38,10 +39,27 @@ public class BackingStoreTest {
         jpa = new JpaTestSupport();
         jpa.start();
 
-        store = TestPersistenceFactory.createStore(jpa.em());
-
+        // Create shared aggregator ONCE
+        JobFactoryAggregator sharedAgg = new JobFactoryAggregator();
         File tmpdir = Files.createTempDirectory("managerTest").toFile();
-        jobManager = TestJobManagerFactory.create(tmpdir);
+
+        // Register factories to shared aggregator
+        sharedAgg.addFactory(new SimpleLambdaJob.JobFactory(
+                s -> {
+                    try {
+                        Thread.sleep(2300);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
+                    return "hello " + s;
+                },
+                new DefaultEnvironmentFactory(tmpdir)
+        ));
+
+        // Pass shared aggregator to both
+        store = TestPersistenceFactory.createStore(jpa.em(), sharedAgg);
+        jobManager = TestJobManagerFactory.create(tmpdir, sharedAgg);
     }
 
     @AfterAll
@@ -77,6 +95,20 @@ public class BackingStoreTest {
         assertEquals(job.getID(), row[0]);
 
         assertEquals(job.getExecutionPhase().name(), row[1]);
+    }
+
+    @Test
+    public void testBackingStoreParse() {
+        BaseUWSJob job = createJob();
+
+        assertNotNull(job);
+        store.store(job);
+
+        jpa.em().clear();
+
+        BaseUWSJob retrieved = store.retrieve(job.getID());
+        assertNotNull(retrieved);
+        assertEquals(job.getID(), retrieved.getID());
     }
 
     /**

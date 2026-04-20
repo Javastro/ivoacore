@@ -4,7 +4,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
-import org.javastro.ivoacore.uws.BaseUWSJob;
+import org.javastro.ivoa.entities.uws.Results;
+import org.javastro.ivoacore.uws.*;
+import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.persist.mappers.JobEntityMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ public class DatabaseJobStore implements JobStore {
 
     private final EntityManager entityManager;
     private final JobEntityMapper mapper;
+    private final JobFactoryAggregator factoryAggregator;
 
     /**
      * Constructs a DatabaseJobStore with the given EntityManager and mapper.
@@ -32,9 +35,10 @@ public class DatabaseJobStore implements JobStore {
      * @param entityManager the JPA EntityManager for database operations.
      * @param mapper        the MapStruct mapper for converting between BaseUWSJob and JobEntity.
      */
-    public DatabaseJobStore(EntityManager entityManager, JobEntityMapper mapper) {
+    public DatabaseJobStore(EntityManager entityManager, JobEntityMapper mapper, JobFactoryAggregator factoryAggregator) {
         this.entityManager = entityManager;
         this.mapper = mapper;
+        this.factoryAggregator = factoryAggregator;
     }
 
     @Override
@@ -60,20 +64,22 @@ public class DatabaseJobStore implements JobStore {
 
     @Override
     public BaseUWSJob retrieve(String id) {
-        try {
-            UWSJobEntity entity = entityManager.find(UWSJobEntity.class, id);
-            if (entity == null) {
-                logger.debug("Job {} not found in database", id);
-                return null;
-            }
-            // Note: This requires a concrete implementation or factory method
-            // For now, returning null as we need the full context of job reconstruction
-            logger.debug("Retrieved job {} from database", id);
-            return null; // TODO: Implement job reconstruction from entity
-        } catch (Exception e) {
-            logger.error("Failed to retrieve job {}", id, e);
-            throw new RuntimeException("Failed to retrieve job", e);
+        UWSJobEntity entity = entityManager.find(UWSJobEntity.class, id);
+
+        if (entity == null) {
+            return null;
         }
+
+        JobSpecification spec = mapper.toSpecification(entity);
+
+        BaseUWSJob job = null;
+        try {
+            job = factoryAggregator.restoreJob(id, spec, entity);
+        } catch (UWSException e) {
+            throw new RuntimeException(e);
+        }
+
+        return job;
     }
 
     @Override

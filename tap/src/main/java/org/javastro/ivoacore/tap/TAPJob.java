@@ -29,6 +29,7 @@ import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
+import org.javastro.ivoacore.uws.persist.UWSJobEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
@@ -248,6 +249,14 @@ public class TAPJob extends BaseUWSJob {
             return new TAPJob(id, (TAPJobSpecification) jobDescription, environmentFactory.create(id), ds, schemaProvider );
          } else throw new UWSException("Invalid job type");
 
+      }
+
+      @Override
+      public BaseUWSJob restoreJob(String jobId, JobSpecification spec, UWSJobEntity entity) throws UWSException {
+         BaseUWSJob job = createJob(spec);
+         job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
+
+         return job;
       }
 
       /**

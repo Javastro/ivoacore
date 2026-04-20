@@ -5,12 +5,16 @@ package org.javastro.ivoacore.uws;
  * Created on 04/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
+import org.javastro.ivoacore.uws.persist.UWSJobEntity;
 
 import java.util.List;
 import java.util.function.Function;
@@ -96,7 +100,20 @@ public class SimpleLambdaJob  extends BaseUWSJob {
          return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription);
       }
 
+      @Override
+      public BaseUWSJob restoreJob(String jobId, JobSpecification spec, UWSJobEntity entity) throws UWSException {
+         SimpleLambdaJob job =
+                 new SimpleLambdaJob(
+                         jobId,
+                         environmentFactory.create(jobId),
+                         theFunc,
+                         spec
+                 );
 
+         job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
+
+         return job;
+      }
    }
 
    /**
@@ -110,15 +127,24 @@ public class SimpleLambdaJob  extends BaseUWSJob {
        * @param runID the run identifier for this job.
        */
       public Specification(final String input, final String runID) {
-         super(runID,List.of(new ImmutableStringValue("input", input)));
+         super(runID,List.of(new ImmutableStringValue("input", input, false)));
          this.theParameter = getParameters().get(0);
+      }
+
+      @JsonCreator
+      public Specification(
+              @JsonProperty("runId") String runId,
+              @JsonProperty("parameters")
+              List<ParameterValue> parameters) {
+
+         super(runId, parameters);
+         this.theParameter = parameters.get(0);
       }
 
       final ParameterValue theParameter;
 
       @Override
       public String jobTypeIdentifier() {return SIMPLE_LAMBDA;}
-
 
       @Override
       public String getJDL() {

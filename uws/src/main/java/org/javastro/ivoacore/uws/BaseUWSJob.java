@@ -61,6 +61,18 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
       this.executionPhase = ExecutionPhase.PENDING;
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
+   
+   public void restoreState(
+           ExecutionPhase phase,
+           ZonedDateTime creation,
+           ZonedDateTime start,
+           ZonedDateTime end
+   ){
+      this.executionPhase = phase;
+      this.creationTime = creation;
+      this.startTime = start;
+      this.endTime = end;
+   }
 
    /** The execution environment for this job. */
    protected final ExecutionEnvironment executionEnvironment;

@@ -5,6 +5,8 @@ package org.javastro.ivoacore.uws;
  * Created on 05/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import org.javastro.ivoacore.uws.persist.UWSJobEntity;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,5 +52,16 @@ public class JobFactoryAggregator implements JobFactory {
    @Override
    public boolean isParameterized() {
       return false; //IMPL This does not really have much meaning for this aggregator....
+   }
+
+   public BaseUWSJob restoreJob(String jobId, JobSpecification spec, UWSJobEntity entity) throws UWSException {
+
+      JobFactory factory = jobFactoryMap.get(spec.jobTypeIdentifier());
+
+      if (factory == null) {
+         throw new RuntimeException("No factory for job type " + spec.jobTypeIdentifier());
+      }
+
+      return factory.restoreJob(jobId, spec, entity);
    }
 }

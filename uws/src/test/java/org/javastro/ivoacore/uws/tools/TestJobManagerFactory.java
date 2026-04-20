@@ -11,9 +11,7 @@ import java.io.File;
 
 public class TestJobManagerFactory {
 
-    public static JobManager create(File tmpdir) {
-
-        JobFactoryAggregator agg = new JobFactoryAggregator();
+    public static JobManager create(File tmpdir, JobFactoryAggregator agg) {
 
         agg.addFactory(new SimpleLambdaJob.JobFactory(
                 s -> {

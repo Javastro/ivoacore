@@ -2,6 +2,7 @@ package org.javastro.ivoacore.uws;
 
 
 import org.javastro.ivoacore.uws.description.JobType;
+import org.javastro.ivoacore.uws.persist.UWSJobEntity;
 
 /**
  * Factory interface for creating UWS jobs of a specific type.
@@ -16,4 +17,10 @@ public interface JobFactory extends JobType { //TODO not quite right that JobFac
     * @throws UWSException if the job cannot be created.
     */
    BaseUWSJob createJob(JobSpecification jobDescription) throws UWSException;
+
+   BaseUWSJob restoreJob(
+           String jobId,
+           JobSpecification spec,
+           UWSJobEntity entity
+   ) throws UWSException;
 }

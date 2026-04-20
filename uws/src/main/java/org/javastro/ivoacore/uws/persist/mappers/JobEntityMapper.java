@@ -3,6 +3,7 @@ package org.javastro.ivoacore.uws.persist.mappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.javastro.ivoacore.uws.BaseUWSJob;
 import org.javastro.ivoacore.uws.JobSpecification;
+import org.javastro.ivoacore.uws.SimpleLambdaJob;
 import org.javastro.ivoacore.uws.persist.UWSJobEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -31,6 +32,14 @@ public abstract class JobEntityMapper {
             return objectMapper.writeValueAsString(spec);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize JobSpecification", e);
+        }
+    }
+
+    public JobSpecification toSpecification(UWSJobEntity entity) {
+        try {
+            return objectMapper.readValue(entity.jobSpecificationJson, SimpleLambdaJob.Specification.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deserialize JobSpecification", e);
         }
     }
 }
