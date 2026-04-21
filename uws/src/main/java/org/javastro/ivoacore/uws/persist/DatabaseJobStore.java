@@ -2,11 +2,8 @@ package org.javastro.ivoacore.uws.persist;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
-import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.*;
-import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.persist.mappers.JobEntityMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +13,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Database-backed implementation of JobStore using JPA.

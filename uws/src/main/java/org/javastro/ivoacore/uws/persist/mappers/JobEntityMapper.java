@@ -37,7 +37,7 @@ public abstract class JobEntityMapper {
 
     public JobSpecification toSpecification(UWSJobEntity entity) {
         try {
-            return objectMapper.readValue(entity.jobSpecificationJson, SimpleLambdaJob.Specification.class);
+            return objectMapper.readValue(entity.jobSpecificationJson, JobSpecification.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to deserialize JobSpecification", e);
         }
