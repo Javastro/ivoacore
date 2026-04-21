@@ -39,7 +39,7 @@ public class BackingStoreTest {
         jpa = new JpaTestSupport();
         jpa.start();
 
-        // Create shared aggregator ONCE
+        // Create a shared aggregator ONCE
         JobFactoryAggregator sharedAgg = new JobFactoryAggregator();
         File tmpdir = Files.createTempDirectory("managerTest").toFile();
 

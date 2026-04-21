@@ -3,8 +3,6 @@ package org.javastro.ivoacore.uws.tools;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
 import org.javastro.ivoacore.uws.JobFactoryAggregator;
 import org.javastro.ivoacore.uws.SimpleLambdaJob;
 import org.javastro.ivoacore.uws.persist.DatabaseJobStore;
@@ -12,10 +10,6 @@ import org.javastro.ivoacore.uws.persist.mappers.JobEntityMapper;
 import org.mapstruct.factory.Mappers;
 
 public class TestPersistenceFactory {
-
-    public static EntityManagerFactory createEmf() {
-        return Persistence.createEntityManagerFactory("my-pu");
-    }
 
     public static DatabaseJobStore createStore(EntityManager em, JobFactoryAggregator agg) {
         JobEntityMapper mapper = Mappers.getMapper(JobEntityMapper.class);
