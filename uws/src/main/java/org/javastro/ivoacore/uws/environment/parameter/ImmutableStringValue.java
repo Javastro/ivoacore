@@ -23,17 +23,15 @@ public class ImmutableStringValue implements ParameterValue {
 
    private final String val;
    private final String name;
-   private final boolean indirect;
+   private final boolean indirect = false;
 
    @JsonCreator
    public ImmutableStringValue(
            @JsonProperty("id") String name,
-           @JsonProperty("value") String val,
-           @JsonProperty("indirect") boolean indirect) {
+           @JsonProperty("value") String val) {
 
       this.val = val;
       this.name = name;
-      this.indirect = indirect;
    }
 
    @Override

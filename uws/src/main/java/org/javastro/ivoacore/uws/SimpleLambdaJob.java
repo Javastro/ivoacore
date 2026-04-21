@@ -127,7 +127,7 @@ public class SimpleLambdaJob  extends BaseUWSJob {
        * @param runID the run identifier for this job.
        */
       public Specification(final String input, final String runID) {
-         super(runID,List.of(new ImmutableStringValue("input", input, false)));
+         super(runID,List.of(new ImmutableStringValue("input", input)));
          this.theParameter = getParameters().get(0);
       }
 
