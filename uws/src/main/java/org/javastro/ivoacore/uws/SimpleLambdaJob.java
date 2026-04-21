@@ -101,7 +101,7 @@ public class SimpleLambdaJob  extends BaseUWSJob {
       }
 
       @Override
-      public BaseUWSJob restoreJob(String jobId, JobSpecification spec, UWSJobEntity entity) throws UWSException {
+      public BaseUWSJob restoreJob(String jobId, JobSpecification spec, UWSJobEntity entity) {
          SimpleLambdaJob job =
                  new SimpleLambdaJob(
                          jobId,
