@@ -5,6 +5,7 @@ package org.javastro.ivoacore.uws;
  * Created on 02/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 
