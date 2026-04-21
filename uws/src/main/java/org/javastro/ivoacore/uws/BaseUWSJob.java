@@ -61,13 +61,16 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
       this.executionPhase = ExecutionPhase.PENDING;
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
-   
-   public void restoreState(
-           ExecutionPhase phase,
-           ZonedDateTime creation,
-           ZonedDateTime start,
-           ZonedDateTime end
-   ){
+
+   /**
+    * Restores the state of the job, typically after retrieval from a persistent store.
+    *
+    * @param phase the execution phase of the job; specifies the current state or progress of the job.
+    * @param creation the creation time of the job; indicates when the job was created.
+    * @param start the start time of the job; marks when the job execution began.
+    * @param end the end time of the job; represents when the job execution was completed or terminated.
+    */
+   public void restoreState(ExecutionPhase phase, ZonedDateTime creation, ZonedDateTime start, ZonedDateTime end){
       this.executionPhase = phase;
       this.creationTime = creation;
       this.startTime = start;

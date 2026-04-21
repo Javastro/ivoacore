@@ -18,9 +18,17 @@ public interface JobFactory extends JobType { //TODO not quite right that JobFac
     */
    BaseUWSJob createJob(JobSpecification jobDescription) throws UWSException;
 
-   BaseUWSJob restoreJob(
-           String jobId,
-           JobSpecification spec,
-           UWSJobEntity entity
-   ) throws UWSException;
+   /**
+    * Restores a previously persisted UWS job based on the provided job ID, specification,
+    * and associated entity. This method is responsible for recreating a {@link BaseUWSJob}
+    * instance corresponding to the given parameters.
+    * Typically, this method would be used to restore a job from a database or other persistent storage.
+    *
+    * @param jobId the unique identifier of the job to restore.
+    * @param spec the {@link JobSpecification} containing the job's specifications.
+    * @param entity the {@link UWSJobEntity} representing the persisted state of the job.
+    * @return a {@link BaseUWSJob} instance representing the restored job.
+    * @throws UWSException if the job cannot be restored due to an error or invalid parameters.
+    */
+   BaseUWSJob restoreJob(String jobId, JobSpecification spec, UWSJobEntity entity) throws UWSException;
 }

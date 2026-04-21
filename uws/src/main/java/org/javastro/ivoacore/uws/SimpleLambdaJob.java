@@ -7,6 +7,7 @@ package org.javastro.ivoacore.uws;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
@@ -118,6 +119,7 @@ public class SimpleLambdaJob  extends BaseUWSJob {
    /**
     * Job specification for a {@link SimpleLambdaJob}, providing a single string input parameter.
     */
+   @JsonTypeName("simpleLambda")
    public static class Specification extends BaseJobSpecification {
 
       /**

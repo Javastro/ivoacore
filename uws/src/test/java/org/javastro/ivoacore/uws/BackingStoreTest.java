@@ -1,9 +1,10 @@
 package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
+import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.persist.DatabaseJobStore;
+import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
 import org.javastro.ivoacore.uws.tools.JpaTestSupport;
-import org.javastro.ivoacore.uws.tools.TestJobManagerFactory;
 import org.javastro.ivoacore.uws.tools.TestPersistenceFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,44 +28,47 @@ import static org.junit.jupiter.api.Assertions.*;
  * retrieved accurately, and aligns with expected database mappings.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class BackingStoreTest {
-
-    private JobManager jobManager;
-    private DatabaseJobStore store;
+class BackingStoreTest {
 
     private JpaTestSupport jpa;
+    private JobManager jobManager;
+    private DatabaseJobStore store;
 
     @BeforeAll
     void setup() throws IOException {
         jpa = new JpaTestSupport();
-        jpa.start();
 
-        // Create a shared aggregator ONCE
-        JobFactoryAggregator sharedAgg = new JobFactoryAggregator();
-        File tmpdir = Files.createTempDirectory("managerTest").toFile();
+        File tmpDir = Files.createTempDirectory("managerTest").toFile();
 
-        // Register factories to shared aggregator
-        sharedAgg.addFactory(new SimpleLambdaJob.JobFactory(
-                s -> {
-                    try {
-                        Thread.sleep(2300);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(e);
-                    }
-                    return "hello " + s;
-                },
-                new DefaultEnvironmentFactory(tmpdir)
+        JobFactoryAggregator agg = new JobFactoryAggregator();
+        agg.addFactory(new SimpleLambdaJob.JobFactory(
+                this::runLambdaJob,
+                new DefaultEnvironmentFactory(tmpDir)
         ));
 
-        // Pass shared aggregator to both
-        store = TestPersistenceFactory.createStore(jpa.em(), sharedAgg);
-        jobManager = TestJobManagerFactory.create(tmpdir, sharedAgg);
+        store = TestPersistenceFactory.create(jpa.entityManager(), agg);
+
+        jobManager = new JobManager(agg, new MemoryBasedJobStore(), new DefaultExecutionPolicy());
+    }
+
+    /**
+     * Simple lambda job that sleeps for 2.3 seconds and returns a string.
+     * @param s the string to return
+     * @return the string "hello " + the supplied string
+     */
+    private String runLambdaJob(String s) {
+        try {
+            Thread.sleep(2300);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+        return "hello " + s;
     }
 
     @AfterAll
     void tearDown() {
-        jpa.stop();
+        jpa.close();
     }
 
     /**
@@ -81,10 +85,10 @@ public class BackingStoreTest {
         assertNotNull(job);
         store.store(job);
 
-        jpa.em().clear();
+        jpa.entityManager().clear();
 
         //Check that the job is in the database
-        List<?> rows = jpa.em().createNativeQuery("SELECT job_id, executionPhase, creationTime, job_spec FROM uws.uws_jobs WHERE job_id = ?")
+        List<?> rows = jpa.entityManager().createNativeQuery("SELECT job_id, executionPhase, creationTime, job_spec FROM uws.uws_jobs WHERE job_id = ?")
                 .setParameter(1, job.getID())
                 .getResultList();
 
@@ -104,7 +108,7 @@ public class BackingStoreTest {
         assertNotNull(job);
         store.store(job);
 
-        jpa.em().clear();
+        jpa.entityManager().clear();
 
         BaseUWSJob retrieved = store.retrieve(job.getID());
         assertNotNull(retrieved);
