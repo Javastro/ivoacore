@@ -70,7 +70,7 @@ public class DatabaseJobStore implements JobStore {
 
         BaseUWSJob job;
         try {
-            job = factoryAggregator.createJob(entity, spec);
+            job = factoryAggregator.createJob(id, spec);
             job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
         } catch (UWSException e) {
             throw new RuntimeException(e);

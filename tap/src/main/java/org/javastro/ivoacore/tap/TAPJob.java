@@ -252,12 +252,10 @@ public class TAPJob extends BaseUWSJob {
       }
 
       @Override
-      public BaseUWSJob createJob(UWSJobEntity entity, JobSpecification spec) {
-         TAPJob job = new TAPJob(entity.jobId, (TAPJobSpecification) spec, environmentFactory.create(entity.jobId), ds, schemaProvider);
-
-         job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
-
-         return job;
+      public BaseUWSJob createJob(String jobId, JobSpecification spec) throws UWSException {
+         if (spec.jobTypeIdentifier().equals("TAP")) {
+            return new TAPJob(jobId, (TAPJobSpecification) spec, environmentFactory.create(jobId), ds, schemaProvider);
+         } else throw new UWSException("Invalid job type");
       }
 
       /**

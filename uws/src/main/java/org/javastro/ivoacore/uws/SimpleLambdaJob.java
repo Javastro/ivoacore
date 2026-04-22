@@ -100,12 +100,17 @@ public class SimpleLambdaJob  extends BaseUWSJob {
          return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription);
       }
 
+      /**
+       * Intended for restoring a job from a database.
+       * @param jobId  the unique identifier of the job to restore.
+       * @param spec   the {@link JobSpecification} containing the job's specifications.
+       * @return a {@link SimpleLambdaJob} instance representing the restored job.
+       */
       @Override
-      public BaseUWSJob createJob(UWSJobEntity entity, JobSpecification spec) {
-
+      public BaseUWSJob createJob(String jobId, JobSpecification spec) {
           return new SimpleLambdaJob(
-                  entity.jobId,
-                  environmentFactory.create(entity.jobId),
+                  jobId,
+                  environmentFactory.create(jobId),
                   theFunc,
                   spec
           );
