@@ -1,15 +1,15 @@
 package org.javastro.ivoacore.uws;
 
+import jakarta.persistence.EntityTransaction;
+import jakarta.transaction.Transactional;
+import jdk.jfr.Description;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.persist.DatabaseJobStore;
 import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
 import org.javastro.ivoacore.uws.tools.JpaTestSupport;
 import org.javastro.ivoacore.uws.tools.TestPersistenceFactory;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,6 +49,18 @@ class BackingStoreTest {
         store = TestPersistenceFactory.create(jpa.entityManager(), agg);
 
         jobManager = new JobManager(agg, new MemoryBasedJobStore(), new DefaultExecutionPolicy());
+    }
+
+    @BeforeEach
+    @Transactional
+    void beforeEach() {
+        //Clear the database before each test
+        EntityTransaction tx = jpa.entityManager().getTransaction();
+        tx.begin();
+
+        jpa.entityManager().createNativeQuery("DELETE FROM uws.uws_jobs").executeUpdate();
+
+        tx.commit();
     }
 
     /**
@@ -102,6 +114,7 @@ class BackingStoreTest {
     }
 
     @Test
+    @Description("Test that the job can be parsed from the database")
     public void testBackingStoreParse() {
         BaseUWSJob job = createJob();
 
@@ -113,6 +126,41 @@ class BackingStoreTest {
         BaseUWSJob retrieved = store.retrieve(job.getID());
         assertNotNull(retrieved);
         assertEquals(job.getID(), retrieved.getID());
+    }
+
+    @Test
+    @Description("Test that the backing store contains the job ID after storing a job")
+    public void testBackingStoreContainsID(){
+        BaseUWSJob job = createJob();
+
+        assertNotNull(job);
+        store.store(job);
+
+        jpa.entityManager().clear();
+
+        assertTrue(store.getAllIds().contains(job.getID()));
+    }
+
+    @Test
+    @Description("Test that the backing store contains all job IDs after storing multiple jobs")
+    public void testBackingStoreIDs(){
+        BaseUWSJob job = createJob();
+
+        assertNotNull(job);
+        store.store(job);
+
+        jpa.entityManager().clear();
+
+        assertEquals(1, store.getAllIds().size());
+
+        BaseUWSJob job2 = createJob();
+
+        assertNotNull(job2);
+        store.store(job2);
+
+        jpa.entityManager().clear();
+
+        assertEquals(2, store.getAllIds().size());
     }
 
     /**
