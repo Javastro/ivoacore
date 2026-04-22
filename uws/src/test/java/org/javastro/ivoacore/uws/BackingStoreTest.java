@@ -91,6 +91,7 @@ class BackingStoreTest {
      * job is retrievable from the database.
      */
     @Test
+    @Description("Test that the job can be stored in the database, verify with SQL query.")
     public void testBackingStore() {
         BaseUWSJob job = createJob();
 
@@ -161,6 +162,20 @@ class BackingStoreTest {
         jpa.entityManager().clear();
 
         assertEquals(2, store.getAllIds().size());
+    }
+
+    @Test
+    @Description("Test that the backing store can delete a job")
+    public void testBackStoreDeleteJob(){
+        BaseUWSJob job = createJob();
+        assertNotNull(job);
+        store.store(job);
+
+        jpa.entityManager().clear();
+        assertEquals(1, store.getAllIds().size());
+
+        store.delete(job.getID());
+        assertEquals(0, store.getAllIds().size());
     }
 
     /**
