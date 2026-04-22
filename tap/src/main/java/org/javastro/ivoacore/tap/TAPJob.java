@@ -252,7 +252,7 @@ public class TAPJob extends BaseUWSJob {
       }
 
       @Override
-      public BaseUWSJob restoreJob(JobSpecification spec, UWSJobEntity entity) {
+      public BaseUWSJob createJob(UWSJobEntity entity, JobSpecification spec) {
          TAPJob job = new TAPJob(entity.jobId, (TAPJobSpecification) spec, environmentFactory.create(entity.jobId), ds, schemaProvider);
 
          job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);

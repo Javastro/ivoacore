@@ -68,9 +68,10 @@ public class DatabaseJobStore implements JobStore {
 
         JobSpecification spec = mapper.toSpecification(entity);
 
-        BaseUWSJob job = null;
+        BaseUWSJob job;
         try {
-            job = factoryAggregator.restoreJob(spec, entity);
+            job = factoryAggregator.createJob(entity, spec);
+            job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
         } catch (UWSException e) {
             throw new RuntimeException(e);
         }

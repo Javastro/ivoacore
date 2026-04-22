@@ -39,14 +39,14 @@ public class JobFactoryAggregator implements JobFactory {
    }
 
    @Override
-   public BaseUWSJob restoreJob(JobSpecification spec, UWSJobEntity entity) throws UWSException {
+   public BaseUWSJob createJob(UWSJobEntity entity, JobSpecification spec) throws UWSException {
       JobFactory factory = jobFactoryMap.get(spec.jobTypeIdentifier());
 
       if (factory == null) {
          throw new RuntimeException("No factory for job type " + spec.jobTypeIdentifier());
       }
 
-      return factory.restoreJob(spec, entity);
+      return factory.createJob(entity, spec);
    }
 
    @Override
