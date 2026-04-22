@@ -101,11 +101,11 @@ public class SimpleLambdaJob  extends BaseUWSJob {
       }
 
       @Override
-      public BaseUWSJob restoreJob(String jobId, JobSpecification spec, UWSJobEntity entity) {
+      public BaseUWSJob restoreJob(JobSpecification spec, UWSJobEntity entity) {
          SimpleLambdaJob job =
                  new SimpleLambdaJob(
-                         jobId,
-                         environmentFactory.create(jobId),
+                         entity.jobId,
+                         environmentFactory.create(entity.jobId),
                          theFunc,
                          spec
                  );

@@ -39,6 +39,17 @@ public class JobFactoryAggregator implements JobFactory {
    }
 
    @Override
+   public BaseUWSJob restoreJob(JobSpecification spec, UWSJobEntity entity) throws UWSException {
+      JobFactory factory = jobFactoryMap.get(spec.jobTypeIdentifier());
+
+      if (factory == null) {
+         throw new RuntimeException("No factory for job type " + spec.jobTypeIdentifier());
+      }
+
+      return factory.restoreJob(spec, entity);
+   }
+
+   @Override
    public String jobType() {
       return "JobFactoryAggregator";
    }
@@ -52,16 +63,5 @@ public class JobFactoryAggregator implements JobFactory {
    @Override
    public boolean isParameterized() {
       return false; //IMPL This does not really have much meaning for this aggregator....
-   }
-
-   public BaseUWSJob restoreJob(String jobId, JobSpecification spec, UWSJobEntity entity) throws UWSException {
-
-      JobFactory factory = jobFactoryMap.get(spec.jobTypeIdentifier());
-
-      if (factory == null) {
-         throw new RuntimeException("No factory for job type " + spec.jobTypeIdentifier());
-      }
-
-      return factory.restoreJob(jobId, spec, entity);
    }
 }
