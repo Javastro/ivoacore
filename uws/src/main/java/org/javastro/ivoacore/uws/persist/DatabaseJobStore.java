@@ -1,7 +1,9 @@
 package org.javastro.ivoacore.uws.persist;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.persist.mappers.JobEntityMapper;
@@ -81,16 +83,24 @@ public class DatabaseJobStore implements JobStore {
 
     @Override
     public boolean delete(String id) {
+        EntityTransaction tx = entityManager.getTransaction();
+
         try {
+            tx.begin();
+
             UWSJobEntity entity = entityManager.find(UWSJobEntity.class, id);
             if (entity == null) {
                 logger.debug("Job {} not found for deletion", id);
                 return false;
             }
             entityManager.remove(entity);
+            tx.commit();
             logger.debug("Deleted job {} from database", id);
             return true;
         } catch (Exception e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
             logger.error("Failed to delete job {}", id, e);
             throw new RuntimeException("Failed to delete job", e);
         }
