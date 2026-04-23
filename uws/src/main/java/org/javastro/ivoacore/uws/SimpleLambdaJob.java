@@ -14,7 +14,6 @@ import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
-import org.javastro.ivoacore.uws.persist.UWSJobEntity;
 
 import java.util.List;
 import java.util.function.Function;

@@ -3,7 +3,6 @@ package org.javastro.ivoacore.uws.persist;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.persist.mappers.JobEntityMapper;

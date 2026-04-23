@@ -13,15 +13,15 @@ import java.util.Map;
 /** A job factory can can create many different types of job.
 
  */
-public class JobFactoryAggregator implements JobFactory {
+public class JobFactoryAggregator implements JobFactory, RestorableJobFactory {
 
-   private final Map<String, JobFactory> jobFactoryMap=new HashMap<>();
+   private final Map<String, CommonJobFactory> jobFactoryMap=new HashMap<>();
 
    /**
     * Adds a {@link JobFactory} to this aggregator, registering it by its job type.
     * @param factory the factory to add.
     */
-   public void addFactory(JobFactory factory)
+   public void addFactory(CommonJobFactory factory)
    {
       jobFactoryMap.put(factory.jobType(), factory);
    }
@@ -40,7 +40,7 @@ public class JobFactoryAggregator implements JobFactory {
 
    @Override
    public BaseUWSJob createJob(String jobId, JobSpecification spec) throws UWSException {
-      JobFactory factory = jobFactoryMap.get(spec.jobTypeIdentifier());
+      RestorableJobFactory factory = jobFactoryMap.get(spec.jobTypeIdentifier());
 
       if (factory == null) {
          throw new RuntimeException("No factory for job type " + spec.jobTypeIdentifier());

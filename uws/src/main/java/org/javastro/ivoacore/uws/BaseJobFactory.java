@@ -12,7 +12,7 @@ import org.javastro.ivoacore.uws.environment.UUIDProvider;
 /**
  * Base implementation of {@link JobFactory} providing common fields and implementations of {@link org.javastro.ivoacore.uws.description.JobType} methods.
  */
-public abstract class BaseJobFactory implements JobFactory {
+public abstract class BaseJobFactory implements CommonJobFactory {
    /** The identifier for the type of job this factory creates. */
    protected final String jobType;
    /** A human-readable description of the job type. */
