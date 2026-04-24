@@ -67,12 +67,13 @@ public class DatabaseJobStore implements JobStore {
             return null;
         }
 
-        JobSpecification spec = mapper.toSpecification(entity);
+       // JobSpecification spec = mapper.toSpecification(entity);
+        //PersistedJobRecord jobRecord = new PersistedJobRecord(id, spec, entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
 
         BaseUWSJob job;
         try {
-            job = factoryAggregator.createJob(id, spec);
-            job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
+            job = reinstateJob(entity);//factoryAggregator.createJob(id, jobRecord);
+           // job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
         } catch (UWSException e) {
             throw new RuntimeException(e);
         }
@@ -151,11 +152,36 @@ public class DatabaseJobStore implements JobStore {
             List<UWSJobEntity> entities = query.getResultList();
             logger.debug("Retrieved {} jobs matching filters", entities.size());
 
-            // TODO: Convert JobEntity back to BaseUWSJob (requires factory/constructor)
-            return List.of();
+            // Convert JobEntity back to BaseUWSJob
+            List<BaseUWSJob> jobs = new ArrayList<>();
+            for (UWSJobEntity entity : entities) {
+                try {
+                    BaseUWSJob job = reinstateJob(entity);
+                    jobs.add(job);
+                } catch (UWSException e) {
+                    logger.error("Failed to reinstate job {}", entity.jobId, e);
+                }
+            }
+            return jobs;
         } catch (Exception e) {
             logger.error("Failed to retrieve jobs with filters", e);
             throw new RuntimeException("Failed to retrieve jobs", e);
         }
+    }
+
+    /**
+     * Reinstates a job from a given UWSJobEntity, restoring its state and metadata to create a
+     * functional BaseUWSJob instance.
+     *
+     * @param entity the UWSJobEntity instance containing the job's persisted state and metadata.
+     * @return the restored BaseUWSJob instance.
+     * @throws UWSException if an error occurs while creating or restoring the job's state.
+     */
+    private BaseUWSJob reinstateJob(UWSJobEntity entity) throws UWSException {
+        JobSpecification spec = mapper.toSpecification(entity);
+        PersistedJobRecord jobRecord = new PersistedJobRecord(entity.jobId, spec, entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
+        BaseUWSJob job = factoryAggregator.createJob(entity.jobId, jobRecord);
+       // job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
+        return job;
     }
 }

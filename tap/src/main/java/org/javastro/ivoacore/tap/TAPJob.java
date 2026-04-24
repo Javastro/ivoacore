@@ -29,7 +29,6 @@ import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
-import org.javastro.ivoacore.uws.persist.UWSJobEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
@@ -77,6 +76,12 @@ public class TAPJob extends BaseUWSJob {
       this.schemaProvider = schemaProvider;
    }
 
+   TAPJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
+      super(record, executionEnvironment);
+      this.dataSource = ds;
+      this.tapJobSpec = (TAPJobSpecification) record.specification();
+      this.schemaProvider = schemaProvider;
+   }
 
    @Override
    public List<ParameterValue> performAction() throws UWSException {
@@ -252,9 +257,10 @@ public class TAPJob extends BaseUWSJob {
       }
 
       @Override
-      public BaseUWSJob createJob(String jobId, JobSpecification spec) throws UWSException {
+      public BaseUWSJob createJob(String jobId, PersistedJobRecord record) throws UWSException {
+         final JobSpecification spec = record.specification();
          if (spec.jobTypeIdentifier().equals("TAP")) {
-            return new TAPJob(jobId, (TAPJobSpecification) spec, environmentFactory.create(jobId), ds, schemaProvider);
+            return new TAPJob(record, environmentFactory.create(jobId), ds, schemaProvider);
          } else throw new UWSException("Invalid job type");
       }
 
@@ -280,8 +286,5 @@ public class TAPJob extends BaseUWSJob {
                this.schemaProvider
          );
       }
-
-
-
    }
 }

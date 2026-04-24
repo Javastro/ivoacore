@@ -37,6 +37,22 @@ public class SimpleLambdaJob  extends BaseUWSJob {
       this.function = func;
    }
 
+   /**
+    * Constructs a SimpleLambdaJob using the provided persisted job record, execution environment,
+    * and function to perform the job's action.
+    *
+    * @param record the persisted job record containing the core identity, specifications,
+    *               and lifecycle state of the job.
+    * @param executionEnvironment the environment within which the job executes, providing
+    *                              required resources and context.
+    * @param func the function representing the job's action, taking a string as input
+    *             and producing a string as output.
+    */
+   protected SimpleLambdaJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, Function<String, String> func) {
+      super(record, executionEnvironment);
+      this.function = func;
+   }
+
    @Override
    public Results createExternalJobResult() {
       //FIXME - this is too simplistic at the moment - need to fetch things properly - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
@@ -102,17 +118,12 @@ public class SimpleLambdaJob  extends BaseUWSJob {
       /**
        * Intended for restoring a job from a database.
        * @param jobId  the unique identifier of the job to restore.
-       * @param spec   the {@link JobSpecification} containing the job's specifications.
+       * @param record the persisted job record containing the job's state and specification.
        * @return a {@link SimpleLambdaJob} instance representing the restored job.
        */
       @Override
-      public BaseUWSJob createJob(String jobId, JobSpecification spec) {
-          return new SimpleLambdaJob(
-                  jobId,
-                  environmentFactory.create(jobId),
-                  theFunc,
-                  spec
-          );
+      public BaseUWSJob createJob(String jobId, PersistedJobRecord record) throws UWSException {
+         return new SimpleLambdaJob(record, environmentFactory.create(record.jobId()), theFunc);
       }
    }
 

@@ -3,6 +3,7 @@ package org.javastro.ivoacore.uws;
 import jakarta.persistence.EntityTransaction;
 import jakarta.transaction.Transactional;
 import jdk.jfr.Description;
+import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.persist.DatabaseJobStore;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,6 +35,10 @@ class BackingStoreTest {
     private JpaTestSupport jpa;
     private JobManager jobManager;
     private DatabaseJobStore store;
+
+    private ZonedDateTime PAST_DATE = ZonedDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZonedDateTime.now().getZone());
+    //Note: make sure the date is in the future to ensure it is after the creation time of the job in the database
+    private ZonedDateTime FUTURE_DATE = ZonedDateTime.of(5024, 1, 1, 0, 0, 0, 0, ZonedDateTime.now().getZone());
 
     @BeforeAll
     void setup() throws IOException {
@@ -61,21 +67,6 @@ class BackingStoreTest {
         jpa.entityManager().createNativeQuery("DELETE FROM uws.uws_jobs").executeUpdate();
 
         tx.commit();
-    }
-
-    /**
-     * Simple lambda job that sleeps for 2.3 seconds and returns a string.
-     * @param s the string to return
-     * @return the string "hello " + the supplied string
-     */
-    private String runLambdaJob(String s) {
-        try {
-            Thread.sleep(2300);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
-        return "hello " + s;
     }
 
     @AfterAll
@@ -118,8 +109,6 @@ class BackingStoreTest {
     @Description("Test that the job can be parsed from the database")
     public void testBackingStoreParse() {
         BaseUWSJob job = createJob();
-
-        assertNotNull(job);
         store.store(job);
 
         jpa.entityManager().clear();
@@ -133,8 +122,6 @@ class BackingStoreTest {
     @Description("Test that the backing store contains the job ID after storing a job")
     public void testBackingStoreContainsID(){
         BaseUWSJob job = createJob();
-
-        assertNotNull(job);
         store.store(job);
 
         jpa.entityManager().clear();
@@ -146,8 +133,6 @@ class BackingStoreTest {
     @Description("Test that the backing store contains all job IDs after storing multiple jobs")
     public void testBackingStoreIDs(){
         BaseUWSJob job = createJob();
-
-        assertNotNull(job);
         store.store(job);
 
         jpa.entityManager().clear();
@@ -155,8 +140,6 @@ class BackingStoreTest {
         assertEquals(1, store.getAllIds().size());
 
         BaseUWSJob job2 = createJob();
-
-        assertNotNull(job2);
         store.store(job2);
 
         jpa.entityManager().clear();
@@ -168,7 +151,6 @@ class BackingStoreTest {
     @Description("Test that the backing store can delete a job")
     public void testBackStoreDeleteJob(){
         BaseUWSJob job = createJob();
-        assertNotNull(job);
         store.store(job);
 
         jpa.entityManager().clear();
@@ -177,6 +159,45 @@ class BackingStoreTest {
         store.delete(job.getID());
         assertEquals(0, store.getAllIds().size());
     }
+
+    @Test
+    @Description("Test that the backing store can get all jobs in a specified phase.")
+    public void testGetJobsInPhase(){
+        BaseUWSJob job = createJob();
+        store.store(job);
+        jpa.entityManager().clear();
+
+        assertEquals(1, store.getJobs(ExecutionPhase.PENDING, PAST_DATE, null).size());
+    }
+
+    @Test
+    @Description("Test that the backing store can returns no jobs as the date is AFTER the database entries.")
+    public void testGetJobsInPhaseWithExpiredDate(){
+        BaseUWSJob job = createJob();
+        store.store(job);
+        jpa.entityManager().clear();
+
+        assertEquals(0, store.getJobs(ExecutionPhase.PENDING, FUTURE_DATE, null).size());
+    }
+
+    @Test
+    @Description("Test the backing store returns only jobs in the correct phase")
+    public void testGetJobsInPhaseWithCorrectPhase(){
+        //Add two separate jobs, one in the pending phase and one in the aborted phase
+        BaseUWSJob job = createJob();
+        store.store(job);
+
+        BaseUWSJob job2 = createJob();
+        job2.abort();
+        store.store(job2);
+        jpa.entityManager().clear();
+
+        assertEquals(1, store.getJobs(ExecutionPhase.ABORTED, PAST_DATE, null).size());
+    }
+
+  //  @Test
+   // @Description("")
+
 
     /**
      * Creates and returns a new instance of {@link BaseUWSJob} using the predefined specification.
@@ -193,5 +214,20 @@ class BackingStoreTest {
             throw new RuntimeException(e);
         }
         return job;
+    }
+
+    /**
+     * Simple lambda job that sleeps for 2.3 seconds and returns a string.
+     * @param s the string to return
+     * @return the string "hello " + the supplied string
+     */
+    private String runLambdaJob(String s) {
+        try {
+            Thread.sleep(2300);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+        return "hello " + s;
     }
 }

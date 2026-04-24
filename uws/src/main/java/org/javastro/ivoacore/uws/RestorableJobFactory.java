@@ -11,9 +11,9 @@ interface RestorableJobFactory extends JobType {
      * Restores a previously persisted UWS job.
      *
      * @param jobId the persisted job identifier
-     * @param spec the restored job specification
+     * @param record the restored job's details from persistence
      * @return the restored job instance
      * @throws UWSException if restoration fails
      */
-    BaseUWSJob createJob(String jobId, JobSpecification spec) throws UWSException;
+    BaseUWSJob createJob(String jobId, PersistedJobRecord record) throws UWSException;
 }
