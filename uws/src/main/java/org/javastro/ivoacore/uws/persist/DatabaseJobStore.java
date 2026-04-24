@@ -67,13 +67,9 @@ public class DatabaseJobStore implements JobStore {
             return null;
         }
 
-       // JobSpecification spec = mapper.toSpecification(entity);
-        //PersistedJobRecord jobRecord = new PersistedJobRecord(id, spec, entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
-
         BaseUWSJob job;
         try {
-            job = reinstateJob(entity);//factoryAggregator.createJob(id, jobRecord);
-           // job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
+            job = reinstateJob(entity);
         } catch (UWSException e) {
             throw new RuntimeException(e);
         }
@@ -180,8 +176,6 @@ public class DatabaseJobStore implements JobStore {
     private BaseUWSJob reinstateJob(UWSJobEntity entity) throws UWSException {
         JobSpecification spec = mapper.toSpecification(entity);
         PersistedJobRecord jobRecord = new PersistedJobRecord(entity.jobId, spec, entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
-        BaseUWSJob job = factoryAggregator.createJob(entity.jobId, jobRecord);
-       // job.restoreState(entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
-        return job;
+        return factoryAggregator.createJob(jobRecord);
     }
 }

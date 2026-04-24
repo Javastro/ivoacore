@@ -39,7 +39,7 @@ public class JobFactoryAggregator implements JobFactory, RestorableJobFactory {
    }
 
    @Override
-   public BaseUWSJob createJob(String jobId, PersistedJobRecord record) throws UWSException {
+   public BaseUWSJob createJob(PersistedJobRecord record) throws UWSException {
       try {
          JobSpecification spec = record.specification();
          RestorableJobFactory factory = jobFactoryMap.get(spec.jobTypeIdentifier());
@@ -48,11 +48,11 @@ public class JobFactoryAggregator implements JobFactory, RestorableJobFactory {
             throw new RuntimeException("No factory for job type " + spec.jobTypeIdentifier());
          }
 
-         return factory.createJob(jobId, record);
+         return factory.createJob(record);
       }
       catch (Exception e)
       {
-         throw new UWSException("Failed to restore job "+jobId,e);
+         throw new UWSException("Failed to restore job "+ record.jobId(), e);
       }
    }
 

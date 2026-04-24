@@ -11,6 +11,7 @@ import java.time.ZonedDateTime;
  * This is persistence-facing, not part of the public API.
  */
 public record PersistedJobRecord(
+        //This could be removed and just use UWSJobEntity directly, but this is a bit more flexible and decoupled from the persistence layer
 
         // Core identity
         String jobId,

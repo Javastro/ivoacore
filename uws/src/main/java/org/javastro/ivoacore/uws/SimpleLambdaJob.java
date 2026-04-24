@@ -117,12 +117,11 @@ public class SimpleLambdaJob  extends BaseUWSJob {
 
       /**
        * Intended for restoring a job from a database.
-       * @param jobId  the unique identifier of the job to restore.
        * @param record the persisted job record containing the job's state and specification.
        * @return a {@link SimpleLambdaJob} instance representing the restored job.
        */
       @Override
-      public BaseUWSJob createJob(String jobId, PersistedJobRecord record) throws UWSException {
+      public BaseUWSJob createJob(PersistedJobRecord record) throws UWSException {
          return new SimpleLambdaJob(record, environmentFactory.create(record.jobId()), theFunc);
       }
    }
