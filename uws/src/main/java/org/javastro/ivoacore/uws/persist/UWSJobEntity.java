@@ -22,11 +22,4 @@ public class UWSJobEntity {
 
     @Column(name = "job_spec", columnDefinition = "TEXT")
     public String jobSpecificationJson;
-
-   // List<ParameterValue> results = new ArrayList<>();
-
-  //  public List<ParameterValueEntity> results = new ArrayList<>();
-
-    //public String exceptionMessage;
-    //public String exceptionType;
 }
