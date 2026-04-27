@@ -32,13 +32,13 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
    /** The unique identifier for this job. */
    private final String jobID;
    /** The current execution phase of this job. */
-   protected ExecutionPhase executionPhase; //TODO think about thread safety of executionPhase - should it be volatile? should we use an AtomicReference? should we synchronize access to it?
+   protected volatile ExecutionPhase executionPhase; //TODO think about thread safety of executionPhase - should it be volatile? should we use an AtomicReference? should we synchronize access to it?
    /** The time at which this job was created. */
    protected ZonedDateTime creationTime;
    /** The time at which this job started executing. */
    protected ZonedDateTime startTime;
    /** The time at which this job finished executing. */
-   protected ZonedDateTime endTime;
+   protected volatile ZonedDateTime endTime;
    /** The specification describing this job's parameters and type. */
    protected final JobSpecification jobSpecification;
    /** The list of result parameter values produced by this job. */
@@ -244,18 +244,17 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
    /**
     * This is a blocking call to wait for the job to finish - either successfully or not.
     * Use with caution as it will block the calling thread until the job completes.
-    * {@see #getJobFuture()} for a non-blocking way to monitor job completion.
+    * @see #getJobFuture() for a non-blocking way to monitor job completion.
+    * @throws IllegalStateException if the job has not been submitted for execution yet.
     */
    public void blockingWaitForFinish() {
-       // wait for the endTime to be non-null
-      while (endTime == null) {
-         try {
-            Thread.sleep(200); // Sleep for a shortish time to avoid busy waiting
-         } catch (InterruptedException e) { // If the thread is interrupted, we should exit the loop and restore the interrupted status - TODO not sure this is the cleanest...
-            Thread.currentThread().interrupt(); // Restore the interrupted status
-            logger.warn("Thread interrupted while waiting for job {} to finish", jobID);
-            break;
-         }
+      if (jobFuture == null) {
+         throw new IllegalStateException("Job " + jobID + " has not been submitted for execution");
+      }
+      try {
+         jobFuture.join(); // blocks until the future completes (normally or exceptionally)
+      } catch (java.util.concurrent.CancellationException e) {
+         logger.warn("Job {} was cancelled while waiting for finish", jobID);
       }
    }
 

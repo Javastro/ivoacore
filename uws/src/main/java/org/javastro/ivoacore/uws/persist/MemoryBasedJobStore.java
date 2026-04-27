@@ -38,7 +38,7 @@ public class MemoryBasedJobStore implements JobStore {
 
    @Override
    public Set<String> getAllIds() {
-      return jobs.keySet();
+      return Set.copyOf(jobs.keySet());// make unmodifiable
    }
 
    @Override
