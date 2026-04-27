@@ -5,6 +5,9 @@ package org.javastro.ivoacore.uws;
  * Created on 04/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
@@ -31,6 +34,22 @@ public class SimpleLambdaJob  extends BaseUWSJob {
     */
    protected SimpleLambdaJob(String jobID, ExecutionEnvironment executionEnvironment, Function<String, String> func, JobSpecification jobSpecification) {
       super(jobID, jobSpecification, executionEnvironment);
+      this.function = func;
+   }
+
+   /**
+    * Constructs a SimpleLambdaJob using the provided persisted job record, execution environment,
+    * and function to perform the job's action.
+    *
+    * @param record the persisted job record containing the core identity, specifications,
+    *               and lifecycle state of the job.
+    * @param executionEnvironment the environment within which the job executes, providing
+    *                              required resources and context.
+    * @param func the function representing the job's action, taking a string as input
+    *             and producing a string as output.
+    */
+   protected SimpleLambdaJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, Function<String, String> func) {
+      super(record, executionEnvironment);
       this.function = func;
    }
 
@@ -96,12 +115,21 @@ public class SimpleLambdaJob  extends BaseUWSJob {
          return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription);
       }
 
-
+      /**
+       * Intended for restoring a job from a database.
+       * @param record the persisted job record containing the job's state and specification.
+       * @return a {@link SimpleLambdaJob} instance representing the restored job.
+       */
+      @Override
+      public BaseUWSJob createJob(PersistedJobRecord record) throws UWSException {
+         return new SimpleLambdaJob(record, environmentFactory.create(record.jobId()), theFunc);
+      }
    }
 
    /**
     * Job specification for a {@link SimpleLambdaJob}, providing a single string input parameter.
     */
+   @JsonTypeName("simpleLambda")
    public static class Specification extends BaseJobSpecification {
 
       /**
@@ -114,11 +142,20 @@ public class SimpleLambdaJob  extends BaseUWSJob {
          this.theParameter = getParameters().get(0);
       }
 
+      @JsonCreator
+      public Specification(
+              @JsonProperty("runId") String runId,
+              @JsonProperty("parameters")
+              List<ParameterValue> parameters) {
+
+         super(runId, parameters);
+         this.theParameter = parameters.get(0);
+      }
+
       final ParameterValue theParameter;
 
       @Override
       public String jobTypeIdentifier() {return SIMPLE_LAMBDA;}
-
 
       @Override
       public String getJDL() {

@@ -76,6 +76,12 @@ public class TAPJob extends BaseUWSJob {
       this.schemaProvider = schemaProvider;
    }
 
+   TAPJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
+      super(record, executionEnvironment);
+      this.dataSource = ds;
+      this.tapJobSpec = (TAPJobSpecification) record.specification();
+      this.schemaProvider = schemaProvider;
+   }
 
    @Override
    public List<ParameterValue> performAction() throws UWSException {
@@ -250,6 +256,14 @@ public class TAPJob extends BaseUWSJob {
 
       }
 
+      @Override
+      public BaseUWSJob createJob(PersistedJobRecord record) throws UWSException {
+         final JobSpecification spec = record.specification();
+         if (spec.jobTypeIdentifier().equals("TAP")) {
+            return new TAPJob(record, environmentFactory.create(record.jobId()), ds, schemaProvider);
+         } else throw new UWSException("Invalid job type");
+      }
+
       /**
        * Creates a TAP job from individual query parameters.
        *
@@ -272,8 +286,5 @@ public class TAPJob extends BaseUWSJob {
                this.schemaProvider
          );
       }
-
-
-
    }
 }

@@ -5,6 +5,7 @@ package org.javastro.ivoacore.uws;
  * Created on 09/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import com.fasterxml.jackson.annotation.*;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 
 import java.util.List;
@@ -23,7 +24,8 @@ public abstract class BaseJobSpecification implements JobSpecification {
     * @param runId the run identifier for this job.
     * @param parameters the list of parameter values.
     */
-   protected BaseJobSpecification(String runId, List<ParameterValue> parameters) {
+   @JsonCreator
+   protected BaseJobSpecification(@JsonProperty String runId, @JsonProperty List<ParameterValue> parameters) {
       this.runId = runId;
       this.parameters = parameters;
    }
@@ -36,5 +38,11 @@ public abstract class BaseJobSpecification implements JobSpecification {
    @Override
    public final List<ParameterValue> getParameters() {
       return parameters;
+   }
+
+   @Override
+   @JsonIgnore    //Only ignored for Jackson mapping until required.
+   public String getJDL() {
+      return "";
    }
 }

@@ -62,8 +62,40 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
 
+   protected BaseUWSJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment){
+      this.jobID = record.jobId();
+      this.jobSpecification = record.specification();
+      this.executionPhase = record.phase();
+      this.creationTime = record.creationTime();
+      this.startTime = record.startTime();
+      this.endTime = record.endTime();
+      this.executionEnvironment = executionEnvironment;
+   }
+
    /** The execution environment for this job. */
    protected final ExecutionEnvironment executionEnvironment;
+
+   /**
+    * Restores the job's state using the data in the provided persisted record.
+    * This updates the job's execution phase and timestamps if the job ID in the
+    * record matches the current job ID. If there is a mismatch, an exception is thrown.
+    *
+    * @param record the persisted job record containing the data to restore.
+    *               Must have a non-null job ID and execution phase.
+    * @throws RuntimeException if the job ID in the record does not match the current job's ID.
+    */
+   void restore(PersistedJobRecord record) {
+      if (record.jobId() != null && jobID.compareToIgnoreCase(record.jobId()) == 0) {
+         this.executionPhase = record.phase();
+         this.creationTime = record.creationTime();
+         this.startTime = record.startTime();
+         this.endTime = record.endTime();
+      }
+       else {
+         logger.warn("Attempted to restore job {} with mismatched record ID {}", jobID, record.jobId());
+         throw new RuntimeException("Attempted to restore job with mismatched record ID");
+      }
+   }
 
    /**
     * Returns the future representing the asynchronous execution of this job.
@@ -104,6 +136,24 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
    public ExecutionPhase getExecutionPhase() {
       return executionPhase;
    }
+
+   /**
+    * Retrieves the creation time of this job.
+    * @return the creation time as a {@link ZonedDateTime} instance.
+    */
+   public ZonedDateTime getCreationTime() {return creationTime; }
+
+   /**
+    * Retrieves the start time of this job.
+    * @return the start time as a {@link ZonedDateTime} instance.
+    */
+   public ZonedDateTime getStartTime() {return startTime; }
+
+   /**
+    * Retrieves the end time of this job.
+    * @return the end time as a {@link ZonedDateTime} instance, or {@code null} if the end time is not set.
+    */
+   public ZonedDateTime getEndTime() {return endTime; }
 
 
    private Supplier<ExecutionPhase> getJobCallable() {
