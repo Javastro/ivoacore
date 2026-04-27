@@ -6,6 +6,7 @@ import jdk.jfr.Description;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
+import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.persist.DatabaseJobStore;
 import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
 import org.javastro.ivoacore.uws.tools.JpaTestSupport;
@@ -89,8 +90,6 @@ class BackingStoreTest {
         assertNotNull(job);
         store.store(job);
 
-        jpa.entityManager().clear();
-
         //Check that the job is in the database
         List<?> rows = jpa.entityManager().createNativeQuery("SELECT job_id, executionPhase, creationTime, job_spec FROM uws.uws_jobs WHERE job_id = ?")
                 .setParameter(1, job.getID())
@@ -111,8 +110,6 @@ class BackingStoreTest {
         BaseUWSJob job = createJob();
         store.store(job);
 
-        jpa.entityManager().clear();
-
         BaseUWSJob retrieved = store.retrieve(job.getID());
         assertNotNull(retrieved);
         assertEquals(job.getID(), retrieved.getID());
@@ -124,8 +121,6 @@ class BackingStoreTest {
         BaseUWSJob job = createJob();
         store.store(job);
 
-        jpa.entityManager().clear();
-
         assertTrue(store.getAllIds().contains(job.getID()));
     }
 
@@ -134,8 +129,6 @@ class BackingStoreTest {
     public void testBackingStoreIDs(){
         BaseUWSJob job = createJob();
         store.store(job);
-
-        jpa.entityManager().clear();
 
         assertEquals(1, store.getAllIds().size());
 
@@ -153,7 +146,6 @@ class BackingStoreTest {
         BaseUWSJob job = createJob();
         store.store(job);
 
-        jpa.entityManager().clear();
         assertEquals(1, store.getAllIds().size());
 
         store.delete(job.getID());
@@ -165,17 +157,15 @@ class BackingStoreTest {
     public void testGetJobsInPhase(){
         BaseUWSJob job = createJob();
         store.store(job);
-        jpa.entityManager().clear();
 
         assertEquals(1, store.getJobs(ExecutionPhase.PENDING, PAST_DATE, null).size());
     }
 
     @Test
-    @Description("Test that the backing store can returns no jobs as the date is AFTER the database entries.")
+    @Description("Test that the backing store returns no jobs as the date is AFTER the database entries.")
     public void testGetJobsInPhaseWithExpiredDate(){
         BaseUWSJob job = createJob();
         store.store(job);
-        jpa.entityManager().clear();
 
         assertEquals(0, store.getJobs(ExecutionPhase.PENDING, FUTURE_DATE, null).size());
     }
@@ -190,14 +180,33 @@ class BackingStoreTest {
         BaseUWSJob job2 = createJob();
         job2.abort();
         store.store(job2);
-        jpa.entityManager().clear();
 
         assertEquals(1, store.getJobs(ExecutionPhase.ABORTED, PAST_DATE, null).size());
     }
 
-  //  @Test
-   // @Description("")
+    @Test
+    @Description("Check that the backing store returns the correct parameter value for a job")
+    public void testGetParameterValue(){
+        BaseUWSJob job = createJob();
+        store.store(job);
 
+        BaseUWSJob retrieved = store.retrieve(job.getID());
+        assertNotNull(retrieved);
+
+        JobSpecification spec = retrieved.jobSpecification;
+        assertNotNull(spec);
+        assertInstanceOf(SimpleLambdaJob.Specification.class, spec);
+
+        List<ParameterValue> params = spec.getParameters();
+        assertNotNull(params);
+        assertFalse(params.isEmpty());
+
+        //Ensure that the parameter value is the same as the one we provided.
+        ParameterValue param = params.get(0);
+        assertNotNull(param);
+        assertEquals("input", param.getId());
+        assertEquals("world", param.getValue());
+    }
 
     /**
      * Creates and returns a new instance of {@link BaseUWSJob} using the predefined specification.
