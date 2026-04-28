@@ -41,8 +41,7 @@ public final class TestPersistenceFactory {
         // Have to register subtypes so they can be resolved at runtime during deserialisation with Jackson.
         // Only one of the following is actually required, but it depends on whether the concrete class has a
         // @JsonTypeName("<NAME>") annotation or not.
-        om.registerSubtypes(new NamedType(SimpleLambdaJob.Specification.class, "SimpleLambdaJob"),
-                new NamedType(SimpleLambdaJob.Specification.class, "SimpleLambdaJob$Specification"));
+        om.registerSubtypes(new NamedType(SimpleLambdaJob.Specification.class, "SimpleLambda"));
 
         return om;
     }

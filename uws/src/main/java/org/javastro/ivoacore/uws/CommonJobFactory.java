@@ -10,5 +10,5 @@ package org.javastro.ivoacore.uws;
  * This interface does not define additional methods of its own; it serves as a unifying contract
  * for classes that need capabilities from both {@link JobFactory} and {@link RestorableJobFactory}.
  */
-public interface CommonJobFactory  extends JobFactory, RestorableJobFactory  {
+interface CommonJobFactory  extends JobFactory, RestorableJobFactory  {
 }
