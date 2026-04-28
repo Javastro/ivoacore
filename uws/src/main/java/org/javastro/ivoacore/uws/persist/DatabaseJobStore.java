@@ -86,6 +86,7 @@ public class DatabaseJobStore implements JobStore {
 
             UWSJobEntity entity = entityManager.find(UWSJobEntity.class, id);
             if (entity == null) {
+                tx.rollback();
                 logger.debug("Job {} not found for deletion", id);
                 return false;
             }
