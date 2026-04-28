@@ -25,7 +25,7 @@ public abstract class BaseJobSpecification implements JobSpecification {
     * @param parameters the list of parameter values.
     */
    @JsonCreator
-   protected BaseJobSpecification(@JsonProperty String runId, @JsonProperty List<ParameterValue> parameters) {
+   protected BaseJobSpecification(@JsonProperty("runId") String runId, @JsonProperty("parameters") List<ParameterValue> parameters) {
       this.runId = runId;
       this.parameters = parameters;
    }
