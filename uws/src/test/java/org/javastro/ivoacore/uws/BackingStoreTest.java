@@ -62,11 +62,17 @@ class BackingStoreTest {
     void beforeEach() {
         //Clear the database before each test
         EntityTransaction tx = jpa.entityManager().getTransaction();
-        tx.begin();
+        try {
+            tx.begin();
 
-        jpa.entityManager().createNativeQuery("DELETE FROM uws.uws_jobs").executeUpdate();
+            jpa.entityManager().createNativeQuery("DELETE FROM uws.uws_jobs").executeUpdate();
 
-        tx.commit();
+            tx.commit();
+        } finally {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+        }
     }
 
     @AfterAll
