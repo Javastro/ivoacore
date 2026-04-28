@@ -58,7 +58,6 @@ class BackingStoreTest {
     }
 
     @BeforeEach
-    @Transactional
     void beforeEach() {
         //Clear the database before each test
         EntityTransaction tx = jpa.entityManager().getTransaction();
