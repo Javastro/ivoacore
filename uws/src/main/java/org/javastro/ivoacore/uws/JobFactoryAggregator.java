@@ -5,8 +5,6 @@ package org.javastro.ivoacore.uws;
  * Created on 05/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
-import org.javastro.ivoacore.uws.persist.UWSJobEntity;
-
 import java.util.HashMap;
 import java.util.Map;
 
