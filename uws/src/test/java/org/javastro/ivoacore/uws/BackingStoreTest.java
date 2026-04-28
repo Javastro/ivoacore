@@ -2,7 +2,6 @@ package org.javastro.ivoacore.uws;
 
 import jakarta.persistence.EntityTransaction;
 import jakarta.transaction.Transactional;
-import jdk.jfr.Description;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
@@ -83,7 +82,7 @@ class BackingStoreTest {
      * job is retrievable from the database.
      */
     @Test
-    @Description("Test that the job can be stored in the database, verify with SQL query.")
+    @DisplayName("Test that the job can be stored in the database, verify with SQL query.")
     public void testBackingStore() {
         BaseUWSJob job = createJob();
 
@@ -105,7 +104,7 @@ class BackingStoreTest {
     }
 
     @Test
-    @Description("Test that the job can be parsed from the database")
+    @DisplayName("Test that the job can be parsed from the database")
     public void testBackingStoreParse() {
         BaseUWSJob job = createJob();
         store.store(job);
@@ -116,7 +115,7 @@ class BackingStoreTest {
     }
 
     @Test
-    @Description("Test that the backing store contains the job ID after storing a job")
+    @DisplayName("Test that the backing store contains the job ID after storing a job")
     public void testBackingStoreContainsID(){
         BaseUWSJob job = createJob();
         store.store(job);
@@ -125,7 +124,7 @@ class BackingStoreTest {
     }
 
     @Test
-    @Description("Test that the backing store contains all job IDs after storing multiple jobs")
+    @DisplayName("Test that the backing store contains all job IDs after storing multiple jobs")
     public void testBackingStoreIDs(){
         BaseUWSJob job = createJob();
         store.store(job);
@@ -141,7 +140,7 @@ class BackingStoreTest {
     }
 
     @Test
-    @Description("Test that the backing store can delete a job")
+    @DisplayName("Test that the backing store can delete a job")
     public void testBackStoreDeleteJob(){
         BaseUWSJob job = createJob();
         store.store(job);
@@ -153,7 +152,7 @@ class BackingStoreTest {
     }
 
     @Test
-    @Description("Test that the backing store can get all jobs in a specified phase.")
+    @DisplayName("Test that the backing store can get all jobs in a specified phase.")
     public void testGetJobsInPhase(){
         BaseUWSJob job = createJob();
         store.store(job);
@@ -162,7 +161,7 @@ class BackingStoreTest {
     }
 
     @Test
-    @Description("Test that the backing store returns no jobs as the date is AFTER the database entries.")
+    @DisplayName("Test that the backing store returns no jobs as the date is AFTER the database entries.")
     public void testGetJobsInPhaseWithExpiredDate(){
         BaseUWSJob job = createJob();
         store.store(job);
@@ -171,7 +170,7 @@ class BackingStoreTest {
     }
 
     @Test
-    @Description("Test the backing store returns only jobs in the correct phase")
+    @DisplayName("Test the backing store returns only jobs in the correct phase")
     public void testGetJobsInPhaseWithCorrectPhase(){
         //Add two separate jobs, one in the pending phase and one in the aborted phase
         BaseUWSJob job = createJob();
@@ -185,7 +184,7 @@ class BackingStoreTest {
     }
 
     @Test
-    @Description("Check that the backing store returns the correct parameter value for a job")
+    @DisplayName("Check that the backing store returns the correct parameter value for a job")
     public void testGetParameterValue(){
         BaseUWSJob job = createJob();
         store.store(job);
