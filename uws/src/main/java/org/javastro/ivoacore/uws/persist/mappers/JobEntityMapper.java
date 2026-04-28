@@ -7,6 +7,8 @@ import org.javastro.ivoacore.uws.persist.UWSJobEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.Objects;
+
 /**
  * MapStruct mapper for converting between BaseUWSJob and JobEntity.
  * Handles serialization/deserialization of complex objects using Jackson.
@@ -17,7 +19,7 @@ public abstract class JobEntityMapper {
     protected ObjectMapper objectMapper;
 
     public void setObjectMapper(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
     }
 
     @Mapping(target = "jobId", source = "ID")
@@ -34,6 +36,7 @@ public abstract class JobEntityMapper {
      * @throws RuntimeException if serialization fails due to any underlying error
      */
     protected String serializeSpec(JobSpecification spec) {
+        Objects.requireNonNull(objectMapper, "ObjectMapper must be set");
         try {
             return objectMapper.writeValueAsString(spec);
         } catch (Exception e) {
@@ -50,6 +53,7 @@ public abstract class JobEntityMapper {
      * @throws RuntimeException if deserialization fails due to any underlying error
      */
     public JobSpecification toSpecification(UWSJobEntity entity) {
+        Objects.requireNonNull(objectMapper, "ObjectMapper must be set");
         try {
             return objectMapper.readValue(entity.jobSpecificationJson, JobSpecification.class);
         } catch (Exception e) {
