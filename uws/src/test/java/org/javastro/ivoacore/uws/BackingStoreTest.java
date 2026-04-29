@@ -92,7 +92,10 @@ class BackingStoreTest {
         BaseUWSJob job = createJob();
 
         assertNotNull(job);
+        EntityTransaction tx = jpa.entityManager().getTransaction();
+        tx.begin();
         store.store(job);
+        tx.commit();
 
         //Check that the job is in the database
         List<?> rows = jpa.entityManager().createNativeQuery("SELECT job_id, executionPhase, creationTime, job_spec FROM uws.uws_jobs WHERE job_id = ?")
@@ -111,8 +114,7 @@ class BackingStoreTest {
     @Test
     @DisplayName("Test that the job can be parsed from the database")
     public void testBackingStoreParse() {
-        BaseUWSJob job = createJob();
-        store.store(job);
+        BaseUWSJob job = addJob();
 
         BaseUWSJob retrieved = store.retrieve(job.getID());
         assertNotNull(retrieved);
@@ -122,8 +124,7 @@ class BackingStoreTest {
     @Test
     @DisplayName("Test that the backing store contains the job ID after storing a job")
     public void testBackingStoreContainsID(){
-        BaseUWSJob job = createJob();
-        store.store(job);
+        BaseUWSJob job = addJob();
 
         assertTrue(store.getAllIds().contains(job.getID()));
     }
@@ -131,13 +132,11 @@ class BackingStoreTest {
     @Test
     @DisplayName("Test that the backing store contains all job IDs after storing multiple jobs")
     public void testBackingStoreIDs(){
-        BaseUWSJob job = createJob();
-        store.store(job);
+        addJob();
 
         assertEquals(1, store.getAllIds().size());
 
-        BaseUWSJob job2 = createJob();
-        store.store(job2);
+        addJob();
 
         jpa.entityManager().clear();
 
@@ -147,20 +146,21 @@ class BackingStoreTest {
     @Test
     @DisplayName("Test that the backing store can delete a job")
     public void testBackStoreDeleteJob(){
-        BaseUWSJob job = createJob();
-        store.store(job);
+        BaseUWSJob job = addJob();
 
         assertEquals(1, store.getAllIds().size());
 
+        EntityTransaction tx = jpa.entityManager().getTransaction();
+        tx.begin();
         store.delete(job.getID());
+        tx.commit();
         assertEquals(0, store.getAllIds().size());
     }
 
     @Test
     @DisplayName("Test that the backing store can get all jobs in a specified phase.")
     public void testGetJobsInPhase(){
-        BaseUWSJob job = createJob();
-        store.store(job);
+        addJob();
 
         assertEquals(1, store.getJobs(ExecutionPhase.PENDING, PAST_DATE, null).size());
     }
@@ -168,8 +168,7 @@ class BackingStoreTest {
     @Test
     @DisplayName("Test that the backing store returns no jobs as the date is AFTER the database entries.")
     public void testGetJobsInPhaseWithExpiredDate(){
-        BaseUWSJob job = createJob();
-        store.store(job);
+        addJob();
 
         assertEquals(0, store.getJobs(ExecutionPhase.PENDING, FUTURE_DATE, null).size());
     }
@@ -178,12 +177,15 @@ class BackingStoreTest {
     @DisplayName("Test the backing store returns only jobs in the correct phase")
     public void testGetJobsInPhaseWithCorrectPhase(){
         //Add two separate jobs, one in the pending phase and one in the aborted phase
-        BaseUWSJob job = createJob();
-        store.store(job);
+        addJob();
 
         BaseUWSJob job2 = createJob();
         job2.abort();
+
+        EntityTransaction tx = jpa.entityManager().getTransaction();
+        tx.begin();
         store.store(job2);
+        tx.commit();
 
         assertEquals(1, store.getJobs(ExecutionPhase.ABORTED, PAST_DATE, null).size());
     }
@@ -191,8 +193,7 @@ class BackingStoreTest {
     @Test
     @DisplayName("Check that the backing store returns the correct parameter value for a job")
     public void testGetParameterValue(){
-        BaseUWSJob job = createJob();
-        store.store(job);
+        BaseUWSJob job = addJob();
 
         BaseUWSJob retrieved = store.retrieve(job.getID());
         assertNotNull(retrieved);
@@ -242,5 +243,14 @@ class BackingStoreTest {
             throw new RuntimeException(e);
         }
         return "hello " + s;
+    }
+
+    private BaseUWSJob addJob(){
+        EntityTransaction tx = jpa.entityManager().getTransaction();
+        tx.begin();
+        BaseUWSJob job = createJob();
+        store.store(job);
+        tx.commit();
+        return job;
     }
 }

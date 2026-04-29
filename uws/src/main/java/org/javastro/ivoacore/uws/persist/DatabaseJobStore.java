@@ -38,22 +38,23 @@ public class DatabaseJobStore implements JobStore {
         this.factoryAggregator = factoryAggregator;
     }
 
+    /**
+     * Persists a BaseUWSJob instance into the database by converting it into an appropriate
+     * entity representation and delegating to the EntityManager for persistence.
+     * If the operation fails, logs the error and rethrows a RuntimeException.
+     * <p>
+     * Must be invoked within an active transaction when required by the persistence provider.
+     * @param job the BaseUWSJob instance to be stored in the database.
+     * @throws RuntimeException if the job cannot be stored due to an underlying issue.
+     */
     @Override
     public void store(BaseUWSJob job) {
         try {
             UWSJobEntity entity = mapper.toEntity(job);
+            entityManager.persist(entity);
 
-            if (!entityManager.getTransaction().isActive()) {
-                entityManager.getTransaction().begin();
-            }
-
-            entityManager.merge(entity);
-            entityManager.getTransaction().commit();
             logger.debug("Stored/Updated job {} in database", job.getID());
         } catch (Exception e) {
-            if (entityManager.getTransaction().isActive()) {
-                entityManager.getTransaction().rollback();
-            }
             logger.error("Failed to store job {}", job.getID(), e);
             throw new RuntimeException("Failed to store job", e);
         }
@@ -77,27 +78,29 @@ public class DatabaseJobStore implements JobStore {
         return job;
     }
 
+    /**
+     * Deletes a job from the persistent store based on the provided job identifier.
+     * If the job does not exist, no action will be performed.
+     * <p>
+     * Must be invoked within an active transaction when required by the persistence provider.
+     * @param id the unique identifier of the job to be deleted.
+     * @return {@code true} if the job was successfully deleted, {@code false} if no job with the specified identifier exists.
+     * @throws RuntimeException if an error occurs during the deletion process.
+     */
     @Override
     public boolean delete(String id) {
         EntityTransaction tx = entityManager.getTransaction();
 
         try {
-            tx.begin();
-
             UWSJobEntity entity = entityManager.find(UWSJobEntity.class, id);
             if (entity == null) {
-                tx.rollback();
                 logger.debug("Job {} not found for deletion", id);
                 return false;
             }
             entityManager.remove(entity);
-            tx.commit();
             logger.debug("Deleted job {} from database", id);
             return true;
         } catch (Exception e) {
-            if (tx.isActive()) {
-                tx.rollback();
-            }
             logger.error("Failed to delete job {}", id, e);
             throw new RuntimeException("Failed to delete job", e);
         }
