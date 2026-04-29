@@ -8,7 +8,7 @@ import java.time.ZonedDateTime;
  * Immutable data carrier representing one persisted UWS job row plus
  * any extra stored metadata required to rehydrate a job.
  * <p>
- * This is persistence-facing, not part of the public API.
+ * This is persistence-facing, not intended to be used by external code.
  */
 public record PersistedJobRecord(
         //This could be removed and just use UWSJobEntity directly, but this is a bit more flexible and decoupled from the persistence layer
