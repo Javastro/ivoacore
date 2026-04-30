@@ -92,9 +92,11 @@ public class JobManager implements ExecutionControl, UWSCore {
       switch (newPhase.toUpperCase()) {//IMPL
          case "RUN":
             job.submitJobToRun(executorService);
+            jobStore.store(job);
             break;
          case "ABORT":
             job.abort();
+            jobStore.store(job);
             break;
          default:
             throw new UWSException("illegal phase " + newPhase);

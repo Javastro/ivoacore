@@ -21,12 +21,8 @@ public final class TestPersistenceFactory {
     private TestPersistenceFactory() {}
 
     public static DatabaseJobStore create(EntityManager em, JobFactoryAggregator agg) {
-        ObjectMapper mapper = objectMapper();
-
-        JobEntityMapper entityMapper = Mappers.getMapper(JobEntityMapper.class);
-        entityMapper.setObjectMapper(mapper);
-
-        return new DatabaseJobStore(em, entityMapper, agg);
+        NamedType type = new NamedType(SimpleLambdaJob.Specification.class, "SimpleLambda");
+        return new DatabaseJobStore(em, type, agg);
     }
 
     /**

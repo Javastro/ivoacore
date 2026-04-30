@@ -20,6 +20,6 @@ public class UWSJobEntity {
     public ZonedDateTime startTime;
     public ZonedDateTime endTime;
 
-    @Column(name = "job_spec", columnDefinition = "TEXT")
+    @Column(name = "job_spec", columnDefinition = "text")
     public String jobSpecificationJson;
 }

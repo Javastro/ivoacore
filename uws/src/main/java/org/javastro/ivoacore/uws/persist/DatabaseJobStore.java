@@ -1,11 +1,14 @@
 package org.javastro.ivoacore.uws.persist;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.persist.mappers.JobEntityMapper;
+import org.mapstruct.factory.Mappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +21,9 @@ import java.util.Set;
 /**
  * Database-backed implementation of JobStore using JPA.
  * Persists job instances to a relational database.
+ *
+ * Calls to store and delete are transactional, they must be invoked within an
+ * active transaction when called.
  */
 public class DatabaseJobStore implements JobStore {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseJobStore.class);
@@ -30,12 +36,17 @@ public class DatabaseJobStore implements JobStore {
      * Constructs a DatabaseJobStore with the given EntityManager and mapper.
      *
      * @param entityManager the JPA EntityManager for database operations.
-     * @param mapper        the MapStruct mapper for converting between BaseUWSJob and JobEntity.
+     * @param factoryAggregator the JobFactoryAggregator used to create job instances.
      */
-    public DatabaseJobStore(EntityManager entityManager, JobEntityMapper mapper, JobFactoryAggregator factoryAggregator) {
+    public DatabaseJobStore(EntityManager entityManager, NamedType typeDetails, JobFactoryAggregator factoryAggregator) {
         this.entityManager = entityManager;
-        this.mapper = mapper;
         this.factoryAggregator = factoryAggregator;
+
+        ObjectMapper om = new ObjectMapper();
+        om.registerSubtypes(typeDetails);
+
+        this.mapper = Mappers.getMapper(JobEntityMapper.class);
+        this.mapper.setObjectMapper(om);
     }
 
     /**
@@ -51,7 +62,7 @@ public class DatabaseJobStore implements JobStore {
     public void store(BaseUWSJob job) {
         try {
             UWSJobEntity entity = mapper.toEntity(job);
-            entityManager.persist(entity);
+            entityManager.merge(entity);
 
             logger.debug("Stored/Updated job {} in database", job.getID());
         } catch (Exception e) {
@@ -89,8 +100,6 @@ public class DatabaseJobStore implements JobStore {
      */
     @Override
     public boolean delete(String id) {
-        EntityTransaction tx = entityManager.getTransaction();
-
         try {
             UWSJobEntity entity = entityManager.find(UWSJobEntity.class, id);
             if (entity == null) {
@@ -135,7 +144,7 @@ public class DatabaseJobStore implements JobStore {
                 jpql.append(" WHERE ").append(String.join(" AND ", conditions));
             }
 
-            jpql.append(" ORDER BY e.creationTime DESC");
+            jpql.append(" ORDER BY e.creationTime ASC");
 
             TypedQuery<UWSJobEntity> query = entityManager.createQuery(jpql.toString(), UWSJobEntity.class);
 
