@@ -85,14 +85,14 @@
         
 
     /**
-    * The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is “parallel to the equator”. : Attribute pos_angle : multiplicity 1
+    * The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is 'parallel to the equator'. : Attribute pos_angle : multiplicity 1
     *
     */
     
 @org.ivoa.vodml.annotation.VoDml(id="adqlgeom:Ellipse.pos_angle", role=org.ivoa.vodml.annotation.VodmlRole.attribute, type="ivoa:real",typeRole=org.ivoa.vodml.annotation.VodmlRole.primitiveType)
           
 
-        @org.eclipse.microprofile.openapi.annotations.media.Schema(description="The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is “parallel to the equator”")
+        @org.eclipse.microprofile.openapi.annotations.media.Schema(description="The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is 'parallel to the equator'")
     
     @jakarta.xml.bind.annotation.XmlElement( name = "pos_angle", required =true, type = Double.class)
             
@@ -115,7 +115,7 @@
         *   @param major_axis major axis size in radians.
         *   @param minor_axis minor axis size in radians.
         *   @param center the centre of the circle.
-        *   @param pos_angle The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is “parallel to the equator”.
+        *   @param pos_angle The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is 'parallel to the equator'.
         */
         public  Ellipse (
           final Double major_axis, final Double minor_axis, final Point center, final Double pos_angle
@@ -191,7 +191,7 @@
             * @param major_axis major axis size in radians.
             * @param minor_axis minor axis size in radians.
             * @param center the centre of the circle.
-            * @param pos_angle The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is “parallel to the equator”.
+            * @param pos_angle The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is 'parallel to the equator'.
             */
             public  Ellipse ( final Shape superinstance,final Double major_axis,final Double minor_axis,final Point center,final Double pos_angle )
             {
@@ -358,7 +358,7 @@
 
 
                    /**
-                   * The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is “parallel to the equator”.
+                   * The position angle pos is defined as a counterclockwise rotation around the ellipse center and is zero, if the ellipse is 'parallel to the equator'.
                    */
                    public Double pos_angle;
                            

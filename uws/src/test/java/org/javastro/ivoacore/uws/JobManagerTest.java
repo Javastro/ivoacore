@@ -84,11 +84,13 @@ class JobManagerTest {
    @Test
    void listJobsAppliesAfterAndLast() throws Exception {
       BaseUWSJob oldJob = jobManager.createJob(new SimpleLambdaJob.Specification("old", "run-old"));
+      Thread.sleep(25);
       ZonedDateTime cutoff = ZonedDateTime.now(ZoneId.of("UTC"));
       Thread.sleep(25);
       BaseUWSJob middleJob = jobManager.createJob(new SimpleLambdaJob.Specification("middle", "run-middle"));
       Thread.sleep(25);
       BaseUWSJob newJob = jobManager.createJob(new SimpleLambdaJob.Specification("new", "run-new"));
+      Thread.sleep(25);
 
       Jobs afterCutoff = jobManager.listJobs(null, cutoff, null);
       List<String> afterIds = extractIds(afterCutoff);

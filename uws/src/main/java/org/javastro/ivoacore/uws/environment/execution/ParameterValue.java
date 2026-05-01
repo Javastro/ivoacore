@@ -10,9 +10,25 @@ package org.javastro.ivoacore.uws.environment.execution;
  * Created on 14/08/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 //TODO should make this generic to include underlying type
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
+
 /**
  * Represents a parameter value in a UWS job, with an identifier, a string value, and an indirection flag.
  */
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "type"
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(
+                value = ImmutableStringValue.class,
+                name = "string"
+        )
+})
 public interface ParameterValue {
    /**
     * Returns the string representation of this parameter value.

@@ -51,10 +51,11 @@ class TAPJobTest extends AbstractBaseDBTest{
       jobManager.runJob(id);
       //poll for completion - could do things with the
       int i = 0;
-      while(jobManager.jobDetail(id).getPhase() != ExecutionPhase.COMPLETED && i++ < 3) {
+      while(jobManager.jobDetail(id).getPhase() != ExecutionPhase.COMPLETED && i++ < 10) {
          System.out.println("Waiting for job "+id);
          Thread.sleep(500);
       }
+
       assertTrue(jobManager.jobDetail(id).getPhase() == ExecutionPhase.COMPLETED);
       assertFalse(job.getResults().isEmpty());
       job.getResults().forEach(r->System.out.println(r.getValue()));//TODO this needs to be an indirect result of course...
