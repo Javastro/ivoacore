@@ -45,7 +45,7 @@ public abstract class BaseUWSResource implements UWS {
    }
 
    @GET
-   @Path("/{jobid}")
+   @Path("{jobid}")
    @Override
    public Job jobDetail(@PathParam("jobid") String jobid) throws UWSException {
       final Job job = getJobManager().jobDetail(jobid);
@@ -54,7 +54,7 @@ public abstract class BaseUWSResource implements UWS {
    }
 
    @GET
-   @Path("/{jobid}/results")
+   @Path("{jobid}/results")
    @Override
    public Results getResults(@PathParam("jobid") String jobid) throws UWSException {
       //IMPL getting the results might require more than just the below - which is why it is implemented here
@@ -80,7 +80,7 @@ public abstract class BaseUWSResource implements UWS {
     * @throws UWSException if the phase transition fails.
     */
    @POST
-   @Path("/{jobid}/phase")
+   @Path("{jobid}/phase")
    public Response setPhase(@PathParam("jobid") String jobid, @FormParam("PHASE") String phase) throws UWSException {
       ExecutionPhase newphase = getJobManager().setPhase(jobid, phase);
       return redirectToJob(jobid);
@@ -93,7 +93,7 @@ public abstract class BaseUWSResource implements UWS {
     * @throws UWSException if the job cannot be found or accessed.
     */
    @GET
-   @Path("/{jobid}/error")
+   @Path("{jobid}/error")
    public String getJobErrorDetail(@PathParam("jobid") String jobid) throws UWSException
    {
       return getJobManager().jobErrorDetail(jobid);
@@ -103,13 +103,13 @@ public abstract class BaseUWSResource implements UWS {
 
    @Override
    @POST
-   @Path("/{jobid}/destruction")
+   @Path("{jobid}/destruction")
    public Response setDestruction(@PathParam("jobid")String jobId, @FormParam("DESTRUCTION") ZonedDateTime destructionTime) throws UWSException {
       throw new UWSException("Not implemented");
    }
 
    @POST
-   @Path("/{jobid}/executionduration")
+   @Path("{jobid}/executionduration")
    @Override
    public Response setExecutionDuration(@PathParam("jobid")String jobId, @FormParam("EXECUTIONDURATION") Long executionDuration) throws UWSException {
       throw new UWSException("Not implemented");
@@ -117,7 +117,7 @@ public abstract class BaseUWSResource implements UWS {
 
    @Override
    @DELETE
-   @Path("/{jobid}")
+   @Path("{jobid}")
    public Response deleteJob(@PathParam("jobid")String jobid) throws UWSException {
       boolean success = getJobManager().deleteJob(jobid);
       if (success) {

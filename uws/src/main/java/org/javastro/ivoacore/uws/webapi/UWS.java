@@ -29,7 +29,7 @@ public interface UWS extends UWSControl {
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
-    @Path("/{jobid}/phase")
+    @Path("{jobid}/phase")
     default String getPhase(@PathParam("jobid") String jobid) throws UWSException {
         return  jobDetail(jobid).getPhase().value();
     }
@@ -41,7 +41,7 @@ public interface UWS extends UWSControl {
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
-    @Path("/{jobid}/executionduration")
+    @Path("{jobid}/executionduration")
     default Long getExecutionDuration(@PathParam("jobid")String jobid) throws UWSException
     {
         return (long) jobDetail(jobid).getExecutionDuration();
@@ -54,7 +54,7 @@ public interface UWS extends UWSControl {
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
-    @Path("/{jobid}/destruction")
+    @Path("{jobid}/destruction")
     default ZonedDateTime getJobDestruction(@PathParam("jobid") String jobid) throws UWSException
     {
         return jobDetail(jobid).getDestruction();
@@ -68,7 +68,7 @@ public interface UWS extends UWSControl {
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
-    @Path("/{jobid}/owner")
+    @Path("{jobid}/owner")
     default String  getJobOwner(@PathParam("jobid") String jobid) throws UWSException
     {
         return jobDetail(jobid).getOwnerId();
@@ -81,7 +81,7 @@ public interface UWS extends UWSControl {
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
-    @Path("/{jobid}/quote")
+    @Path("{jobid}/quote")
     default ZonedDateTime getJobQuote(@PathParam("jobid") String jobid) throws UWSException
     {
         return jobDetail(jobid).getQuote();
@@ -94,7 +94,7 @@ public interface UWS extends UWSControl {
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
-    @Path("/{jobid}/parameters")
+    @Path("{jobid}/parameters")
     default Parameters getJobParameters(@PathParam("jobid") String jobid) throws UWSException
     {
         return jobDetail(jobid).getParameters();
@@ -107,7 +107,7 @@ public interface UWS extends UWSControl {
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
-    @Path("/{jobid}/results")
+    @Path("{jobid}/results")
     default Results getResults(@PathParam("jobid") String jobId) throws UWSException
     {
         return jobDetail(jobId).getResults();
