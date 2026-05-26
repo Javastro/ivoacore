@@ -43,32 +43,37 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
    protected final Processor processor;
    protected final XsltCompiler compiler;
    final List<Schema> schemas = new ArrayList<>();
-   protected final Tableset tableSet;
+   protected  Tableset tableSet;
    protected final boolean dbCaseSensitive;
 
    public BaseSchemaProvider(boolean dbCaseSensitive) {
       this.dbCaseSensitive = dbCaseSensitive;
       processor = new Processor(false);
       compiler = processor.newXsltCompiler();
-      schemas.addAll(provideSchemas());
-      try {
-         this.tableSet = writeVOSI();
-      } catch (SaxonApiException | JAXBException e) {
-         log.error("problem writing as VOSI",e);
-         throw new RuntimeException(e);
-      }
+
    }
 
    protected abstract List<Schema> provideSchemas();
 
    @Override
    public List<Schema> getSchemas() {
+      if(schemas.isEmpty()){ //IMPL lazy intitialization because might not know all providers at base class initialization
+         schemas.addAll(provideSchemas());
+      }
       return schemas;
    }
 
    @Override
    public Tableset asVOSI() {
-    return tableSet;
+      if(tableSet == null){ //lazy initialization
+         try {
+            this.tableSet = writeVOSI();
+         } catch (SaxonApiException | JAXBException e) {
+            log.error("problem writing as VOSI",e);
+            throw new RuntimeException(e);
+         }
+      }
+      return tableSet;
    }
 
    @Override
@@ -94,7 +99,7 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
          out.setOutputProperty(Serializer.Property.METHOD, "xml");
          Xslt30Transformer transformer = stylesheet.load30();
          TapschemaModel model = new TapschemaModel();
-         for(var s:this.schemas){
+         for(var s:getSchemas()){
             model.addContent(s);
          }
          JAXBContext jc = TapschemaModel.contextFactory();
