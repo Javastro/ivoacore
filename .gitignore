@@ -7,3 +7,7 @@ build
 
 # Ignore Sphinx local build output
 doc/_build/
+
+
+/buildSrc/.kotlin/errors
+

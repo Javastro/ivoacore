@@ -17,24 +17,18 @@ import java.util.List;
 
 /**
  * A "default" simple TAP Job specification.
- * i.e.
- * <ul>
- * <li>no upload</li>
- *</ul>
  */
 @JsonTypeName("TAP")
 public class TAPJobSpecification extends BaseJobSpecification {
 
-
-
-
    String adqlQuery;
-    Long maxrec;
-    String responseFormat;
-    String lang;
-
+   Long maxrec;
+   String responseFormat;
+   String lang;
+   String upload;          /** A URL representing  the location of a VOTable */
 
    List<ParameterValue> parameters = new ArrayList<>();
+
    /**
     * Create the Job Specification.
     * @param query the ADQL query.
@@ -42,7 +36,7 @@ public class TAPJobSpecification extends BaseJobSpecification {
     * @param responseformat the desired response format (e.g. "votable").
     * @param maxrec the maximum number of records to return.
     * @param runId the run identifier for this job.
-    * @param upload the upload parameter value, or {@code null} if not used.
+    * @param upload the upload parameter value (URL), or {@code null} if not used.
     */
    public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
                               String upload) {
@@ -51,7 +45,7 @@ public class TAPJobSpecification extends BaseJobSpecification {
       this.maxrec = maxrec;
       this.responseFormat = responseformat;
       this.lang = lang;
-
+      this.upload = upload;
    }
 
    @JsonCreator
@@ -104,4 +98,6 @@ public class TAPJobSpecification extends BaseJobSpecification {
    public String getAdqlQuery() {
       return adqlQuery;
    }
+
+   public String getUpload() { return upload; }
 }
