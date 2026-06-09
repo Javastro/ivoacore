@@ -33,6 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
 import uk.ac.starlink.table.jdbc.Connector;
+import uk.ac.starlink.table.jdbc.JDBCFormatter;
+import uk.ac.starlink.table.jdbc.JDBCHandler;
 import uk.ac.starlink.table.jdbc.JDBCStarTable;
 import uk.ac.starlink.votable.ResourceType;
 
@@ -85,83 +87,28 @@ public class TAPJob extends BaseUWSJob {
 
    @Override
    public List<ParameterValue> performAction() throws UWSException {
-      final File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
-      final AtomicReference<Connection> thisConnection = new AtomicReference<>();
-      try {
+      if(tapJobSpec.adqlQuery == null || tapJobSpec.adqlQuery.isBlank()) {
+         throw new UWSException("ADQL query is missing or empty");
+      }
 
-         if(tapJobSpec.adqlQuery == null || tapJobSpec.adqlQuery.isBlank()) {
-            throw new UWSException("ADQL query is missing or empty");
-         }
+      final File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
+      try {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
-         ADQLParser parser = new ADQLParser();
          QueryChecker checker = new DBChecker(tables);
+
+         ADQLParser parser = new ADQLParser();
          parser.setQueryChecker(checker);
+
          // Parse ADQL
          log.info("Parsing original ADQL query: {}", tapJobSpec.adqlQuery);
          ADQLSet query = parser.parseQuery(tapJobSpec.adqlQuery);
-         if (tapJobSpec.maxrec != null && tapJobSpec.maxrec >= 0) {
-            // Apply MAXREC at SQL level to avoid fetching unnecessary rows.
-            //TODO need to add system wide MAXREC - needs to get from ExecutionPolicy / environment
-            if(query.hasLimit() && query.getLimit() > tapJobSpec.maxrec) {
-               log.info("Applying MAXREC limit of {} to query with existing limit of {}", tapJobSpec.maxrec, query.getLimit());
-               query.setLimit(Math.toIntExact(tapJobSpec.maxrec));
-            }
-            else if (!query.hasLimit()) {
-               log.info("Applying MAXREC limit of {} to query with no existing limit", tapJobSpec.maxrec);
-               query.setLimit(Math.toIntExact(tapJobSpec.maxrec));
-            }
-         }
-         ADQLTranslator translator = new PgSphereTranslator();
-         String sql = translator.translate(query);
-
+         String sql = translateADQLToSQL(query);
          log.info("Translated ADQL query to SQL: {}", sql);
 
+         JDBCStarTable table = getResultTable(sql, tapJobSpec.upload);
 
-         Connector connector = () -> {
-           thisConnection.set(dataSource.getConnection());//IMPL new connection each time requested - STIL documentation implies that is what is desired.
-           return thisConnection.get();
-         };
-         JDBCStarTable table = new JDBCStarTable(connector, sql, false);
+         outputResult(query, table, votable);
 
-         table.setName("result");
-         Arrays.stream(query.getResultingColumns())
-               .forEach(col -> {
-                  if(col.getTable() != null) {
-                  log.debug( "ADQL column: {} table {}", col.getADQLName(), col.getTable().getADQLName());
-                  } else {
-                     log.debug( "ADQL column: {} table null", col.getADQLName());
-                  }
-               });
-         Map<String, ? extends DBColumn> columnMap = Arrays.stream(query.getResultingColumns())
-               .collect(Collectors.toMap(
-                     col -> col.getADQLName(),
-                     col ->  col
-               ));
-
-         for (int i = 0; i < table.getColumnCount(); i++) {
-            ColumnInfo colInfo = table.getColumnInfo(i);
-            log.debug(" Stil Column {}: name={}, class={}, description={}", i, colInfo.getName(), colInfo.getContentClass(), colInfo.getDescription());
-            DBColumn dbcolInfo = columnMap.get(colInfo.getName());
-            if (dbcolInfo instanceof TapADQLColumn adqlColInfo) { // if the column is a normal column reference (rather than synthetic one like count(*)
-               colInfo.setDescription(adqlColInfo.getDescription());
-               colInfo.setUnitString(adqlColInfo.getUnitString());
-               colInfo.setUCD(adqlColInfo.getUcd());
-               colInfo.setUtype(adqlColInfo.getUtype());
-            }
-            else {
-               log.warn(" Column {} is not a TapADQLColumn", colInfo.getName());
-            }
-
-         }
-
-         final OutputStream outputStream = Files.newOutputStream(votable.toPath());
-         TAPWriter tablewriter = new TAPWriter(this);
-         tablewriter.setResourceType(ResourceType.RESULTS);
-         new StarTableOutput().writeStarTable(table, outputStream, tablewriter);
-
-         if (thisConnection.get() != null) {
-            thisConnection.get().close(); //IMPL close the connection - STIL documentation implies that this is what is desired - but we should check whether this causes any issues with connection pooling etc.
-         }
       } catch (SQLException e) {
          //TODO remove the logging here  - it is just duplicating other logging I think
          log.error("Database error while executing TAP query", e);
@@ -175,16 +122,6 @@ public class TAPJob extends BaseUWSJob {
       } catch (IOException e) {
          log.error("IO error while executing TAP query", e);
          throw new UWSException("IO error while executing TAP query",e);
-      }
-      finally {
-         try {
-            if (thisConnection.get() != null) {
-            thisConnection.get().close();
-            }
-         } catch (SQLException e) {
-
-            log.warn("Failed to close database connection", e);
-         }
       }
       return List.of(new ParameterValue() {
          @Override
@@ -227,6 +164,131 @@ public class TAPJob extends BaseUWSJob {
 
       return resultsBuilder.build();
 
+   }
+
+   /**
+    * Translates an ADQL (Astronomical Data Query Language) query into an equivalent SQL query.
+    * This method enforces a maximum row retrieval limit (MAXREC) at the SQL level if defined in the TAP job specification.
+    * If the query already has a limit but exceeds MAXREC, the limit is adjusted. If no limit exists,
+    * MAXREC is applied to the query. It utilizes a specialized ADQL translator to perform the conversion.
+    *
+    * @param query The ADQL query set to be translated into SQL. This includes information
+    *              about columns, tables, and constraints defined in ADQL.
+    * @return A {@code String} representing the translated SQL query equivalent to the provided ADQL query.
+    * @throws TranslationException If an error occurs during the translation process, such as invalid syntax
+    *                              or unsupported operations in the ADQL query.
+    */
+   private String translateADQLToSQL(ADQLSet query) throws TranslationException {
+      if (tapJobSpec.maxrec != null && tapJobSpec.maxrec >= 0) {
+         // Apply MAXREC at SQL level to avoid fetching unnecessary rows.
+         //TODO need to add system wide MAXREC - needs to get from ExecutionPolicy / environment
+         if(query.hasLimit() && query.getLimit() > tapJobSpec.maxrec) {
+            log.info("Applying MAXREC limit of {} to query with existing limit of {}", tapJobSpec.maxrec, query.getLimit());
+            query.setLimit(Math.toIntExact(tapJobSpec.maxrec));
+         }
+         else if (!query.hasLimit()) {
+            log.info("Applying MAXREC limit of {} to query with no existing limit", tapJobSpec.maxrec);
+            query.setLimit(Math.toIntExact(tapJobSpec.maxrec));
+         }
+      }
+      logQuery(query);     // TODO - IF log enabled
+      ADQLTranslator translator = new PgSphereTranslator();
+      return translator.translate(query);
+   }
+
+   /**
+    * Executes a SQL query and returns the result as a {@code JDBCStarTable}.
+    * This method establishes a new database connection, performs the query,
+    * and wraps the results in a {@code JDBCStarTable} instance.
+    * The connection is closed after the table is created.
+    *
+    * @param sql       The SQL query string to be executed against the database.
+    * @param uploadURL The URL for uploaded data, if applicable. This parameter
+    *                  might be used in conjunction with query execution or table preparation.
+    * @return A {@code JDBCStarTable} instance containing the query results.
+    * @throws SQLException If an error occurs while creating the database connection or executing the query.
+    */
+   private JDBCStarTable getResultTable(String sql, String uploadURL) throws SQLException{
+      final AtomicReference<Connection> thisConnection = new AtomicReference<>();
+      Connector connector = () -> {
+         thisConnection.set(dataSource.getConnection());//IMPL new connection each time requested - STIL documentation implies that is what is desired.
+         return thisConnection.get();
+      };
+
+      // JDBCFormatter formatter = new JDBCFormatter(conn, uploadTable);
+      // formatter.createJDBCTable();
+
+
+      //SQL executed here
+      JDBCStarTable table =  new JDBCStarTable(connector, sql, false);
+      table.setName("result");
+
+      try {
+         if (thisConnection.get() != null) {
+            thisConnection.get().close();  //IMPL close the connection - STIL documentation implies that this is what is desired - but we should check whether this causes any issues with connection pooling etc.
+         }
+      } catch (SQLException e) {
+
+         log.warn("Failed to close database connection", e);
+      }
+
+      return table;
+   }
+
+   /**
+    * Logs details about the ADQL query, specifically the resulting columns and their associated tables.
+    * Each column's ADQL name and the name of its originating table (if available) are included in the log output.
+    * If no table is associated with a column, "table null" is logged for that column.
+    *
+    * @param query the ADQL query set containing the resulting columns to be logged.
+    */
+   private void logQuery(ADQLSet query) {
+      Arrays.stream(query.getResultingColumns())
+              .forEach(col -> {
+                 if(col.getTable() != null) {
+                    log.debug( "ADQL column: {} table {}", col.getADQLName(), col.getTable().getADQLName());
+                 } else {
+                    log.debug( "ADQL column: {} table null", col.getADQLName());
+                 }
+              });
+   }
+
+   /**
+    * Outputs the query result to a VOTable file. This method updates the metadata of
+    * the columns in the result table based on the corresponding ADQL query columns,
+    * and writes the result table in VOTable format to the specified output file.
+    *
+    * @param query  The ADQL query set containing the resulting columns and metadata.
+    * @param table  The JDBCStarTable containing the tabular data of the query result.
+    * @param votable The output file where the VOTable data will be written.
+    * @throws IOException If an I/O error occurs while writing the VOTable file.
+    */
+   private void outputResult(ADQLSet query, JDBCStarTable table, File votable) throws IOException {
+      Map<String, ? extends DBColumn> columnMap = Arrays.stream(query.getResultingColumns())
+              .collect(Collectors.toMap(
+                      col -> col.getADQLName(),
+                      col ->  col
+              ));
+
+      for (int i = 0; i < table.getColumnCount(); i++) {
+         ColumnInfo colInfo = table.getColumnInfo(i);
+         log.debug(" Stil Column {}: name={}, class={}, description={}", i, colInfo.getName(), colInfo.getContentClass(), colInfo.getDescription());
+         DBColumn dbcolInfo = columnMap.get(colInfo.getName());
+         if (dbcolInfo instanceof TapADQLColumn adqlColInfo) { // if the column is a normal column reference (rather than synthetic one like count(*)
+            colInfo.setDescription(adqlColInfo.getDescription());
+            colInfo.setUnitString(adqlColInfo.getUnitString());
+            colInfo.setUCD(adqlColInfo.getUcd());
+            colInfo.setUtype(adqlColInfo.getUtype());
+         }
+         else {
+            log.warn(" Column {} is not a TapADQLColumn", colInfo.getName());
+         }
+      }
+
+      final OutputStream outputStream = Files.newOutputStream(votable.toPath());
+      TAPWriter tableWriter = new TAPWriter(this);
+      tableWriter.setResourceType(ResourceType.RESULTS);
+      new StarTableOutput().writeStarTable(table, outputStream, tableWriter);
    }
 
    /**
