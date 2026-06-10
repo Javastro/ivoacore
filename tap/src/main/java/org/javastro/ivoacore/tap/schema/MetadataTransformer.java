@@ -125,4 +125,47 @@ public class MetadataTransformer {
    }
 
 
+   /**
+    * Maps a Java class type (typically from STIL ColumnInfo.getContentClass()) to a TAP TAPType.
+    * This is used when creating TAP table metadata from uploaded STIL tables.
+    *
+    * @param contentClass the Java class representing the column data type (e.g., Double.class, String.class)
+    * @return a TAPType corresponding to the Java class, defaulting to VARCHAR if type cannot be determined
+    */
+    public static TAPType mapContentClassToTAPType(Class<?> contentClass) {
+       if (contentClass == null) {
+          log.warn("Content class is null, defaulting to VARCHAR");
+          return TAPType.VARCHAR;
+       }
+
+       // Map Java types to TAPType
+       if (String.class.isAssignableFrom(contentClass) || Character.class.isAssignableFrom(contentClass)) {
+          return TAPType.VARCHAR;
+       }
+       if (Integer.class.isAssignableFrom(contentClass) || int.class == contentClass) {
+          return TAPType.INTEGER;
+       }
+       if (Long.class.isAssignableFrom(contentClass) || long.class == contentClass) {
+          return TAPType.BIGINT;
+       }
+       if (Double.class.isAssignableFrom(contentClass) || double.class == contentClass) {
+          return TAPType.DOUBLE;
+       }
+       if (Float.class.isAssignableFrom(contentClass) || float.class == contentClass) {
+          return TAPType.REAL;
+       }
+       if (Boolean.class.isAssignableFrom(contentClass) || boolean.class == contentClass) {
+          return TAPType.BOOLEAN;
+       }
+       if (Short.class.isAssignableFrom(contentClass) || short.class == contentClass) {
+          return TAPType.SMALLINT;
+       }
+       if (byte[].class.isAssignableFrom(contentClass)) {
+          return TAPType.VARBINARY;
+       }
+
+       // Default to VARCHAR for unknown types
+       log.warn("Unknown content class {}, defaulting to VARCHAR", contentClass.getName());
+       return TAPType.VARCHAR;
+    }
 }

@@ -20,11 +20,15 @@ import adql.query.ADQLSet;
 import adql.translator.ADQLTranslator;
 import adql.translator.PgSphereTranslator;
 import adql.translator.TranslationException;
+import org.ivoa.dm.tapschema.Column;
+import org.ivoa.dm.tapschema.Schema;
+import org.ivoa.dm.tapschema.Table;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.tap.schema.MetadataTransformer;
 import org.javastro.ivoacore.tap.schema.SchemaProvider;
 import org.javastro.ivoacore.tap.schema.TapADQLColumn;
+import org.javastro.ivoacore.tap.schema.TapADQLTable;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
@@ -32,19 +36,20 @@ import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
-import uk.ac.starlink.table.jdbc.Connector;
-import uk.ac.starlink.table.jdbc.JDBCFormatter;
-import uk.ac.starlink.table.jdbc.JDBCHandler;
-import uk.ac.starlink.table.jdbc.JDBCStarTable;
+import uk.ac.starlink.table.jdbc.*;
 import uk.ac.starlink.votable.ResourceType;
+import uk.ac.starlink.votable.VOTableBuilder;
 
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -92,52 +97,171 @@ public class TAPJob extends BaseUWSJob {
       }
 
       final File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
+      String physicalTempTableName = null;
+
       try {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
-         QueryChecker checker = new DBChecker(tables);
 
+         // Only process upload if a URL is provided
+         if (tapJobSpec.upload != null && !tapJobSpec.upload.isBlank()) {
+            URI uploadFile = URI.create(tapJobSpec.upload);
+
+            try (InputStream uploadStream = uploadFile.toURL().openStream();
+                 Connection conn = dataSource.getConnection()) {
+
+               log.debug("Connection auto-commit: {}", conn.getAutoCommit());
+
+               StarTable uploadTable = new StarTableFactory().makeStarTable(uploadStream, new VOTableBuilder());
+
+               // FIX 1: Create the TAP_UPLOAD schema if it doesn't exist
+               try (Statement schemaStmt = conn.createStatement()) {
+                  schemaStmt.execute("CREATE SCHEMA IF NOT EXISTS \"TAP_UPLOAD\"");
+                  log.info("Ensured TAP_UPLOAD schema exists");
+               } catch (SQLException e) {
+                  log.error("Failed to create TAP_UPLOAD schema", e);
+                  throw e;
+               }
+
+               // FIX 2: Set the search_path to make TAP_UPLOAD the default schema for this connection
+               try (Statement searchPathStmt = conn.createStatement()) {
+                  searchPathStmt.execute("SET search_path TO \"TAP_UPLOAD\", public");
+                  log.info("Set search_path to TAP_UPLOAD, public");
+               } catch (SQLException e) {
+                  log.error("Failed to set search_path", e);
+                  throw e;
+               }
+
+                 // FIX 3: Create table manually with schema-qualified name, then populate it
+                 // We do this to ensure the table is created in tap_upload schema, not public
+                 String tableName = "tap_upload_" + getID().replace("-", "_");
+                 physicalTempTableName = "\"TAP_UPLOAD\".\"" + tableName + "\"";
+
+                 try {
+                    log.info("Creating upload table: {} in TAP_UPLOAD schema", physicalTempTableName);
+
+                    // Build CREATE TABLE statement with schema-qualified name
+                    StringBuilder createTableSql = new StringBuilder();
+                    createTableSql.append("CREATE TABLE IF NOT EXISTS ").append(physicalTempTableName).append(" (");
+
+                    for (int i = 0; i < uploadTable.getColumnCount(); i++) {
+                       ColumnInfo colInfo = uploadTable.getColumnInfo(i);
+                       if (i > 0) createTableSql.append(", ");
+
+                       // Use uppercase column names to match ADQL translator output
+                       // Quote them to preserve case in PostgreSQL
+                       createTableSql.append("\"").append(colInfo.getName().toUpperCase()).append("\" ");
+
+                       // Map STIL column class to SQL type
+                       Class<?> contentClass = colInfo.getContentClass();
+                       String sqlType = mapContentClassToSqlType(contentClass);
+                       createTableSql.append(sqlType);
+                    }
+                    createTableSql.append(")");
+
+                    log.debug("Create table SQL: {}", createTableSql);
+                    try (Statement createStmt = conn.createStatement()) {
+                       createStmt.execute(createTableSql.toString());
+                    }
+
+                    // Now populate the table by inserting the data
+                    // The table already exists in tap_upload schema with search_path set to find it
+                    JDBCFormatter formatter = new JDBCFormatter(conn, uploadTable);
+                    // Use APPEND mode to insert data into the pre-created table without dropping it
+                    formatter.createJDBCTable(tableName, WriteMode.APPEND);
+
+                    log.info("Successfully created and populated upload table: {}", physicalTempTableName);
+                 } catch (Exception e) {
+                    log.error("Failed to create upload table {}", tableName, e);
+                    throw e;
+                 }
+
+               // Create transient Schema and Table structures
+               Schema uploadSchema = new Schema();
+               uploadSchema.setSchema_name("TAP_UPLOAD");
+
+               Table uploadTableMetadata = new Table();
+               uploadTableMetadata.setTable_name("targets");
+
+               TapADQLTable adqlTableSpec = new TapADQLTable(uploadSchema, uploadTableMetadata, false);
+
+               // 4. Populate columns mapping using the table factory so we don't need
+               //    to access package-protected constructors from here.
+               for (int i = 0; i < uploadTable.getColumnCount(); i++) {
+                  ColumnInfo info = uploadTable.getColumnInfo(i);
+                  Column colMeta = new Column();
+                  // Use uppercase column names to match ADQL translator output
+                  // (ADQL typically outputs unquoted identifiers in uppercase)
+                  colMeta.setColumn_name(info.getName().toUpperCase());
+
+                  // Map the STIL column data type to a TAP TAPType
+                  var tapType = MetadataTransformer.mapContentClassToTAPType(info.getContentClass());
+                  colMeta.setDatatype(tapType);
+
+                  // Use the public factory method on TapADQLTable which creates and registers
+                  // the TapADQLColumn internally (constructor is package-protected).
+                  adqlTableSpec.createColumn(colMeta);
+               }
+
+               // 5. Make it visible to the ADQL parser validator
+               tables.add(adqlTableSpec);
+
+            } catch (IOException e) {
+               log.error("Failed to read upload data from URL: {}", uploadFile, e);
+               throw new SQLException("Failed to read upload data from URL: " + uploadFile, e);
+            }
+         }
+
+         // Check and Parse ADQL
+         QueryChecker checker = new DBChecker(tables);
          ADQLParser parser = new ADQLParser();
          parser.setQueryChecker(checker);
 
-         // Parse ADQL
          log.info("Parsing original ADQL query: {}", tapJobSpec.adqlQuery);
          ADQLSet query = parser.parseQuery(tapJobSpec.adqlQuery);
+
+         // FIX 4: Use your original method signature (1 argument)
          String sql = translateADQLToSQL(query);
+
+         // Swap out the user-facing table name with the physical backend name if an upload happened
+         if (physicalTempTableName != null) {
+            log.debug("Original SQL: {}", sql);
+            // Try multiple replacement patterns to handle different ADQL translator outputs
+            // Pattern 1: quoted identifiers like "TAP_UPLOAD"."TARGETS"
+            sql = sql.replaceAll("(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"TARGETS\"", physicalTempTableName);
+            // Pattern 2: unquoted identifiers like TAP_UPLOAD.TARGETS
+            sql = sql.replaceAll("(?i)TAP_UPLOAD\\s*\\.\\s*TARGETS", physicalTempTableName);
+            // Pattern 3: any reference to just TARGETS that came from TAP_UPLOAD context
+            sql = sql.replaceAll("(?i)\\bTARGETS\\b", physicalTempTableName);
+            log.debug("Modified SQL with table replacement: {}", sql);
+         }
+
          log.info("Translated ADQL query to SQL: {}", sql);
 
-         JDBCStarTable table = getResultTable(sql, tapJobSpec.upload);
-
+         // Stream out the data
+         JDBCStarTable table = getResultTable(sql);
          outputResult(query, table, votable);
 
-      } catch (SQLException e) {
-         //TODO remove the logging here  - it is just duplicating other logging I think
-         log.error("Database error while executing TAP query", e);
-         throw new UWSException("Database error while executing TAP query",e); //FIXME need to decide how to handle fail properly - should we fail the job? retry? etc.
-      } catch (ParseException e) {
-         log.error("Parse error while executing TAP query", e);
-         throw new UWSException("Parse error while executing TAP query",e);
-      } catch (TranslationException e) {
-         log.error("Translation error while executing TAP query", e);
-         throw new UWSException("Translation error while executing TAP query",e);
-      } catch (IOException e) {
-         log.error("IO error while executing TAP query", e);
-         throw new UWSException("IO error while executing TAP query",e);
+      } catch (SQLException | ParseException | TranslationException | IOException e) {
+         log.error("Error while executing TAP query", e);
+         throw new UWSException("Error while executing TAP query", e);
+      } finally {
+         // Clean up the table safely
+         if (physicalTempTableName != null) {
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement()) {
+               stmt.execute("DROP TABLE IF EXISTS " + physicalTempTableName);
+               log.info("Dropped temp table: {}", physicalTempTableName);
+            } catch (SQLException e) {
+               log.warn("Failed to drop temporary upload table: {}", physicalTempTableName, e);
+            }
+         }
       }
+
+
       return List.of(new ParameterValue() {
-         @Override
-         public String getValue() {
-            return votable.getAbsolutePath();
-         }
-
-         @Override
-         public boolean isIndirect() {
-            return true;
-         }
-
-         @Override
-         public String getId() {
-            return "result";
-         }
+         @Override public String getValue() { return votable.getAbsolutePath(); }
+         @Override public boolean isIndirect() { return true; }
+         @Override public String getId() { return "result"; }
       });
    }
 
@@ -203,12 +327,10 @@ public class TAPJob extends BaseUWSJob {
     * The connection is closed after the table is created.
     *
     * @param sql       The SQL query string to be executed against the database.
-    * @param uploadURL The URL for uploaded data, if applicable. This parameter
-    *                  might be used in conjunction with query execution or table preparation.
     * @return A {@code JDBCStarTable} instance containing the query results.
     * @throws SQLException If an error occurs while creating the database connection or executing the query.
     */
-   private JDBCStarTable getResultTable(String sql, String uploadURL) throws SQLException{
+   private JDBCStarTable getResultTable(String sql) throws SQLException{
       final AtomicReference<Connection> thisConnection = new AtomicReference<>();
       Connector connector = () -> {
          thisConnection.set(dataSource.getConnection());//IMPL new connection each time requested - STIL documentation implies that is what is desired.
@@ -217,6 +339,15 @@ public class TAPJob extends BaseUWSJob {
 
       // JDBCFormatter formatter = new JDBCFormatter(conn, uploadTable);
       // formatter.createJDBCTable();
+    /*  try (InputStream uploadStream = uploadURL.toURL().openStream()) {
+         StarTable uploadTable = new StarTableFactory().makeStarTable(uploadStream, new VOTableBuilder());
+         uploadTable.getName();     //TODO - make uploaded table name unique in some way? if so, the sql will need to be adjusted too
+         JDBCFormatter formatter = new JDBCFormatter(connector.getConnection(), uploadTable);
+         formatter.createJDBCTable("targets", WriteMode.DROP_CREATE);
+      } catch (IOException e) {
+         log.error("Failed to read upload data from URL: {}", uploadURL, e);
+         throw new SQLException("Failed to read upload data from URL: " + uploadURL, e);
+      }*/
 
 
       //SQL executed here
@@ -285,16 +416,57 @@ public class TAPJob extends BaseUWSJob {
          }
       }
 
-      final OutputStream outputStream = Files.newOutputStream(votable.toPath());
-      TAPWriter tableWriter = new TAPWriter(this);
-      tableWriter.setResourceType(ResourceType.RESULTS);
-      new StarTableOutput().writeStarTable(table, outputStream, tableWriter);
-   }
+       final OutputStream outputStream = Files.newOutputStream(votable.toPath());
+       TAPWriter tableWriter = new TAPWriter(this);
+       tableWriter.setResourceType(ResourceType.RESULTS);
+       new StarTableOutput().writeStarTable(table, outputStream, tableWriter);
+    }
 
-   /**
-    * Factory for creating {@link TAPJob} instances.
-    */
-   public static class JobFactory extends BaseJobFactory {
+    /**
+     * Maps a Java class type (from STIL ColumnInfo.getContentClass()) to a PostgreSQL SQL type string.
+     *
+     * @param contentClass the Java class representing the column data type
+     * @return a PostgreSQL SQL type string (e.g., "VARCHAR", "BIGINT", "DOUBLE PRECISION")
+     */
+    private String mapContentClassToSqlType(Class<?> contentClass) {
+       if (contentClass == null) {
+          return "VARCHAR";
+       }
+
+       if (String.class.isAssignableFrom(contentClass) || Character.class.isAssignableFrom(contentClass)) {
+          return "VARCHAR";
+       }
+       if (Integer.class.isAssignableFrom(contentClass) || int.class == contentClass) {
+          return "INTEGER";
+       }
+       if (Long.class.isAssignableFrom(contentClass) || long.class == contentClass) {
+          return "BIGINT";
+       }
+       if (Double.class.isAssignableFrom(contentClass) || double.class == contentClass) {
+          return "DOUBLE PRECISION";
+       }
+       if (Float.class.isAssignableFrom(contentClass) || float.class == contentClass) {
+          return "REAL";
+       }
+       if (Boolean.class.isAssignableFrom(contentClass) || boolean.class == contentClass) {
+          return "BOOLEAN";
+       }
+       if (Short.class.isAssignableFrom(contentClass) || short.class == contentClass) {
+          return "SMALLINT";
+       }
+       if (byte[].class.isAssignableFrom(contentClass)) {
+          return "BYTEA";
+       }
+
+       // Default to VARCHAR for unknown types
+       log.warn("Unknown content class {}, defaulting to VARCHAR", contentClass.getName());
+       return "VARCHAR";
+    }
+
+    /**
+     * Factory for creating {@link TAPJob} instances.
+     */
+    public static class JobFactory extends BaseJobFactory {
       private final DataSource ds;
       private final SchemaProvider schemaProvider;
 
@@ -347,6 +519,7 @@ public class TAPJob extends BaseUWSJob {
                this.ds,
                this.schemaProvider
          );
-      }
-   }
+       }
+    }
 }
+
