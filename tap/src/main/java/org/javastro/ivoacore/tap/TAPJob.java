@@ -424,43 +424,15 @@ public class TAPJob extends BaseUWSJob {
 
     /**
      * Maps a Java class type (from STIL ColumnInfo.getContentClass()) to a PostgreSQL SQL type string.
+     * Delegates to MetadataTransformer to ensure a single source of truth for type mappings.
      *
      * @param contentClass the Java class representing the column data type
      * @return a PostgreSQL SQL type string (e.g., "VARCHAR", "BIGINT", "DOUBLE PRECISION")
      */
     private String mapContentClassToSqlType(Class<?> contentClass) {
-       if (contentClass == null) {
-          return "VARCHAR";
-       }
-
-       if (String.class.isAssignableFrom(contentClass) || Character.class.isAssignableFrom(contentClass)) {
-          return "VARCHAR";
-       }
-       if (Integer.class.isAssignableFrom(contentClass) || int.class == contentClass) {
-          return "INTEGER";
-       }
-       if (Long.class.isAssignableFrom(contentClass) || long.class == contentClass) {
-          return "BIGINT";
-       }
-       if (Double.class.isAssignableFrom(contentClass) || double.class == contentClass) {
-          return "DOUBLE PRECISION";
-       }
-       if (Float.class.isAssignableFrom(contentClass) || float.class == contentClass) {
-          return "REAL";
-       }
-       if (Boolean.class.isAssignableFrom(contentClass) || boolean.class == contentClass) {
-          return "BOOLEAN";
-       }
-       if (Short.class.isAssignableFrom(contentClass) || short.class == contentClass) {
-          return "SMALLINT";
-       }
-       if (byte[].class.isAssignableFrom(contentClass)) {
-          return "BYTEA";
-       }
-
-       // Default to VARCHAR for unknown types
-       log.warn("Unknown content class {}, defaulting to VARCHAR", contentClass.getName());
-       return "VARCHAR";
+       // Delegate: first map the Java class to a TAPType, then map TAPType to SQL type.
+       var tapType = MetadataTransformer.mapContentClassToTAPType(contentClass);
+       return MetadataTransformer.mapTAPTypeToSqlType(tapType);
     }
 
     /**
@@ -522,4 +494,3 @@ public class TAPJob extends BaseUWSJob {
        }
     }
 }
-

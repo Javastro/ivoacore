@@ -133,39 +133,78 @@ public class MetadataTransformer {
     * @return a TAPType corresponding to the Java class, defaulting to VARCHAR if type cannot be determined
     */
     public static TAPType mapContentClassToTAPType(Class<?> contentClass) {
-       if (contentClass == null) {
-          log.warn("Content class is null, defaulting to VARCHAR");
-          return TAPType.VARCHAR;
-       }
+        if (contentClass == null) {
+           log.warn("Content class is null, defaulting to VARCHAR");
+           return TAPType.VARCHAR;
+        }
 
-       // Map Java types to TAPType
-       if (String.class.isAssignableFrom(contentClass) || Character.class.isAssignableFrom(contentClass)) {
-          return TAPType.VARCHAR;
-       }
-       if (Integer.class.isAssignableFrom(contentClass) || int.class == contentClass) {
-          return TAPType.INTEGER;
-       }
-       if (Long.class.isAssignableFrom(contentClass) || long.class == contentClass) {
-          return TAPType.BIGINT;
-       }
-       if (Double.class.isAssignableFrom(contentClass) || double.class == contentClass) {
-          return TAPType.DOUBLE;
-       }
-       if (Float.class.isAssignableFrom(contentClass) || float.class == contentClass) {
-          return TAPType.REAL;
-       }
-       if (Boolean.class.isAssignableFrom(contentClass) || boolean.class == contentClass) {
-          return TAPType.BOOLEAN;
-       }
-       if (Short.class.isAssignableFrom(contentClass) || short.class == contentClass) {
-          return TAPType.SMALLINT;
-       }
-       if (byte[].class.isAssignableFrom(contentClass)) {
-          return TAPType.VARBINARY;
-       }
+        // Map Java types to TAPType
+        if (String.class.isAssignableFrom(contentClass) || Character.class.isAssignableFrom(contentClass)) {
+           return TAPType.VARCHAR;
+        }
+        if (Integer.class.isAssignableFrom(contentClass) || int.class == contentClass) {
+           return TAPType.INTEGER;
+        }
+        if (Long.class.isAssignableFrom(contentClass) || long.class == contentClass) {
+           return TAPType.BIGINT;
+        }
+        if (Double.class.isAssignableFrom(contentClass) || double.class == contentClass) {
+           return TAPType.DOUBLE;
+        }
+        if (Float.class.isAssignableFrom(contentClass) || float.class == contentClass) {
+           return TAPType.REAL;
+        }
+        if (Boolean.class.isAssignableFrom(contentClass) || boolean.class == contentClass) {
+           return TAPType.BOOLEAN;
+        }
+        if (Short.class.isAssignableFrom(contentClass) || short.class == contentClass) {
+           return TAPType.SMALLINT;
+        }
+        if (byte[].class.isAssignableFrom(contentClass)) {
+           return TAPType.VARBINARY;
+        }
 
-       // Default to VARCHAR for unknown types
-       log.warn("Unknown content class {}, defaulting to VARCHAR", contentClass.getName());
-       return TAPType.VARCHAR;
+        // Default to VARCHAR for unknown types
+        log.warn("Unknown content class {}, defaulting to VARCHAR", contentClass.getName());
+        return TAPType.VARCHAR;
+     }
+
+    // New method added to map TAPType -> SQL type string for PostgreSQL
+    public static String mapTAPTypeToSqlType(TAPType tapType) {
+       if (tapType == null) {
+          return "VARCHAR";
+       }
+       switch (tapType) {
+          case VARCHAR:
+             return "VARCHAR";
+          case CHAR:
+             return "CHAR";
+          case INTEGER:
+             return "INTEGER";
+          case BIGINT:
+             return "BIGINT";
+          case SMALLINT:
+             return "SMALLINT";
+          case REAL:
+             return "REAL";
+          case DOUBLE:
+             return "DOUBLE PRECISION";
+          case BOOLEAN:
+             return "BOOLEAN";
+          case BINARY:
+          case VARBINARY:
+          case BLOB:
+             return "BYTEA";
+          case CLOB:
+             return "TEXT";
+          case TIMESTAMP:
+             return "TIMESTAMP";
+          case POINT:
+          case REGION:
+             return "TEXT"; // spatial types stored as text by default
+          default:
+             log.warn("Unmapped TAPType {} - defaulting to VARCHAR", tapType);
+             return "VARCHAR";
+       }
     }
 }
