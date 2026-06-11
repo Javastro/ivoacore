@@ -55,6 +55,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -69,6 +71,7 @@ public class TAPJob extends BaseUWSJob {
    private final SchemaProvider schemaProvider;
 
    private record UploadContext(
+           String logicalTableName,
            String physicalTableName,
            TapADQLTable adqlTable) {
    }
@@ -181,10 +184,11 @@ public class TAPJob extends BaseUWSJob {
          ensureUploadSchemaExists(conn);
 
          String physicalTableName = createAndPopulateUploadTable(conn, table);
+        // table.setName(table.getName() + getID().replace("-", "_"));
 
          TapADQLTable adqlTable = createUploadMetadata(table);
 
-         return new UploadContext(physicalTableName, adqlTable);
+         return new UploadContext(table.getName(), physicalTableName, adqlTable);
       }
    }
 
@@ -248,7 +252,7 @@ public class TAPJob extends BaseUWSJob {
       schema.setSchema_name("TAP_UPLOAD");
 
       Table table = new Table();
-      table.setTable_name("targets");
+      table.setTable_name(uploadTable.getName());
 
       TapADQLTable result = new TapADQLTable(schema, table,false);
 
@@ -281,7 +285,7 @@ public class TAPJob extends BaseUWSJob {
       String sql = translateADQLToSQL(query);
 
       if (upload != null) {
-         sql = replaceUploadTableReferences(sql, upload.physicalTableName());
+         sql = replaceUploadTableReferences(sql, upload);
       }
       return sql;
    }
@@ -320,18 +324,24 @@ public class TAPJob extends BaseUWSJob {
       });
    }
 
-   //TODO - remove hardcoded table name
-   private String replaceUploadTableReferences(String sql, String physicalTempTableName) {
+   private String replaceUploadTableReferences(
+           String sql,
+           UploadContext context) {
 
-      log.debug("Original SQL: {}", sql);
+      sql = sql.replaceAll(
+              "(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"" +
+                      Pattern.quote(context.logicalTableName) +
+                      "\"",
+              Matcher.quoteReplacement(context.physicalTableName));
 
-      sql = sql.replaceAll("(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"TARGETS\"", physicalTempTableName);
+      sql = sql.replaceAll(
+              "(?i)TAP_UPLOAD\\s*\\.\\s*" +
+                      Pattern.quote(context.logicalTableName),
+              Matcher.quoteReplacement(context.physicalTableName));
 
-      sql = sql.replaceAll("(?i)TAP_UPLOAD\\s*\\.\\s*TARGETS", physicalTempTableName);
-
-      sql = sql.replaceAll("(?i)\\bTARGETS\\b", physicalTempTableName);
-
-      log.debug("Modified SQL with table replacement: {}", sql);
+      sql = sql.replaceAll(
+              "(?i)\\b" + Pattern.quote(context.logicalTableName) + "\\b",
+              Matcher.quoteReplacement(context.physicalTableName));
 
       return sql;
    }
