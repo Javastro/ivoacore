@@ -100,17 +100,12 @@ public class TAPJob extends BaseUWSJob {
    public List<ParameterValue> performAction() throws UWSException {
       validateRequest();
 
-      File votable = executionEnvironment.getWorkDir()
-              .toPath()
-              .resolve("results.vot")
-              .toFile();
+      File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
 
       UploadContext uploadContext = null;
 
       try {
-
-         List<DBTable> tables =
-                 new MetadataTransformer(schemaProvider).transformToADQLLib();
+         List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
 
          if (hasUpload()) {
             uploadContext = processUpload();
@@ -125,12 +120,9 @@ public class TAPJob extends BaseUWSJob {
 
          outputResult(query, table, votable);
 
-      } catch (SQLException | ParseException |
-               TranslationException | IOException e) {
-
+      } catch (SQLException | ParseException | TranslationException | IOException e) {
          log.error("Error while executing TAP query", e);
          throw new UWSException("Error while executing TAP query", e);
-
       } catch (Exception e) {
           throw new RuntimeException(e);
       } finally {
@@ -138,7 +130,6 @@ public class TAPJob extends BaseUWSJob {
          cleanupUploadTable(uploadContext);
 
       }
-
       return resultParameter(votable);
    }
 
@@ -164,7 +155,6 @@ public class TAPJob extends BaseUWSJob {
       }
 
       return resultsBuilder.build();
-
    }
 
    private void validateRequest() throws UWSException {
@@ -186,22 +176,15 @@ public class TAPJob extends BaseUWSJob {
       try (InputStream in = uploadUri.toURL().openStream();
            Connection conn = dataSource.getConnection()) {
 
-         StarTable table =
-                 new StarTableFactory().makeStarTable(
-                         in,
-                         new VOTableBuilder());
+         StarTable table = new StarTableFactory().makeStarTable(in, new VOTableBuilder());
 
          ensureUploadSchemaExists(conn);
 
-         String physicalTableName =
-                 createAndPopulateUploadTable(conn, table);
+         String physicalTableName = createAndPopulateUploadTable(conn, table);
 
-         TapADQLTable adqlTable =
-                 createUploadMetadata(table);
+         TapADQLTable adqlTable = createUploadMetadata(table);
 
-         return new UploadContext(
-                 physicalTableName,
-                 adqlTable);
+         return new UploadContext(physicalTableName, adqlTable);
       }
    }
 
@@ -230,31 +213,21 @@ public class TAPJob extends BaseUWSJob {
       return physicalTableName;
    }
 
-   private void createUploadTable(
-           Connection conn,
-           StarTable table,
-           String physicalName)
-           throws SQLException {
+   private void createUploadTable(Connection conn, StarTable table, String physicalName) throws SQLException {
 
-      String sql =
-              buildCreateTableSql(table, physicalName);
+      String sql = buildCreateTableSql(table, physicalName);
 
       try (Statement stmt = conn.createStatement()) {
          stmt.execute(sql);
       }
    }
 
-   private String buildCreateTableSql(
-           StarTable table,
-           String physicalName) {
+   private String buildCreateTableSql(StarTable table, String physicalName) {
 
-      StringJoiner columns =
-              new StringJoiner(", ");
+      StringJoiner columns = new StringJoiner(", ");
 
       for (int i = 0; i < table.getColumnCount(); i++) {
-
-         ColumnInfo info =
-                 table.getColumnInfo(i);
+         ColumnInfo info = table.getColumnInfo(i);
 
          columns.add(
                  "\"" + info.getName().toUpperCase() + "\" "
@@ -269,8 +242,7 @@ public class TAPJob extends BaseUWSJob {
               + ")";
    }
 
-   private TapADQLTable createUploadMetadata(
-           StarTable uploadTable) {
+   private TapADQLTable createUploadMetadata(StarTable uploadTable) {
 
       Schema schema = new Schema();
       schema.setSchema_name("TAP_UPLOAD");
@@ -278,25 +250,16 @@ public class TAPJob extends BaseUWSJob {
       Table table = new Table();
       table.setTable_name("targets");
 
-      TapADQLTable result =
-              new TapADQLTable(
-                      schema,
-                      table,
-                      false);
+      TapADQLTable result = new TapADQLTable(schema, table,false);
 
       for (int i = 0; i < uploadTable.getColumnCount(); i++) {
-
-         ColumnInfo info =
-                 uploadTable.getColumnInfo(i);
+         ColumnInfo info = uploadTable.getColumnInfo(i);
 
          Column column = new Column();
-         column.setColumn_name(
-                 info.getName().toUpperCase());
+         column.setColumn_name(info.getName().toUpperCase());
 
          column.setDatatype(
-                 MetadataTransformer
-                         .mapContentClassToTAPType(
-                                 info.getContentClass()));
+                 MetadataTransformer.mapContentClassToTAPType(info.getContentClass()));
 
          result.createColumn(column);
       }
@@ -304,41 +267,26 @@ public class TAPJob extends BaseUWSJob {
       return result;
    }
 
-   private ADQLSet parseQuery(List<DBTable> tables)
-           throws ParseException {
+   private ADQLSet parseQuery(List<DBTable> tables) throws ParseException {
 
-      QueryChecker checker =
-              new DBChecker(tables);
+      QueryChecker checker = new DBChecker(tables);
 
-      ADQLParser parser =
-              new ADQLParser();
-
+      ADQLParser parser = new ADQLParser();
       parser.setQueryChecker(checker);
 
-      return parser.parseQuery(
-              tapJobSpec.adqlQuery);
+      return parser.parseQuery(tapJobSpec.adqlQuery);
    }
 
-   private String translateQuery(
-           ADQLSet query,
-           UploadContext upload)
-           throws TranslationException {
-
-      String sql =
-              translateADQLToSQL(query);
+   private String translateQuery(ADQLSet query, UploadContext upload) throws TranslationException {
+      String sql = translateADQLToSQL(query);
 
       if (upload != null) {
-         sql = replaceUploadTableReferences(
-                 sql,
-                 upload.physicalTableName());
+         sql = replaceUploadTableReferences(sql, upload.physicalTableName());
       }
-
       return sql;
    }
 
-   private void cleanupUploadTable(
-           UploadContext upload) {
-
+   private void cleanupUploadTable(UploadContext upload) {
       if (upload == null) {
          return;
       }
@@ -346,16 +294,10 @@ public class TAPJob extends BaseUWSJob {
       try (Connection conn = dataSource.getConnection();
            Statement stmt = conn.createStatement()) {
 
-         stmt.execute(
-                 "DROP TABLE IF EXISTS "
-                         + upload.physicalTableName());
+         stmt.execute("DROP TABLE IF EXISTS " + upload.physicalTableName());
 
       } catch (SQLException e) {
-
-         log.warn(
-                 "Failed to drop upload table {}",
-                 upload.physicalTableName(),
-                 e);
+         log.warn("Failed to drop upload table {}", upload.physicalTableName(), e);
       }
    }
 
@@ -378,23 +320,16 @@ public class TAPJob extends BaseUWSJob {
       });
    }
 
-   private String replaceUploadTableReferences(
-           String sql,
-           String physicalTempTableName) {
+   //TODO - remove hardcoded table name
+   private String replaceUploadTableReferences(String sql, String physicalTempTableName) {
 
       log.debug("Original SQL: {}", sql);
 
-      sql = sql.replaceAll(
-              "(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"TARGETS\"",
-              physicalTempTableName);
+      sql = sql.replaceAll("(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"TARGETS\"", physicalTempTableName);
 
-      sql = sql.replaceAll(
-              "(?i)TAP_UPLOAD\\s*\\.\\s*TARGETS",
-              physicalTempTableName);
+      sql = sql.replaceAll("(?i)TAP_UPLOAD\\s*\\.\\s*TARGETS", physicalTempTableName);
 
-      sql = sql.replaceAll(
-              "(?i)\\bTARGETS\\b",
-              physicalTempTableName);
+      sql = sql.replaceAll("(?i)\\bTARGETS\\b", physicalTempTableName);
 
       log.debug("Modified SQL with table replacement: {}", sql);
 
