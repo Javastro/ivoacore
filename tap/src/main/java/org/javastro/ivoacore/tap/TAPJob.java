@@ -53,6 +53,7 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -66,6 +67,11 @@ public class TAPJob extends BaseUWSJob {
    private final DataSource dataSource;
    private final TAPJobSpecification tapJobSpec;
    private final SchemaProvider schemaProvider;
+
+   private record UploadContext(
+           String physicalTableName,
+           TapADQLTable adqlTable) {
+   }
 
    /**
     * Constructs a new TAPJob with the given identifier, specification and data source.
@@ -92,177 +98,48 @@ public class TAPJob extends BaseUWSJob {
 
    @Override
    public List<ParameterValue> performAction() throws UWSException {
-      if(tapJobSpec.adqlQuery == null || tapJobSpec.adqlQuery.isBlank()) {
-         throw new UWSException("ADQL query is missing or empty");
-      }
+      validateRequest();
 
-      final File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
-      String physicalTempTableName = null;
+      File votable = executionEnvironment.getWorkDir()
+              .toPath()
+              .resolve("results.vot")
+              .toFile();
+
+      UploadContext uploadContext = null;
 
       try {
-         List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
 
-         // Only process upload if a URL is provided
-         if (tapJobSpec.upload != null && !tapJobSpec.upload.isBlank()) {
-            URI uploadFile = URI.create(tapJobSpec.upload);
+         List<DBTable> tables =
+                 new MetadataTransformer(schemaProvider).transformToADQLLib();
 
-            try (InputStream uploadStream = uploadFile.toURL().openStream();
-                 Connection conn = dataSource.getConnection()) {
-
-               log.debug("Connection auto-commit: {}", conn.getAutoCommit());
-
-               StarTable uploadTable = new StarTableFactory().makeStarTable(uploadStream, new VOTableBuilder());
-
-               // FIX 1: Create the TAP_UPLOAD schema if it doesn't exist
-               try (Statement schemaStmt = conn.createStatement()) {
-                  schemaStmt.execute("CREATE SCHEMA IF NOT EXISTS \"TAP_UPLOAD\"");
-                  log.info("Ensured TAP_UPLOAD schema exists");
-               } catch (SQLException e) {
-                  log.error("Failed to create TAP_UPLOAD schema", e);
-                  throw e;
-               }
-
-               // FIX 2: Set the search_path to make TAP_UPLOAD the default schema for this connection
-               try (Statement searchPathStmt = conn.createStatement()) {
-                  searchPathStmt.execute("SET search_path TO \"TAP_UPLOAD\", public");
-                  log.info("Set search_path to TAP_UPLOAD, public");
-               } catch (SQLException e) {
-                  log.error("Failed to set search_path", e);
-                  throw e;
-               }
-
-                 // FIX 3: Create table manually with schema-qualified name, then populate it
-                 // We do this to ensure the table is created in tap_upload schema, not public
-                 String tableName = "tap_upload_" + getID().replace("-", "_");
-                 physicalTempTableName = "\"TAP_UPLOAD\".\"" + tableName + "\"";
-
-                 try {
-                    log.info("Creating upload table: {} in TAP_UPLOAD schema", physicalTempTableName);
-
-                    // Build CREATE TABLE statement with schema-qualified name
-                    StringBuilder createTableSql = new StringBuilder();
-                    createTableSql.append("CREATE TABLE IF NOT EXISTS ").append(physicalTempTableName).append(" (");
-
-                    for (int i = 0; i < uploadTable.getColumnCount(); i++) {
-                       ColumnInfo colInfo = uploadTable.getColumnInfo(i);
-                       if (i > 0) createTableSql.append(", ");
-
-                       // Use uppercase column names to match ADQL translator output
-                       // Quote them to preserve case in PostgreSQL
-                       createTableSql.append("\"").append(colInfo.getName().toUpperCase()).append("\" ");
-
-                       // Map STIL column class to SQL type
-                       Class<?> contentClass = colInfo.getContentClass();
-                       String sqlType = mapContentClassToSqlType(contentClass);
-                       createTableSql.append(sqlType);
-                    }
-                    createTableSql.append(")");
-
-                    log.debug("Create table SQL: {}", createTableSql);
-                    try (Statement createStmt = conn.createStatement()) {
-                       createStmt.execute(createTableSql.toString());
-                    }
-
-                    // Now populate the table by inserting the data
-                    // The table already exists in tap_upload schema with search_path set to find it
-                    JDBCFormatter formatter = new JDBCFormatter(conn, uploadTable);
-                    // Use APPEND mode to insert data into the pre-created table without dropping it
-                    formatter.createJDBCTable(tableName, WriteMode.APPEND);
-
-                    log.info("Successfully created and populated upload table: {}", physicalTempTableName);
-                 } catch (Exception e) {
-                    log.error("Failed to create upload table {}", tableName, e);
-                    throw e;
-                 }
-
-               // Create transient Schema and Table structures
-               Schema uploadSchema = new Schema();
-               uploadSchema.setSchema_name("TAP_UPLOAD");
-
-               Table uploadTableMetadata = new Table();
-               uploadTableMetadata.setTable_name("targets");
-
-               TapADQLTable adqlTableSpec = new TapADQLTable(uploadSchema, uploadTableMetadata, false);
-
-               // 4. Populate columns mapping using the table factory so we don't need
-               //    to access package-protected constructors from here.
-               for (int i = 0; i < uploadTable.getColumnCount(); i++) {
-                  ColumnInfo info = uploadTable.getColumnInfo(i);
-                  Column colMeta = new Column();
-                  // Use uppercase column names to match ADQL translator output
-                  // (ADQL typically outputs unquoted identifiers in uppercase)
-                  colMeta.setColumn_name(info.getName().toUpperCase());
-
-                  // Map the STIL column data type to a TAP TAPType
-                  var tapType = MetadataTransformer.mapContentClassToTAPType(info.getContentClass());
-                  colMeta.setDatatype(tapType);
-
-                  // Use the public factory method on TapADQLTable which creates and registers
-                  // the TapADQLColumn internally (constructor is package-protected).
-                  adqlTableSpec.createColumn(colMeta);
-               }
-
-               // 5. Make it visible to the ADQL parser validator
-               tables.add(adqlTableSpec);
-
-            } catch (IOException e) {
-               log.error("Failed to read upload data from URL: {}", uploadFile, e);
-               throw new SQLException("Failed to read upload data from URL: " + uploadFile, e);
-            }
+         if (hasUpload()) {
+            uploadContext = processUpload();
+            tables.add(uploadContext.adqlTable());
          }
 
-         // Check and Parse ADQL
-         QueryChecker checker = new DBChecker(tables);
-         ADQLParser parser = new ADQLParser();
-         parser.setQueryChecker(checker);
+         ADQLSet query = parseQuery(tables);
 
-         log.info("Parsing original ADQL query: {}", tapJobSpec.adqlQuery);
-         ADQLSet query = parser.parseQuery(tapJobSpec.adqlQuery);
+         String sql = translateQuery(query, uploadContext);
 
-         // FIX 4: Use your original method signature (1 argument)
-         String sql = translateADQLToSQL(query);
-
-         // Swap out the user-facing table name with the physical backend name if an upload happened
-         if (physicalTempTableName != null) {
-            log.debug("Original SQL: {}", sql);
-            // Try multiple replacement patterns to handle different ADQL translator outputs
-            // Pattern 1: quoted identifiers like "TAP_UPLOAD"."TARGETS"
-            sql = sql.replaceAll("(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"TARGETS\"", physicalTempTableName);
-            // Pattern 2: unquoted identifiers like TAP_UPLOAD.TARGETS
-            sql = sql.replaceAll("(?i)TAP_UPLOAD\\s*\\.\\s*TARGETS", physicalTempTableName);
-            // Pattern 3: any reference to just TARGETS that came from TAP_UPLOAD context
-            sql = sql.replaceAll("(?i)\\bTARGETS\\b", physicalTempTableName);
-            log.debug("Modified SQL with table replacement: {}", sql);
-         }
-
-         log.info("Translated ADQL query to SQL: {}", sql);
-
-         // Stream out the data
          JDBCStarTable table = getResultTable(sql);
+
          outputResult(query, table, votable);
 
-      } catch (SQLException | ParseException | TranslationException | IOException e) {
+      } catch (SQLException | ParseException |
+               TranslationException | IOException e) {
+
          log.error("Error while executing TAP query", e);
          throw new UWSException("Error while executing TAP query", e);
+
+      } catch (Exception e) {
+          throw new RuntimeException(e);
       } finally {
-         // Clean up the table safely
-         if (physicalTempTableName != null) {
-            try (Connection conn = dataSource.getConnection();
-                 Statement stmt = conn.createStatement()) {
-               stmt.execute("DROP TABLE IF EXISTS " + physicalTempTableName);
-               log.info("Dropped temp table: {}", physicalTempTableName);
-            } catch (SQLException e) {
-               log.warn("Failed to drop temporary upload table: {}", physicalTempTableName, e);
-            }
-         }
+
+         cleanupUploadTable(uploadContext);
+
       }
 
-
-      return List.of(new ParameterValue() {
-         @Override public String getValue() { return votable.getAbsolutePath(); }
-         @Override public boolean isIndirect() { return true; }
-         @Override public String getId() { return "result"; }
-      });
+      return resultParameter(votable);
    }
 
    UWSException getException()
@@ -289,6 +166,242 @@ public class TAPJob extends BaseUWSJob {
       return resultsBuilder.build();
 
    }
+
+   private void validateRequest() throws UWSException {
+      if (tapJobSpec.adqlQuery == null || tapJobSpec.adqlQuery.isBlank()) {
+         throw new UWSException("ADQL query is missing or empty");
+      }
+   }
+
+   private boolean hasUpload() {
+      return tapJobSpec.upload != null &&
+              !tapJobSpec.upload.isBlank();
+   }
+
+   private UploadContext processUpload()
+           throws Exception {
+
+      URI uploadUri = URI.create(tapJobSpec.upload);
+
+      try (InputStream in = uploadUri.toURL().openStream();
+           Connection conn = dataSource.getConnection()) {
+
+         StarTable table =
+                 new StarTableFactory().makeStarTable(
+                         in,
+                         new VOTableBuilder());
+
+         ensureUploadSchemaExists(conn);
+
+         String physicalTableName =
+                 createAndPopulateUploadTable(conn, table);
+
+         TapADQLTable adqlTable =
+                 createUploadMetadata(table);
+
+         return new UploadContext(
+                 physicalTableName,
+                 adqlTable);
+      }
+   }
+
+   private void ensureUploadSchemaExists(Connection conn)
+           throws SQLException {
+
+      try (Statement stmt = conn.createStatement()) {
+         stmt.execute("""
+            CREATE SCHEMA IF NOT EXISTS "TAP_UPLOAD"
+            """);
+      }
+   }
+
+   private String createAndPopulateUploadTable(Connection conn, StarTable uploadTable) throws Exception {
+
+      String tableName = "tap_upload_" + getID().replace("-", "_");
+
+      String physicalTableName = "\"TAP_UPLOAD\".\"" + tableName + "\"";
+
+      createUploadTable(conn, uploadTable, physicalTableName);
+
+      JDBCFormatter formatter = new JDBCFormatter(conn, uploadTable);
+
+      formatter.createJDBCTable(physicalTableName, WriteMode.APPEND);
+
+      return physicalTableName;
+   }
+
+   private void createUploadTable(
+           Connection conn,
+           StarTable table,
+           String physicalName)
+           throws SQLException {
+
+      String sql =
+              buildCreateTableSql(table, physicalName);
+
+      try (Statement stmt = conn.createStatement()) {
+         stmt.execute(sql);
+      }
+   }
+
+   private String buildCreateTableSql(
+           StarTable table,
+           String physicalName) {
+
+      StringJoiner columns =
+              new StringJoiner(", ");
+
+      for (int i = 0; i < table.getColumnCount(); i++) {
+
+         ColumnInfo info =
+                 table.getColumnInfo(i);
+
+         columns.add(
+                 "\"" + info.getName().toUpperCase() + "\" "
+                         + mapContentClassToSqlType(
+                         info.getContentClass()));
+      }
+
+      return "CREATE TABLE IF NOT EXISTS "
+              + physicalName
+              + " ("
+              + columns
+              + ")";
+   }
+
+   private TapADQLTable createUploadMetadata(
+           StarTable uploadTable) {
+
+      Schema schema = new Schema();
+      schema.setSchema_name("TAP_UPLOAD");
+
+      Table table = new Table();
+      table.setTable_name("targets");
+
+      TapADQLTable result =
+              new TapADQLTable(
+                      schema,
+                      table,
+                      false);
+
+      for (int i = 0; i < uploadTable.getColumnCount(); i++) {
+
+         ColumnInfo info =
+                 uploadTable.getColumnInfo(i);
+
+         Column column = new Column();
+         column.setColumn_name(
+                 info.getName().toUpperCase());
+
+         column.setDatatype(
+                 MetadataTransformer
+                         .mapContentClassToTAPType(
+                                 info.getContentClass()));
+
+         result.createColumn(column);
+      }
+
+      return result;
+   }
+
+   private ADQLSet parseQuery(List<DBTable> tables)
+           throws ParseException {
+
+      QueryChecker checker =
+              new DBChecker(tables);
+
+      ADQLParser parser =
+              new ADQLParser();
+
+      parser.setQueryChecker(checker);
+
+      return parser.parseQuery(
+              tapJobSpec.adqlQuery);
+   }
+
+   private String translateQuery(
+           ADQLSet query,
+           UploadContext upload)
+           throws TranslationException {
+
+      String sql =
+              translateADQLToSQL(query);
+
+      if (upload != null) {
+         sql = replaceUploadTableReferences(
+                 sql,
+                 upload.physicalTableName());
+      }
+
+      return sql;
+   }
+
+   private void cleanupUploadTable(
+           UploadContext upload) {
+
+      if (upload == null) {
+         return;
+      }
+
+      try (Connection conn = dataSource.getConnection();
+           Statement stmt = conn.createStatement()) {
+
+         stmt.execute(
+                 "DROP TABLE IF EXISTS "
+                         + upload.physicalTableName());
+
+      } catch (SQLException e) {
+
+         log.warn(
+                 "Failed to drop upload table {}",
+                 upload.physicalTableName(),
+                 e);
+      }
+   }
+
+   private List<ParameterValue> resultParameter(File votable) {
+      return List.of(new ParameterValue() {
+         @Override
+         public String getValue() {
+            return votable.getAbsolutePath();
+         }
+
+         @Override
+         public boolean isIndirect() {
+            return true;
+         }
+
+         @Override
+         public String getId() {
+            return "result";
+         }
+      });
+   }
+
+   private String replaceUploadTableReferences(
+           String sql,
+           String physicalTempTableName) {
+
+      log.debug("Original SQL: {}", sql);
+
+      sql = sql.replaceAll(
+              "(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"TARGETS\"",
+              physicalTempTableName);
+
+      sql = sql.replaceAll(
+              "(?i)TAP_UPLOAD\\s*\\.\\s*TARGETS",
+              physicalTempTableName);
+
+      sql = sql.replaceAll(
+              "(?i)\\bTARGETS\\b",
+              physicalTempTableName);
+
+      log.debug("Modified SQL with table replacement: {}", sql);
+
+      return sql;
+   }
+
+
 
    /**
     * Translates an ADQL (Astronomical Data Query Language) query into an equivalent SQL query.
