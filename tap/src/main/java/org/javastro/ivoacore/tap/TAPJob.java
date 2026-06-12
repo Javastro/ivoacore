@@ -20,15 +20,12 @@ import adql.query.ADQLSet;
 import adql.translator.ADQLTranslator;
 import adql.translator.PgSphereTranslator;
 import adql.translator.TranslationException;
-import org.ivoa.dm.tapschema.Column;
-import org.ivoa.dm.tapschema.Schema;
-import org.ivoa.dm.tapschema.Table;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.tap.schema.MetadataTransformer;
 import org.javastro.ivoacore.tap.schema.SchemaProvider;
 import org.javastro.ivoacore.tap.schema.TapADQLColumn;
-import org.javastro.ivoacore.tap.schema.TapADQLTable;
+import org.javastro.ivoacore.tap.upload.TapUploadService;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
@@ -38,14 +35,11 @@ import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
 import uk.ac.starlink.table.jdbc.*;
 import uk.ac.starlink.votable.ResourceType;
-import uk.ac.starlink.votable.VOTableBuilder;
 
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -53,7 +47,6 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,12 +62,7 @@ public class TAPJob extends BaseUWSJob {
    private final DataSource dataSource;
    private final TAPJobSpecification tapJobSpec;
    private final SchemaProvider schemaProvider;
-
-   private record UploadContext(
-           String logicalTableName,
-           String physicalTableName,
-           TapADQLTable adqlTable) {
-   }
+   private TapUploadService uploadService;
 
    /**
     * Constructs a new TAPJob with the given identifier, specification and data source.
@@ -90,6 +78,7 @@ public class TAPJob extends BaseUWSJob {
       this.dataSource = ds;
       this.tapJobSpec = spec;
       this.schemaProvider = schemaProvider;
+      this.uploadService = new TapUploadService(ds);
    }
 
    TAPJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
@@ -97,6 +86,7 @@ public class TAPJob extends BaseUWSJob {
       this.dataSource = ds;
       this.tapJobSpec = (TAPJobSpecification) record.specification();
       this.schemaProvider = schemaProvider;
+      this.uploadService = new TapUploadService(ds);
    }
 
    @Override
@@ -105,13 +95,13 @@ public class TAPJob extends BaseUWSJob {
 
       File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
 
-      UploadContext uploadContext = null;
+      TapUploadService.UploadContext uploadContext = null;
 
       try {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
 
          if (hasUpload()) {
-            uploadContext = processUpload();
+            uploadContext = uploadService.processUpload(tapJobSpec.upload, getID());
             tables.add(uploadContext.adqlTable());
          }
 
@@ -171,106 +161,6 @@ public class TAPJob extends BaseUWSJob {
               !tapJobSpec.upload.isBlank();
    }
 
-   private UploadContext processUpload()
-           throws Exception {
-
-      URI uploadUri = URI.create(tapJobSpec.upload);
-
-      try (InputStream in = uploadUri.toURL().openStream();
-           Connection conn = dataSource.getConnection()) {
-
-         StarTable table = new StarTableFactory().makeStarTable(in, new VOTableBuilder());
-
-         ensureUploadSchemaExists(conn);
-
-         String physicalTableName = createAndPopulateUploadTable(conn, table);
-        // table.setName(table.getName() + getID().replace("-", "_"));
-
-         TapADQLTable adqlTable = createUploadMetadata(table);
-
-         return new UploadContext(table.getName(), physicalTableName, adqlTable);
-      }
-   }
-
-   private void ensureUploadSchemaExists(Connection conn)
-           throws SQLException {
-
-      try (Statement stmt = conn.createStatement()) {
-         stmt.execute("""
-            CREATE SCHEMA IF NOT EXISTS "TAP_UPLOAD"
-            """);
-      }
-   }
-
-   private String createAndPopulateUploadTable(Connection conn, StarTable uploadTable) throws Exception {
-
-      String tableName = "tap_upload_" + getID().replace("-", "_");
-
-      String physicalTableName = "\"TAP_UPLOAD\".\"" + tableName + "\"";
-
-      createUploadTable(conn, uploadTable, physicalTableName);
-
-      JDBCFormatter formatter = new JDBCFormatter(conn, uploadTable);
-
-      formatter.createJDBCTable(physicalTableName, WriteMode.APPEND);
-
-      return physicalTableName;
-   }
-
-   private void createUploadTable(Connection conn, StarTable table, String physicalName) throws SQLException {
-
-      String sql = buildCreateTableSql(table, physicalName);
-
-      try (Statement stmt = conn.createStatement()) {
-         stmt.execute(sql);
-      }
-   }
-
-   private String buildCreateTableSql(StarTable table, String physicalName) {
-
-      StringJoiner columns = new StringJoiner(", ");
-
-      for (int i = 0; i < table.getColumnCount(); i++) {
-         ColumnInfo info = table.getColumnInfo(i);
-
-         columns.add(
-                 "\"" + info.getName().toUpperCase() + "\" "
-                         + mapContentClassToSqlType(
-                         info.getContentClass()));
-      }
-
-      return "CREATE TABLE IF NOT EXISTS "
-              + physicalName
-              + " ("
-              + columns
-              + ")";
-   }
-
-   private TapADQLTable createUploadMetadata(StarTable uploadTable) {
-
-      Schema schema = new Schema();
-      schema.setSchema_name("TAP_UPLOAD");
-
-      Table table = new Table();
-      table.setTable_name(uploadTable.getName());
-
-      TapADQLTable result = new TapADQLTable(schema, table,false);
-
-      for (int i = 0; i < uploadTable.getColumnCount(); i++) {
-         ColumnInfo info = uploadTable.getColumnInfo(i);
-
-         Column column = new Column();
-         column.setColumn_name(info.getName().toUpperCase());
-
-         column.setDatatype(
-                 MetadataTransformer.mapContentClassToTAPType(info.getContentClass()));
-
-         result.createColumn(column);
-      }
-
-      return result;
-   }
-
    private ADQLSet parseQuery(List<DBTable> tables) throws ParseException {
 
       QueryChecker checker = new DBChecker(tables);
@@ -281,7 +171,7 @@ public class TAPJob extends BaseUWSJob {
       return parser.parseQuery(tapJobSpec.adqlQuery);
    }
 
-   private String translateQuery(ADQLSet query, UploadContext upload) throws TranslationException {
+   private String translateQuery(ADQLSet query, TapUploadService.UploadContext upload) throws TranslationException {
       String sql = translateADQLToSQL(query);
 
       if (upload != null) {
@@ -290,7 +180,7 @@ public class TAPJob extends BaseUWSJob {
       return sql;
    }
 
-   private void cleanupUploadTable(UploadContext upload) {
+   private void cleanupUploadTable(TapUploadService.UploadContext upload) {
       if (upload == null) {
          return;
       }
@@ -326,22 +216,21 @@ public class TAPJob extends BaseUWSJob {
 
    private String replaceUploadTableReferences(
            String sql,
-           UploadContext context) {
+           TapUploadService.UploadContext context) {
 
-      sql = sql.replaceAll(
-              "(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"" +
-                      Pattern.quote(context.logicalTableName) +
+      sql = sql.replaceAll("(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"" +
+                      Pattern.quote(context.logicalTableName()) +
                       "\"",
-              Matcher.quoteReplacement(context.physicalTableName));
+              Matcher.quoteReplacement(context.physicalTableName()));
 
       sql = sql.replaceAll(
               "(?i)TAP_UPLOAD\\s*\\.\\s*" +
-                      Pattern.quote(context.logicalTableName),
-              Matcher.quoteReplacement(context.physicalTableName));
+                      Pattern.quote(context.logicalTableName()),
+              Matcher.quoteReplacement(context.physicalTableName()));
 
       sql = sql.replaceAll(
-              "(?i)\\b" + Pattern.quote(context.logicalTableName) + "\\b",
-              Matcher.quoteReplacement(context.physicalTableName));
+              "(?i)\\b" + Pattern.quote(context.logicalTableName()) + "\\b",
+              Matcher.quoteReplacement(context.physicalTableName()));
 
       return sql;
    }
@@ -480,18 +369,7 @@ public class TAPJob extends BaseUWSJob {
        new StarTableOutput().writeStarTable(table, outputStream, tableWriter);
     }
 
-    /**
-     * Maps a Java class type (from STIL ColumnInfo.getContentClass()) to a PostgreSQL SQL type string.
-     * Delegates to MetadataTransformer to ensure a single source of truth for type mappings.
-     *
-     * @param contentClass the Java class representing the column data type
-     * @return a PostgreSQL SQL type string (e.g., "VARCHAR", "BIGINT", "DOUBLE PRECISION")
-     */
-    private String mapContentClassToSqlType(Class<?> contentClass) {
-       // Delegate: first map the Java class to a TAPType, then map TAPType to SQL type.
-       var tapType = MetadataTransformer.mapContentClassToTAPType(contentClass);
-       return MetadataTransformer.mapTAPTypeToSqlType(tapType);
-    }
+
 
     /**
      * Factory for creating {@link TAPJob} instances.
