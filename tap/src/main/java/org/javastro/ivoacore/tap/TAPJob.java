@@ -62,7 +62,8 @@ public class TAPJob extends BaseUWSJob {
    private final DataSource dataSource;
    private final TAPJobSpecification tapJobSpec;
    private final SchemaProvider schemaProvider;
-   private TapUploadService uploadService;
+   private final TapUploadService uploadService;
+   private final TapQueryProcessor queryProcessor;
 
    /**
     * Constructs a new TAPJob with the given identifier, specification and data source.
@@ -79,6 +80,7 @@ public class TAPJob extends BaseUWSJob {
       this.tapJobSpec = spec;
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
+      this.queryProcessor = new TapQueryProcessor();
    }
 
    TAPJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
@@ -87,6 +89,7 @@ public class TAPJob extends BaseUWSJob {
       this.tapJobSpec = (TAPJobSpecification) record.specification();
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
+      this.queryProcessor = new TapQueryProcessor();
    }
 
    @Override
@@ -105,9 +108,9 @@ public class TAPJob extends BaseUWSJob {
             tables.add(uploadContext.adqlTable());
          }
 
-         ADQLSet query = parseQuery(tables);
+         ADQLSet query = queryProcessor.parseQuery(tables, tapJobSpec);
 
-         String sql = translateQuery(query, uploadContext);
+         String sql = queryProcessor.translateQuery(query, tapJobSpec, uploadContext);
 
          JDBCStarTable table = getResultTable(sql);
 
@@ -161,24 +164,7 @@ public class TAPJob extends BaseUWSJob {
               !tapJobSpec.upload.isBlank();
    }
 
-   private ADQLSet parseQuery(List<DBTable> tables) throws ParseException {
 
-      QueryChecker checker = new DBChecker(tables);
-
-      ADQLParser parser = new ADQLParser();
-      parser.setQueryChecker(checker);
-
-      return parser.parseQuery(tapJobSpec.adqlQuery);
-   }
-
-   private String translateQuery(ADQLSet query, TapUploadService.UploadContext upload) throws TranslationException {
-      String sql = translateADQLToSQL(query);
-
-      if (upload != null) {
-         sql = replaceUploadTableReferences(sql, upload);
-      }
-      return sql;
-   }
 
    private void cleanupUploadTable(TapUploadService.UploadContext upload) {
       if (upload == null) {
@@ -214,58 +200,11 @@ public class TAPJob extends BaseUWSJob {
       });
    }
 
-   private String replaceUploadTableReferences(
-           String sql,
-           TapUploadService.UploadContext context) {
-
-      sql = sql.replaceAll("(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"" +
-                      Pattern.quote(context.logicalTableName()) +
-                      "\"",
-              Matcher.quoteReplacement(context.physicalTableName()));
-
-      sql = sql.replaceAll(
-              "(?i)TAP_UPLOAD\\s*\\.\\s*" +
-                      Pattern.quote(context.logicalTableName()),
-              Matcher.quoteReplacement(context.physicalTableName()));
-
-      sql = sql.replaceAll(
-              "(?i)\\b" + Pattern.quote(context.logicalTableName()) + "\\b",
-              Matcher.quoteReplacement(context.physicalTableName()));
-
-      return sql;
-   }
 
 
 
-   /**
-    * Translates an ADQL (Astronomical Data Query Language) query into an equivalent SQL query.
-    * This method enforces a maximum row retrieval limit (MAXREC) at the SQL level if defined in the TAP job specification.
-    * If the query already has a limit but exceeds MAXREC, the limit is adjusted. If no limit exists,
-    * MAXREC is applied to the query. It utilizes a specialized ADQL translator to perform the conversion.
-    *
-    * @param query The ADQL query set to be translated into SQL. This includes information
-    *              about columns, tables, and constraints defined in ADQL.
-    * @return A {@code String} representing the translated SQL query equivalent to the provided ADQL query.
-    * @throws TranslationException If an error occurs during the translation process, such as invalid syntax
-    *                              or unsupported operations in the ADQL query.
-    */
-   private String translateADQLToSQL(ADQLSet query) throws TranslationException {
-      if (tapJobSpec.maxrec != null && tapJobSpec.maxrec >= 0) {
-         // Apply MAXREC at SQL level to avoid fetching unnecessary rows.
-         //TODO need to add system wide MAXREC - needs to get from ExecutionPolicy / environment
-         if(query.hasLimit() && query.getLimit() > tapJobSpec.maxrec) {
-            log.info("Applying MAXREC limit of {} to query with existing limit of {}", tapJobSpec.maxrec, query.getLimit());
-            query.setLimit(Math.toIntExact(tapJobSpec.maxrec));
-         }
-         else if (!query.hasLimit()) {
-            log.info("Applying MAXREC limit of {} to query with no existing limit", tapJobSpec.maxrec);
-            query.setLimit(Math.toIntExact(tapJobSpec.maxrec));
-         }
-      }
-      logQuery(query);     // TODO - IF log enabled
-      ADQLTranslator translator = new PgSphereTranslator();
-      return translator.translate(query);
-   }
+
+
 
    /**
     * Executes a SQL query and returns the result as a {@code JDBCStarTable}.
@@ -284,18 +223,6 @@ public class TAPJob extends BaseUWSJob {
          return thisConnection.get();
       };
 
-      // JDBCFormatter formatter = new JDBCFormatter(conn, uploadTable);
-      // formatter.createJDBCTable();
-    /*  try (InputStream uploadStream = uploadURL.toURL().openStream()) {
-         StarTable uploadTable = new StarTableFactory().makeStarTable(uploadStream, new VOTableBuilder());
-         uploadTable.getName();     //TODO - make uploaded table name unique in some way? if so, the sql will need to be adjusted too
-         JDBCFormatter formatter = new JDBCFormatter(connector.getConnection(), uploadTable);
-         formatter.createJDBCTable("targets", WriteMode.DROP_CREATE);
-      } catch (IOException e) {
-         log.error("Failed to read upload data from URL: {}", uploadURL, e);
-         throw new SQLException("Failed to read upload data from URL: " + uploadURL, e);
-      }*/
-
 
       //SQL executed here
       JDBCStarTable table =  new JDBCStarTable(connector, sql, false);
@@ -313,23 +240,7 @@ public class TAPJob extends BaseUWSJob {
       return table;
    }
 
-   /**
-    * Logs details about the ADQL query, specifically the resulting columns and their associated tables.
-    * Each column's ADQL name and the name of its originating table (if available) are included in the log output.
-    * If no table is associated with a column, "table null" is logged for that column.
-    *
-    * @param query the ADQL query set containing the resulting columns to be logged.
-    */
-   private void logQuery(ADQLSet query) {
-      Arrays.stream(query.getResultingColumns())
-              .forEach(col -> {
-                 if(col.getTable() != null) {
-                    log.debug( "ADQL column: {} table {}", col.getADQLName(), col.getTable().getADQLName());
-                 } else {
-                    log.debug( "ADQL column: {} table null", col.getADQLName());
-                 }
-              });
-   }
+
 
    /**
     * Outputs the query result to a VOTable file. This method updates the metadata of
