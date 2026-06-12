@@ -11,6 +11,7 @@ import adql.translator.PgSphereTranslator;
 import adql.translator.TranslationException;
 import org.javastro.ivoacore.tap.upload.TapUploadService;
 import org.javastro.ivoacore.tap.upload.TapUploadService.UploadContext;
+import org.slf4j.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -19,9 +20,14 @@ import java.util.regex.Pattern;
 
 public class TapQueryProcessor {
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TapQueryProcessor.class);
+    private static final Logger log = LoggerFactory.getLogger(TapQueryProcessor.class);
+    private final TAPJobSpecification jobSpec;
 
-    public ADQLSet parseQuery(List<DBTable> tables, TAPJobSpecification jobSpec) throws ParseException {
+    public TapQueryProcessor(TAPJobSpecification jobSpec) {
+        this.jobSpec = jobSpec;
+    }
+
+    public ADQLSet parseQuery(List<DBTable> tables) throws ParseException {
 
         QueryChecker checker = new DBChecker(tables);
 
@@ -31,7 +37,7 @@ public class TapQueryProcessor {
         return parser.parseQuery(jobSpec.adqlQuery);
     }
 
-    public String translateQuery(ADQLSet query, TAPJobSpecification jobSpec, UploadContext upload) throws TranslationException {
+    public String translateQuery(ADQLSet query, UploadContext upload) throws TranslationException {
         String sql = translateADQLToSQL(query, jobSpec);
 
         if (upload != null) {

@@ -80,7 +80,7 @@ public class TAPJob extends BaseUWSJob {
       this.tapJobSpec = spec;
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
-      this.queryProcessor = new TapQueryProcessor();
+      this.queryProcessor = new TapQueryProcessor(this.tapJobSpec);
    }
 
    TAPJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
@@ -89,7 +89,7 @@ public class TAPJob extends BaseUWSJob {
       this.tapJobSpec = (TAPJobSpecification) record.specification();
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
-      this.queryProcessor = new TapQueryProcessor();
+      this.queryProcessor = new TapQueryProcessor(this.tapJobSpec);
    }
 
    @Override
@@ -108,9 +108,9 @@ public class TAPJob extends BaseUWSJob {
             tables.add(uploadContext.adqlTable());
          }
 
-         ADQLSet query = queryProcessor.parseQuery(tables, tapJobSpec);
+         ADQLSet query = queryProcessor.parseQuery(tables);
 
-         String sql = queryProcessor.translateQuery(query, tapJobSpec, uploadContext);
+         String sql = queryProcessor.translateQuery(query, uploadContext);
 
          JDBCStarTable table = getResultTable(sql);
 
