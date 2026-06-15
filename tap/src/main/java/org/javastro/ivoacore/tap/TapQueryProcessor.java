@@ -18,16 +18,37 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * The TapQueryProcessor class processes queries written in the Astronomical Data Query
+ * Language (ADQL), translating them into SQL queries that can be executed against a database.
+ * This class also provides features for parsing ADQL queries, applying constraints defined
+ * in a TAP (Table Access Protocol) Job Specification, and replacing upload table references.
+ */
 public class TapQueryProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(TapQueryProcessor.class);
-    private final TAPJobSpecification jobSpec;
 
-    public TapQueryProcessor(TAPJobSpecification jobSpec) {
-        this.jobSpec = jobSpec;
+    /**
+     * Constructs a new instance of TapQueryProcessor.
+     */
+    public TapQueryProcessor() {
     }
 
-    public ADQLSet parseQuery(List<DBTable> tables) throws ParseException {
+    /**
+     * Parses an ADQL (Astronomical Data Query Language) query into an {@code ADQLSet} object,
+     * which represents the parsed components of the query. The method utilises a query checker
+     * to validate the tables referenced in the query based on the provided database table definitions.
+     *
+     * @param tables A list of {@code DBTable} objects representing the database tables that
+     *               can be accessed and validated while parsing the ADQL query.
+     * @param jobSpec An instance of {@code TAPJobSpecification} containing the TAP job details,
+     *                including the ADQL query string to be parsed.
+     * @return An {@code ADQLSet} object that encapsulates the parsed components of the provided
+     *         ADQL query, including its metadata and structure.
+     * @throws ParseException If the ADQL query contains syntax errors or violates any rules
+     *                        during parsing or validation.
+     */
+    public ADQLSet parseQuery(List<DBTable> tables, TAPJobSpecification jobSpec) throws ParseException {
 
         QueryChecker checker = new DBChecker(tables);
 
@@ -37,7 +58,22 @@ public class TapQueryProcessor {
         return parser.parseQuery(jobSpec.adqlQuery);
     }
 
-    public String translateQuery(ADQLSet query, UploadContext upload) throws TranslationException {
+    /**
+     * Translates an ADQL (Astronomical Data Query Language) query into an SQL query. This method processes
+     * the ADQL query set using the provided TAP job specification and optionally applies transformations
+     * to handle uploaded table references.
+     *
+     * @param query The ADQL query set to be translated. It encapsulates components such as tables, columns,
+     *              and constraints defined in the query.
+     * @param jobSpec An instance of {@code TAPJobSpecification} containing the TAP job details,
+     *                such as the query and its execution parameters.
+     * @param upload An optional {@code UploadContext} instance that contains information about upload
+     *               table mappings, allowing references to uploaded tables in the translated query.
+     * @return A {@code String} representing the SQL query translated from the given ADQL query.
+     * @throws TranslationException If the translation process encounters an error such as syntax issues
+     *                              or unsupported ADQL features.
+     */
+    public String translateQuery(ADQLSet query, TAPJobSpecification jobSpec, UploadContext upload) throws TranslationException {
         String sql = translateADQLToSQL(query, jobSpec);
 
         if (upload != null) {
@@ -50,7 +86,7 @@ public class TapQueryProcessor {
      * Translates an ADQL (Astronomical Data Query Language) query into an equivalent SQL query.
      * This method enforces a maximum row retrieval limit (MAXREC) at the SQL level if defined in the TAP job specification.
      * If the query already has a limit but exceeds MAXREC, the limit is adjusted. If no limit exists,
-     * MAXREC is applied to the query. It utilizes a specialized ADQL translator to perform the conversion.
+     * MAXREC is applied to the query. It utilises a specialized ADQL translator to perform the conversion.
      *
      * @param query The ADQL query set to be translated into SQL. This includes information
      *              about columns, tables, and constraints defined in ADQL.
@@ -76,6 +112,16 @@ public class TapQueryProcessor {
         return translator.translate(query);
     }
 
+    /**
+     * Replaces references to logical table names in the given SQL query with their corresponding
+     * physical table names based on the provided upload context. This is useful for translating
+     * queries that reference TAP_UPLOAD tables to their physical equivalents.
+     *
+     * @param sql The SQL query string containing logical table references that need to be replaced.
+     * @param context An instance of {@code TapUploadService.UploadContext} containing the logical
+     *                and physical table name mappings.
+     * @return A modified SQL query with logical table references replaced by their physical counterparts.
+     */
     private String replaceUploadTableReferences(
             String sql,
             TapUploadService.UploadContext context) {

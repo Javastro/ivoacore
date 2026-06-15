@@ -10,15 +10,10 @@ package org.javastro.ivoacore.tap;
  * Created on 02/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
-import adql.db.DBChecker;
 import adql.db.DBColumn;
 import adql.db.DBTable;
-import adql.parser.ADQLParser;
-import adql.parser.QueryChecker;
 import adql.parser.grammar.ParseException;
 import adql.query.ADQLSet;
-import adql.translator.ADQLTranslator;
-import adql.translator.PgSphereTranslator;
 import adql.translator.TranslationException;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
@@ -43,13 +38,10 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -58,6 +50,7 @@ import java.util.stream.Collectors;
 public class TAPJob extends BaseUWSJob {
 
    public static final String JOB_TYPE = "TAP";
+   private static final String SCHEMA_NAME = "TAP_UPLOAD";
    private static final Logger log = LoggerFactory.getLogger(TAPJob.class);
    private final DataSource dataSource;
    private final TAPJobSpecification tapJobSpec;
@@ -80,7 +73,7 @@ public class TAPJob extends BaseUWSJob {
       this.tapJobSpec = spec;
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
-      this.queryProcessor = new TapQueryProcessor(this.tapJobSpec);
+      this.queryProcessor = new TapQueryProcessor();
    }
 
    TAPJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
@@ -89,7 +82,7 @@ public class TAPJob extends BaseUWSJob {
       this.tapJobSpec = (TAPJobSpecification) record.specification();
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
-      this.queryProcessor = new TapQueryProcessor(this.tapJobSpec);
+      this.queryProcessor = new TapQueryProcessor();
    }
 
    @Override
@@ -104,13 +97,13 @@ public class TAPJob extends BaseUWSJob {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
 
          if (hasUpload()) {
-            uploadContext = uploadService.processUpload(tapJobSpec.upload, getID());
+            uploadContext = uploadService.processUpload(tapJobSpec.upload, getID(), SCHEMA_NAME);
             tables.add(uploadContext.adqlTable());
          }
 
-         ADQLSet query = queryProcessor.parseQuery(tables);
+         ADQLSet query = queryProcessor.parseQuery(tables, tapJobSpec);
 
-         String sql = queryProcessor.translateQuery(query, uploadContext);
+         String sql = queryProcessor.translateQuery(query, tapJobSpec, uploadContext);
 
          JDBCStarTable table = getResultTable(sql);
 
@@ -122,15 +115,12 @@ public class TAPJob extends BaseUWSJob {
       } catch (Exception e) {
           throw new RuntimeException(e);
       } finally {
-
-         cleanupUploadTable(uploadContext);
-
+         uploadService.cleanupUploadTable(uploadContext);
       }
       return resultParameter(votable);
    }
 
-   UWSException getException()
-   {
+   UWSException getException() {
       return exception;
    }
 
@@ -153,34 +143,6 @@ public class TAPJob extends BaseUWSJob {
       return resultsBuilder.build();
    }
 
-   private void validateRequest() throws UWSException {
-      if (tapJobSpec.adqlQuery == null || tapJobSpec.adqlQuery.isBlank()) {
-         throw new UWSException("ADQL query is missing or empty");
-      }
-   }
-
-   private boolean hasUpload() {
-      return tapJobSpec.upload != null &&
-              !tapJobSpec.upload.isBlank();
-   }
-
-
-
-   private void cleanupUploadTable(TapUploadService.UploadContext upload) {
-      if (upload == null) {
-         return;
-      }
-
-      try (Connection conn = dataSource.getConnection();
-           Statement stmt = conn.createStatement()) {
-
-         stmt.execute("DROP TABLE IF EXISTS " + upload.physicalTableName());
-
-      } catch (SQLException e) {
-         log.warn("Failed to drop upload table {}", upload.physicalTableName(), e);
-      }
-   }
-
    private List<ParameterValue> resultParameter(File votable) {
       return List.of(new ParameterValue() {
          @Override
@@ -199,12 +161,6 @@ public class TAPJob extends BaseUWSJob {
          }
       });
    }
-
-
-
-
-
-
 
    /**
     * Executes a SQL query and returns the result as a {@code JDBCStarTable}.
@@ -239,8 +195,6 @@ public class TAPJob extends BaseUWSJob {
 
       return table;
    }
-
-
 
    /**
     * Outputs the query result to a VOTable file. This method updates the metadata of
@@ -280,9 +234,18 @@ public class TAPJob extends BaseUWSJob {
        new StarTableOutput().writeStarTable(table, outputStream, tableWriter);
     }
 
+   private void validateRequest() throws UWSException {
+      if (tapJobSpec.adqlQuery == null || tapJobSpec.adqlQuery.isBlank()) {
+         throw new UWSException("ADQL query is missing or empty");
+      }
+   }
 
+   private boolean hasUpload() {
+      return tapJobSpec.upload != null &&
+              !tapJobSpec.upload.isBlank();
+   }
 
-    /**
+   /**
      * Factory for creating {@link TAPJob} instances.
      */
     public static class JobFactory extends BaseJobFactory {

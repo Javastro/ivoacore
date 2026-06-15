@@ -12,7 +12,6 @@ import adql.db.DefaultDBTable;
 import org.ivoa.dm.tapschema.TAPType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.ac.starlink.util.Pair;
 
 import java.math.BigDecimal;
 import java.util.*;
