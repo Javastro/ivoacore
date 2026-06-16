@@ -213,7 +213,7 @@ public class TAPJob extends BaseUWSJob {
    private void outputResult(ADQLSet query, JDBCStarTable table, File votable) throws IOException {
       Map<String, ? extends DBColumn> columnMap = Arrays.stream(query.getResultingColumns())
               .collect(Collectors.toMap(
-                      col -> col.getADQLName(),
+                      DBColumn::getADQLName,
                       col ->  col
               ));
 

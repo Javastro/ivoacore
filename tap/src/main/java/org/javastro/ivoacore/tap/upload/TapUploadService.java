@@ -16,7 +16,6 @@ import uk.ac.starlink.votable.VOTableBuilder;
 
 import javax.sql.DataSource;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -25,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.regex.Pattern;
 
 /**
  * A service class responsible for handling TAP (Table Access Protocol) upload operations.
@@ -53,6 +53,8 @@ public class TapUploadService {
 
     private final DataSource dataSource;
     private final Logger log = LoggerFactory.getLogger(TapUploadService.class);
+    //Table names must conform to the pattern.
+    private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
     /**
      * Constructs a new TapUploadService instance with the specified data source.
@@ -80,10 +82,10 @@ public class TapUploadService {
      * @param schemaName the name of the database schema where the upload table will be created.
      * @return an {@code UploadContext} object containing metadata and contextual information
      *         for the created upload table.
-     * @throws Exception if an error occurs during the upload process, such as issues with
+     * @throws RuntimeException if an error occurs during the upload process, such as issues with
      *                   the upload URI, database connection, schema creation, or table population.
      */
-    public List<UploadContext> processUpload(Map<String, URI> uploads, String jobId, String schemaName) throws Exception {
+    public List<UploadContext> processUpload(Map<String, URI> uploads, String jobId, String schemaName) throws RuntimeException{
         if (uploads == null || uploads.isEmpty()) {
             throw new IllegalArgumentException("Upload values must be provided");
         }
@@ -91,6 +93,9 @@ public class TapUploadService {
         List<UploadContext> uploadContexts = new ArrayList<>();
 
         uploads.forEach((name, uri) -> {
+            //Defined against SQL injection as the table name will be added to the query
+            validateTableName(name);
+
             try (InputStream in = uri.toURL().openStream();
                  Connection conn = dataSource.getConnection()) {
 
@@ -291,5 +296,20 @@ public class TapUploadService {
         // Delegate: first map the Java class to a TAPType, then map TAPType to SQL type.
         var tapType = MetadataTransformer.mapContentClassToTAPType(contentClass);
         return MetadataTransformer.mapTAPTypeToSqlType(tapType);
+    }
+
+    /**
+     * Validates the format of the given table name to ensure it adheres to the expected pattern.
+     * Throws an {@link IllegalStateException} if the table name is null or does not match
+     * the predefined regular expression pattern.
+     *
+     * @param name the table name to validate. Must not be null and must conform
+     *             to the pattern defined by {@code TABLE_NAME_PATTERN}.
+     * @throws IllegalStateException if the table name is null or invalid.
+     */
+    private void validateTableName(String name) {
+        if (name == null || !TABLE_NAME_PATTERN.matcher(name).matches()) {
+            throw new IllegalStateException("Invalid table name format: " + name);
+        }
     }
 }

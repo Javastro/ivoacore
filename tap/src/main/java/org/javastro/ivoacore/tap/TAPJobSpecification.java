@@ -27,7 +27,6 @@ public class TAPJobSpecification extends BaseJobSpecification {
    Long maxrec;
    String responseFormat;
    String lang;
- //  String upload;          /** A URL representing  the location of a VOTable */
    Map<String, URI> uploads;   /** table name -> URL to the file */
 
    List<ParameterValue> parameters = new ArrayList<>();
@@ -43,7 +42,7 @@ public class TAPJobSpecification extends BaseJobSpecification {
     */
    public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
                               Map<String, URI> uploads) {
-      super(runId,buildParameters(query,maxrec,responseformat,lang)); //FIXME need to implement upload
+      super(runId,buildParameters(query,maxrec,responseformat,lang));
       this.adqlQuery = query;
       this.maxrec = maxrec;
       this.responseFormat = responseformat;
