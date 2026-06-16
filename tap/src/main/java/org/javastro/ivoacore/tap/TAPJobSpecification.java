@@ -12,8 +12,10 @@ import org.javastro.ivoacore.uws.BaseJobSpecification;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A "default" simple TAP Job specification.
@@ -25,7 +27,8 @@ public class TAPJobSpecification extends BaseJobSpecification {
    Long maxrec;
    String responseFormat;
    String lang;
-   String upload;          /** A URL representing  the location of a VOTable */
+ //  String upload;          /** A URL representing  the location of a VOTable */
+   Map<String, URI> uploads;   /** table name -> URL to the file */
 
    List<ParameterValue> parameters = new ArrayList<>();
 
@@ -36,16 +39,16 @@ public class TAPJobSpecification extends BaseJobSpecification {
     * @param responseformat the desired response format (e.g. "votable").
     * @param maxrec the maximum number of records to return.
     * @param runId the run identifier for this job.
-    * @param upload the upload parameter value (URL), or {@code null} if not used.
+    * @param uploads Map of <String/URL> table name and location of VOTable, or {@code null} if not used.
     */
    public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
-                              String upload) {
+                              Map<String, URI> uploads) {
       super(runId,buildParameters(query,maxrec,responseformat,lang)); //FIXME need to implement upload
       this.adqlQuery = query;
       this.maxrec = maxrec;
       this.responseFormat = responseformat;
       this.lang = lang;
-      this.upload = upload;
+      this.uploads = uploads;
    }
 
    @JsonCreator
@@ -99,5 +102,5 @@ public class TAPJobSpecification extends BaseJobSpecification {
       return adqlQuery;
    }
 
-   public String getUpload() { return upload; }
+   public Map<String, URI> getUploads() { return uploads; }
 }

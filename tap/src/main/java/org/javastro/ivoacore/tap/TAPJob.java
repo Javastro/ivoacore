@@ -25,6 +25,7 @@ import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
+import org.javastro.ivoacore.tap.upload.TapUploadService.UploadContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
@@ -35,6 +36,7 @@ import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -91,19 +93,21 @@ public class TAPJob extends BaseUWSJob {
 
       File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
 
-      TapUploadService.UploadContext uploadContext = null;
+     List<UploadContext> uploadContexts = null;
 
       try {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
 
          if (hasUpload()) {
-            uploadContext = uploadService.processUpload(tapJobSpec.upload, getID(), SCHEMA_NAME);
-            tables.add(uploadContext.adqlTable());
+            uploadContexts = uploadService.processUpload(tapJobSpec.uploads, getID(), SCHEMA_NAME);
+            for (UploadContext uploadContext : uploadContexts) {
+               tables.add(uploadContext.adqlTable());
+            }
          }
 
          ADQLSet query = queryProcessor.parseQuery(tables, tapJobSpec);
 
-         String sql = queryProcessor.translateQuery(query, tapJobSpec, uploadContext);
+         String sql = queryProcessor.translateQuery(query, tapJobSpec, uploadContexts);
 
          JDBCStarTable table = getResultTable(sql);
 
@@ -115,7 +119,7 @@ public class TAPJob extends BaseUWSJob {
       } catch (Exception e) {
           throw new RuntimeException(e);
       } finally {
-         uploadService.cleanupUploadTable(uploadContext);
+         uploadService.cleanupUploadTable(uploadContexts);
       }
       return resultParameter(votable);
    }
@@ -130,7 +134,7 @@ public class TAPJob extends BaseUWSJob {
       Results.Builder<Void> resultsBuilder = Results.builder();
 
       if(!results.isEmpty()) {
-         ParameterValue pv = results.get(0); //IMPL assuming the only result....
+         ParameterValue pv = results.get(0); //IMPL assuming the only result...
          final ResultReference.Builder<Void> builder = ResultReference.builder().withId(pv.getId());
          if (pv.isIndirect()) {
             builder.withHref("./results/" + pv.getId());
@@ -241,8 +245,8 @@ public class TAPJob extends BaseUWSJob {
    }
 
    private boolean hasUpload() {
-      return tapJobSpec.upload != null &&
-              !tapJobSpec.upload.isBlank();
+      return tapJobSpec.uploads != null &&
+              !tapJobSpec.uploads.isEmpty();
    }
 
    /**
@@ -288,15 +292,15 @@ public class TAPJob extends BaseUWSJob {
        * @param responseformat the desired response format (e.g. "votable").
        * @param maxrec         the maximum number of records to return.
        * @param runid          the run identifier for this job.
-       * @param upload         the upload parameter value, or {@code null} if not used.
+       * @param uploads         the upload parameter value, or {@code null} if not used.
        * @return a new {@link TAPJob} with the specified parameters.
        */
       public TAPJob createJob(String query, String lang, String responseformat, Long maxrec, String runid,
-                              String upload) {
+                              Map<String, URI> uploads) {
          String id = idProvider.generateId();
          return new TAPJob(
                id,
-               new TAPJobSpecification(query, lang, responseformat, maxrec, runid, upload),
+               new TAPJobSpecification(query, lang, responseformat, maxrec, runid, uploads),
                environmentFactory.create(id),
                this.ds,
                this.schemaProvider

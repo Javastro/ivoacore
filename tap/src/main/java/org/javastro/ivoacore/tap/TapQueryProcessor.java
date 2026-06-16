@@ -9,7 +9,6 @@ import adql.query.ADQLSet;
 import adql.translator.ADQLTranslator;
 import adql.translator.PgSphereTranslator;
 import adql.translator.TranslationException;
-import org.javastro.ivoacore.tap.upload.TapUploadService;
 import org.javastro.ivoacore.tap.upload.TapUploadService.UploadContext;
 import org.slf4j.*;
 
@@ -67,17 +66,17 @@ public class TapQueryProcessor {
      *              and constraints defined in the query.
      * @param jobSpec An instance of {@code TAPJobSpecification} containing the TAP job details,
      *                such as the query and its execution parameters.
-     * @param upload An optional {@code UploadContext} instance that contains information about upload
+     * @param uploads An optional {@code UploadContext} instance that contains information about upload
      *               table mappings, allowing references to uploaded tables in the translated query.
      * @return A {@code String} representing the SQL query translated from the given ADQL query.
      * @throws TranslationException If the translation process encounters an error such as syntax issues
      *                              or unsupported ADQL features.
      */
-    public String translateQuery(ADQLSet query, TAPJobSpecification jobSpec, UploadContext upload) throws TranslationException {
+    public String translateQuery(ADQLSet query, TAPJobSpecification jobSpec, List<UploadContext> uploads) throws TranslationException {
         String sql = translateADQLToSQL(query, jobSpec);
 
-        if (upload != null) {
-            sql = replaceUploadTableReferences(sql, upload);
+        if (uploads != null && !uploads.isEmpty()) {
+            sql = replaceUploadTableReferences(sql, uploads);
         }
         return sql;
     }
@@ -118,27 +117,27 @@ public class TapQueryProcessor {
      * queries that reference TAP_UPLOAD tables to their physical equivalents.
      *
      * @param sql The SQL query string containing logical table references that need to be replaced.
-     * @param context An instance of {@code TapUploadService.UploadContext} containing the logical
-     *                and physical table name mappings.
+     * @param contexts A List of {@code UploadContext} containing the logical and physical table
+     *                 name mappings.
      * @return A modified SQL query with logical table references replaced by their physical counterparts.
      */
-    private String replaceUploadTableReferences(
-            String sql,
-            TapUploadService.UploadContext context) {
+    private String replaceUploadTableReferences(String sql, List<UploadContext> contexts) {
 
-        sql = sql.replaceAll("(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"" +
-                        Pattern.quote(context.logicalTableName()) +
-                        "\"",
-                Matcher.quoteReplacement(context.physicalTableName()));
+        for (UploadContext context : contexts) {
+            sql = sql.replaceAll("(?i)\"TAP_UPLOAD\"\\s*\\.\\s*\"" +
+                            Pattern.quote(context.logicalTableName()) +
+                            "\"",
+                    Matcher.quoteReplacement(context.physicalTableName()));
 
-        sql = sql.replaceAll(
-                "(?i)TAP_UPLOAD\\s*\\.\\s*" +
-                        Pattern.quote(context.logicalTableName()),
-                Matcher.quoteReplacement(context.physicalTableName()));
+            sql = sql.replaceAll(
+                    "(?i)TAP_UPLOAD\\s*\\.\\s*" +
+                            Pattern.quote(context.logicalTableName()),
+                    Matcher.quoteReplacement(context.physicalTableName()));
 
-        sql = sql.replaceAll(
-                "(?i)\\b" + Pattern.quote(context.logicalTableName()) + "\\b",
-                Matcher.quoteReplacement(context.physicalTableName()));
+            sql = sql.replaceAll(
+                    "(?i)\\b" + Pattern.quote(context.logicalTableName()) + "\\b",
+                    Matcher.quoteReplacement(context.physicalTableName()));
+        }
 
         return sql;
     }

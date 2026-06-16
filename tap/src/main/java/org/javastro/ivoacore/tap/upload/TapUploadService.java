@@ -16,10 +16,14 @@ import uk.ac.starlink.votable.VOTableBuilder;
 
 import javax.sql.DataSource;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 
 /**
@@ -71,7 +75,7 @@ public class TapUploadService {
      * 4. Creates and populates a database table for the uploaded data.
      * 5. Generates metadata for ADQL (Astronomical Data Query Language) queries.
      *
-     * @param upload the source URI of the upload resource, as a string.
+     * @param uploads The location of the VOTable file to be uploaded and its name.
      * @param jobId the unique identifier for the job associated with this upload.
      * @param schemaName the name of the database schema where the upload table will be created.
      * @return an {@code UploadContext} object containing metadata and contextual information
@@ -79,46 +83,63 @@ public class TapUploadService {
      * @throws Exception if an error occurs during the upload process, such as issues with
      *                   the upload URI, database connection, schema creation, or table population.
      */
-    public UploadContext processUpload(String upload, String jobId, String schemaName) throws Exception {
-        URI uploadUri = URI.create(upload);
-
-        try (InputStream in = uploadUri.toURL().openStream();
-             Connection conn = dataSource.getConnection()) {
-
-            StarTable table = new StarTableFactory().makeStarTable(in, new VOTableBuilder());
-
-            ensureUploadSchemaExists(conn, schemaName);
-
-            String physicalTableName = createAndPopulateUploadTable(conn, table, jobId, schemaName);
-
-            TapADQLTable adqlTable = createUploadMetadata(table, schemaName);
-
-            return new UploadContext(table.getName(), physicalTableName, adqlTable);
+    public List<UploadContext> processUpload(Map<String, URI> uploads, String jobId, String schemaName) throws Exception {
+        if (uploads == null || uploads.isEmpty()) {
+            throw new IllegalArgumentException("Upload values must be provided");
         }
+
+        List<UploadContext> uploadContexts = new ArrayList<>();
+
+        uploads.forEach((name, uri) -> {
+            try (InputStream in = uri.toURL().openStream();
+                 Connection conn = dataSource.getConnection()) {
+
+                StarTable table = new StarTableFactory().makeStarTable(in, new VOTableBuilder());
+                table.setName(name);    //overwrite the VOTable name with the name from the param.
+
+                ensureUploadSchemaExists(conn, schemaName);
+
+                String physicalTableName = createAndPopulateUploadTable(conn, table, jobId, schemaName);
+
+                TapADQLTable adqlTable = createUploadMetadata(table, schemaName);
+
+                uploadContexts.add(new UploadContext(table.getName(), physicalTableName, adqlTable));
+            } catch (Exception e) {
+                //Split exception handling?
+                throw new RuntimeException(e);
+            }
+        });
+
+        return uploadContexts;
     }
 
     /**
      * Cleans up the upload table by dropping it from the database if it exists.
      * This method ensures that resources used for the specific upload are released.
      *
-     * @param upload the context of the upload operation. Contains metadata about
+     * @param uploads the context of the upload operation. Contains metadata about
      *               the upload, including the logical and physical table names.
      *               Passing a {@code null} value will result in no action.
      */
     @SuppressWarnings("SqlSourceToSinkFlow")
-    public void cleanupUploadTable(TapUploadService.UploadContext upload) {
-        if (upload == null) {
+    public void cleanupUploadTable(List<UploadContext> uploads) {
+        if (uploads == null) {
             return;
         }
 
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
 
-            //Warning suppressed as physicalTableName currently generated internally.
-            stmt.execute("DROP TABLE IF EXISTS " + upload.physicalTableName());
-
+            for (UploadContext upload : uploads) {
+                try {
+                    //Warning suppressed as physicalTableName currently generated internally.
+                    stmt.execute("DROP TABLE IF EXISTS " + upload.physicalTableName());
+                } catch (SQLException e) {
+                    log.warn("Failed to drop upload table {}", upload.physicalTableName(), e);
+                }
+            }
         } catch (SQLException e) {
-            log.warn("Failed to drop upload table {}", upload.physicalTableName(), e);
+            log.warn("Failed to obtain connection or statement for cleanup", e);
         }
     }
 
