@@ -4,6 +4,7 @@ plugins {
     `maven-publish`
     jacoco
     signing
+
 }
 
 group = "org.javastro.ivoa.core"
@@ -16,7 +17,6 @@ repositories {
         url= uri("https://central.sonatype.com/repository/maven-snapshots/")
     }
 
-    //TODO - Vollt TAP dependencies from our repo (updated to Jakarta)
     maven {
         url= uri("https://repo.dev.uksrc.org/repository/maven-public/")
     }
@@ -24,7 +24,7 @@ repositories {
 }
 
 dependencies {
-    implementation(platform("org.javastro:bom:2026.1"))
+    implementation(platform("org.javastro:bom:2026.2"))
     implementation("org.slf4j:slf4j-api")
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
