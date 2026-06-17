@@ -181,7 +181,8 @@ public class TapUploadService {
      */
     private String createAndPopulateUploadTable(Connection conn, StarTable uploadTable, String jobId, String schemaName) throws Exception {
 
-        String tableName = uploadTable.getName() + "_" + jobId.replace("-", "_");
+        //Table naming format = tap_upload_<jobId>_<table name>
+        String tableName = "tap_upload_" + jobId.replace("-", "_") + "_" + uploadTable.getName();
 
         //Quoted due to postgres issues with capitalised schema names (TAP_UPLOAD)
         String physicalTableName = "\"" + schemaName + "\".\"" + tableName + "\"";
