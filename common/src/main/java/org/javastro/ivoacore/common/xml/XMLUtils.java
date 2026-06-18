@@ -11,7 +11,7 @@ import org.javastro.ivoa.entities.IvoaJAXBContextFactory;
 import org.javastro.ivoa.entities.resource.Resource;
 import org.javastro.ivoa.entities.resource.registry.iface.ResourceInstance;
 import org.javastro.ivoa.entities.resource.registry.iface.VOResources;
-import org.javastro.ivoa.entities.resource.registry.oaipmh.OAIPMH;
+import org.javastro.ivoa.entities.oai.oaipmh.OAIPMH;
 import org.javastro.ivoa.schema.Namespaces;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
