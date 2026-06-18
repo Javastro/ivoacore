@@ -90,8 +90,7 @@ public class TAPJob extends BaseUWSJob {
       validateRequest();
 
       File votable = executionEnvironment.getWorkDir().toPath().resolve("results.vot").toFile();
-
-     List<UploadContext> uploadContexts = null;
+      List<UploadContext> uploadContexts = null;
 
       try {
          List<DBTable> tables = new MetadataTransformer(schemaProvider).transformToADQLLib();
