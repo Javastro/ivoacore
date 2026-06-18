@@ -25,7 +25,7 @@ class MetadataTransformerTest {
 
    @Test
    void transformToADQLLib() throws ParseException {
-       MetadataTransformer mt = new MetadataTransformer(new VODMLSchemaProvider("tapschema.vo-dml.tap.xml", false));
+       MetadataTransformer mt = new MetadataTransformer(new VODMLSchemaProvider("/tapschema.vo-dml.tap.xml", false));
        assertNotNull(mt);
        List<DBTable> tables = mt.transformToADQLLib();
        assertNotNull(tables);
@@ -57,7 +57,7 @@ class MetadataTransformerTest {
    }
    @Test
    void standardMetadataTest() throws ParseException {
-      MetadataTransformer mt = new MetadataTransformer(new VODMLSchemaProvider("tapschema.vo-dml.tap.xml", true));
+      MetadataTransformer mt = new MetadataTransformer(new VODMLSchemaProvider("/tapschema.vo-dml.tap.xml", true));
       assertNotNull(mt);
       List<DBTable> tables = mt.transformToADQLLibStd();
       QueryChecker checker = new DBChecker(tables);
