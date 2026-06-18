@@ -40,11 +40,9 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 /**
  * A UWS {@link Job} that executes a TAP (Table Access Protocol) query.
@@ -211,16 +209,13 @@ public class TAPJob extends BaseUWSJob {
     * @throws IOException If an I/O error occurs while writing the VOTable file.
     */
    private void outputResult(ADQLSet query, JDBCStarTable table, File votable) throws IOException {
-      Map<String, ? extends DBColumn> columnMap = Arrays.stream(query.getResultingColumns())
-              .collect(Collectors.toMap(
-                      DBColumn::getADQLName,
-                      col ->  col
-              ));
+      DBColumn[] resultingColumns = query.getResultingColumns();
 
       for (int i = 0; i < table.getColumnCount(); i++) {
          ColumnInfo colInfo = table.getColumnInfo(i);
          log.debug(" Stil Column {}: name={}, class={}, description={}", i, colInfo.getName(), colInfo.getContentClass(), colInfo.getDescription());
-         DBColumn dbcolInfo = columnMap.get(colInfo.getName());
+
+         DBColumn dbcolInfo = i < resultingColumns.length ? resultingColumns[i] : null;
          if (dbcolInfo instanceof TapADQLColumn adqlColInfo) { // if the column is a normal column reference (rather than synthetic one like count(*)
             colInfo.setDescription(adqlColInfo.getDescription());
             colInfo.setUnitString(adqlColInfo.getUnitString());
@@ -232,11 +227,11 @@ public class TAPJob extends BaseUWSJob {
          }
       }
 
-       final OutputStream outputStream = Files.newOutputStream(votable.toPath());
-       TAPWriter tableWriter = new TAPWriter(this);
-       tableWriter.setResourceType(ResourceType.RESULTS);
-       new StarTableOutput().writeStarTable(table, outputStream, tableWriter);
-    }
+      final OutputStream outputStream = Files.newOutputStream(votable.toPath());
+      TAPWriter tableWriter = new TAPWriter(this);
+      tableWriter.setResourceType(ResourceType.RESULTS);
+      new StarTableOutput().writeStarTable(table, outputStream, tableWriter);
+   }
 
    private void validateRequest() throws UWSException {
       if (tapJobSpec.adqlQuery == null || tapJobSpec.adqlQuery.isBlank()) {
