@@ -38,7 +38,7 @@ public class TAPJobSpecification extends BaseJobSpecification {
     * @param responseformat the desired response format (e.g. "votable").
     * @param maxrec the maximum number of records to return.
     * @param runId the run identifier for this job.
-    * @param uploads Map of <String/URL> table name and location of VOTable, or {@code null} if not used.
+    * @param uploads Map of {@code String} to {@code URL}  table name and location of VOTable, or {@code null} if not used.
     */
    public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
                               Map<String, URI> uploads) {

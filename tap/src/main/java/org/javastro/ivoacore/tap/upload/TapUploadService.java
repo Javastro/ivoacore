@@ -15,6 +15,7 @@ import uk.ac.starlink.table.jdbc.WriteMode;
 import uk.ac.starlink.votable.VOTableBuilder;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.sql.Connection;
@@ -55,6 +56,7 @@ public class TapUploadService {
     private final Logger log = LoggerFactory.getLogger(TapUploadService.class);
     //Table names must conform to the pattern.
     private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
+    private static final Pattern UPLOAD_PATTERN = Pattern.compile("^[^,:]+,[a-zA-Z][a-zA-Z0-9+.-]*:.+$");
 
     /**
      * Constructs a new TapUploadService instance with the specified data source.
@@ -146,6 +148,23 @@ public class TapUploadService {
         } catch (SQLException e) {
             log.warn("Failed to obtain connection or statement for cleanup", e);
         }
+    }
+
+    /**
+     * Validates the given input string against the predefined upload parameter pattern.
+     * Determines if the input is non-null and matches the expected format.
+     * Typical examples of valid upload parameters include:
+     * "table1,http://example.com/t1.xml"
+     * "image1,vos://example.authority!tempSpace/foo.fits"
+     * "table3,param:t3" for form-data uploads.
+     *
+     * @param input the input string to validate. It must not be null and must match
+     *              the regular expression defined by {@code UPLOAD_PATTERN}.
+     * @return {@code true} if the input string is valid (non-null and matches the pattern),
+     *         {@code false} otherwise.
+     */
+    public static boolean isValidUploadParam(String input) {
+        return input != null && UPLOAD_PATTERN.matcher(input).matches();
     }
 
     /**
