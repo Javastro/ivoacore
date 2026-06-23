@@ -1,14 +1,18 @@
 name: Publish To Repository
 
-# TODO this will publish everything on each push - not ideal - needs to change when out of SNAPSHOT phase
+# TODO this attempts to run only after successful CI build job - needs to change when out of SNAPSHOT phase
 on:
-  push:
+  workflow_run:
+    workflows: ["Java CI with Gradle"]
     branches: ["main"]
-  workflow_dispatch:
+    types:
+      - completed
+  workflow_dispatch: # can also run manually....
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
 
