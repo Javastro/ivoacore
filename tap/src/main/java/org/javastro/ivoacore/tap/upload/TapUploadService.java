@@ -15,9 +15,9 @@ import uk.ac.starlink.table.jdbc.WriteMode;
 import uk.ac.starlink.votable.VOTableBuilder;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -87,18 +87,18 @@ public class TapUploadService {
      * @throws RuntimeException if an error occurs during the upload process, such as issues with
      *                   the upload URI, database connection, schema creation, or table population.
      */
-    public List<UploadContext> processUpload(Map<String, URI> uploads, String jobId, String schemaName) throws RuntimeException{
+    public List<UploadContext> processUpload(Map<String, Path> uploads, String jobId, String schemaName) throws RuntimeException{
         if (uploads == null || uploads.isEmpty()) {
             throw new IllegalArgumentException("Upload values must be provided");
         }
 
         List<UploadContext> uploadContexts = new ArrayList<>();
 
-        uploads.forEach((name, uri) -> {
+        uploads.forEach((name, path) -> {
             //Defined against SQL injection as the table name will be added to the query
             validateTableName(name);
 
-            try (InputStream in = uri.toURL().openStream();
+            try (InputStream in = Files.newInputStream(path);
                  Connection conn = dataSource.getConnection()) {
 
                 StarTable table = new StarTableFactory().makeStarTable(in, new VOTableBuilder());

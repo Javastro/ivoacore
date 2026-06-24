@@ -20,6 +20,7 @@ import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.tap.schema.MetadataTransformer;
 import org.javastro.ivoacore.tap.schema.SchemaProvider;
 import org.javastro.ivoacore.tap.schema.TapADQLColumn;
+import org.javastro.ivoacore.tap.upload.TAPUploadCacher;
 import org.javastro.ivoacore.tap.upload.TapUploadService;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
@@ -36,12 +37,10 @@ import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -74,6 +73,7 @@ public class TAPJob extends BaseUWSJob {
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
       this.queryProcessor = new TapQueryProcessor();
+      cacheUploads();
    }
 
    TAPJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
@@ -83,6 +83,14 @@ public class TAPJob extends BaseUWSJob {
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
       this.queryProcessor = new TapQueryProcessor();
+      cacheUploads();
+   }
+
+   private void cacheUploads()  {
+
+      if(tapJobSpec.uploader != null && tapJobSpec.uploader.hasUpload() && (tapJobSpec.uploads != null || tapJobSpec.uploads.isEmpty())) {
+         tapJobSpec.uploads = tapJobSpec.uploader.storeUploads(executionEnvironment.getWorkDir().toPath());
+      }
    }
 
    @Override
@@ -286,15 +294,15 @@ public class TAPJob extends BaseUWSJob {
        * @param responseformat the desired response format (e.g. "votable").
        * @param maxrec         the maximum number of records to return.
        * @param runid          the run identifier for this job.
-       * @param uploads         the upload parameter value, or {@code null} if not used.
+       * @param uploader         The uploader
        * @return a new {@link TAPJob} with the specified parameters.
        */
       public TAPJob createJob(String query, String lang, String responseformat, Long maxrec, String runid,
-                              Map<String, URI> uploads) {
+                              TAPUploadCacher uploader) {
          String id = idProvider.generateId();
          return new TAPJob(
                id,
-               new TAPJobSpecification(query, lang, responseformat, maxrec, runid, uploads),
+               new TAPJobSpecification(query, lang, responseformat, maxrec, runid, uploader),
                environmentFactory.create(id),
                this.ds,
                this.schemaProvider
