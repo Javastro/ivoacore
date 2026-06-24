@@ -11,6 +11,7 @@ import adql.db.DBIdentifier;
 import adql.db.DBTable;
 import org.ivoa.dm.tapschema.Schema;
 import org.ivoa.dm.tapschema.Table;
+import org.ivoa.dm.tapschema.Column;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,5 +77,17 @@ public class TapADQLTable extends DBIdentifier implements DBTable {
    public void addColumn(TapADQLColumn tapADQLColumn) {
       columns.add(tapADQLColumn);
       columnMap.put(tapADQLColumn.getName(), tapADQLColumn);
+   }
+
+   /**
+    * Factory method to create a TapADQLColumn for this table from a TAP schema Column
+    * The TapADQLColumn constructor is package-protected; this method exposes a safe
+    * way for callers outside the package to obtain a column instance.
+    *
+    * @param column TAP schema Column metadata
+    * @return a newly created TapADQLColumn associated with this table
+    */
+   public TapADQLColumn createColumn(Column column) {
+      return new TapADQLColumn(this, column);
    }
 }

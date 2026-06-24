@@ -13,8 +13,9 @@ import org.ivoa.dm.tapschema.TAPType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Utility class to transform metadata to ADQLLib format.
@@ -66,63 +67,84 @@ public class MetadataTransformer {
       return result;
    }
 
-
-   public static  DBType mapDbType(TAPType datatype) {
-      //IMPL this is a bit ugly, would be much better to have a mapping table of some sort, but for now this is fine
-      //TODO there are some ADQL types that are not in TAPSchema - e.g. circle, interval, etc. - need to decide how to handle these
-      DBType result;
-      switch (datatype) {
-         case VARCHAR:
-            result = new DBType(DBType.DBDatatype.VARCHAR);
-            break;
-         case INTEGER:
-            result = new DBType(DBType.DBDatatype.INTEGER);
-            break;
-         case BIGINT:
-            result = new DBType(DBType.DBDatatype.BIGINT);
-            break;
-         case BOOLEAN:
-            result = new DBType(DBType.DBDatatype.SMALLINT); //FIXME really want a boolean type but ADQLLib doesn't support it - use smallint and interpret 0/1 as false/true
-            break;
-         case SMALLINT:
-            result = new DBType(DBType.DBDatatype.SMALLINT);
-            break;
-         case REAL:
-            result = new DBType(DBType.DBDatatype.REAL);
-            break;
-         case BINARY:
-            result = new DBType(DBType.DBDatatype.BINARY);
-            break;
-         case VARBINARY:
-            result = new DBType(DBType.DBDatatype.VARBINARY);
-            break;
-         case CHAR:
-            result = new DBType(DBType.DBDatatype.CHAR);
-            break;
-         case BLOB:
-            result = new DBType(DBType.DBDatatype.BLOB);
-            break;
-         case CLOB:
-            result = new DBType(DBType.DBDatatype.CLOB);
-            break;
-         case POINT:
-            result = new DBType(DBType.DBDatatype.POINT);
-            break;
-         case REGION:
-            result = new DBType(DBType.DBDatatype.REGION);
-            break;
-         case DOUBLE:
-            result = new DBType(DBType.DBDatatype.DOUBLE);
-            break;
-         case TIMESTAMP:
-            result = new DBType(DBType.DBDatatype.TIMESTAMP);
-            break;
-         default:
-            log.error("Unsupported TAPType {} - defaulting to VARCHAR", datatype);
-            result = new DBType(DBType.DBDatatype.VARCHAR);
-      }
-      return result;
+   //---------------------------------------- Map from class to dbType -----------------------------
+   private record TypeMapping(
+           Predicate<Class<?>> matcher,
+           TAPType tapType) {
    }
 
+   private static final List<TypeMapping> CLASS_TO_TAP = List.of(
+           new TypeMapping(Objects::isNull, TAPType.VARCHAR),
+           new TypeMapping(c -> String.class.isAssignableFrom(c) || Character.class.isAssignableFrom(c), TAPType.VARCHAR),
+           new TypeMapping(c -> Integer.class.isAssignableFrom(c) || c == int.class, TAPType.INTEGER),
+           new TypeMapping(c -> Long.class.isAssignableFrom(c) || c == long.class, TAPType.BIGINT),
+           new TypeMapping(c -> Double.class.isAssignableFrom(c) || c == double.class, TAPType.DOUBLE),
+           new TypeMapping(c -> Float.class.isAssignableFrom(c) || c == float.class, TAPType.REAL),
+           new TypeMapping(c -> Boolean.class.isAssignableFrom(c) || c == boolean.class, TAPType.BOOLEAN),
+           new TypeMapping(c -> Short.class.isAssignableFrom(c) || c == short.class, TAPType.SMALLINT),
+           new TypeMapping(byte[].class::isAssignableFrom, TAPType.VARBINARY), new TypeMapping(BigDecimal.class::isAssignableFrom, TAPType.DOUBLE),
+           new TypeMapping(c -> java.sql.Timestamp.class.isAssignableFrom(c) || java.util.Date.class.isAssignableFrom(c), TAPType.TIMESTAMP)
+   );
 
+   public static TAPType mapContentClassToTAPType(Class<?> contentClass) {
+      return CLASS_TO_TAP.stream()
+              .filter(m -> m.matcher().test(contentClass))
+              .map(TypeMapping::tapType)
+              .findFirst()
+              .orElseGet(() -> {
+                 log.warn("Unknown content class {}, defaulting to VARCHAR",
+                         contentClass != null ? contentClass.getName() : "null");
+                 return TAPType.VARCHAR;
+              });
+   }
+
+   // --------------------------- Map between TAPType and DBType --------------------------------------
+   private static final Map<TAPType, DBType.DBDatatype> TAP_TO_DB =
+           Map.ofEntries(
+                   Map.entry(TAPType.VARCHAR, DBType.DBDatatype.VARCHAR),
+                   Map.entry(TAPType.CHAR, DBType.DBDatatype.CHAR),
+                   Map.entry(TAPType.INTEGER, DBType.DBDatatype.INTEGER),
+                   Map.entry(TAPType.BIGINT, DBType.DBDatatype.BIGINT),
+                   Map.entry(TAPType.SMALLINT, DBType.DBDatatype.SMALLINT),
+                   Map.entry(TAPType.REAL, DBType.DBDatatype.REAL),
+                   Map.entry(TAPType.DOUBLE, DBType.DBDatatype.DOUBLE),
+                   Map.entry(TAPType.BOOLEAN, DBType.DBDatatype.SMALLINT), // ADQL workaround
+                   Map.entry(TAPType.BINARY, DBType.DBDatatype.BINARY),
+                   Map.entry(TAPType.VARBINARY, DBType.DBDatatype.VARBINARY),
+                   Map.entry(TAPType.BLOB, DBType.DBDatatype.BLOB),
+                   Map.entry(TAPType.CLOB, DBType.DBDatatype.CLOB),
+                   Map.entry(TAPType.TIMESTAMP, DBType.DBDatatype.TIMESTAMP),
+                   Map.entry(TAPType.POINT, DBType.DBDatatype.POINT),
+                   Map.entry(TAPType.REGION, DBType.DBDatatype.REGION)
+           );
+
+   private static DBType.DBDatatype db(TAPType type) {
+      DBType.DBDatatype resolved = TAP_TO_DB.get(type);
+
+      if (resolved == null) {
+         log.warn("Unsupported TAPType {} - defaulting to VARCHAR", type);
+         return DBType.DBDatatype.VARCHAR;
+      }
+
+      return resolved;
+   }
+
+   public static DBType mapDbType(TAPType tapType) {
+      return new DBType(db(tapType));
+   }
+
+   // --------------------------- Map between TAPType and SQL type --------------------------------------
+   private static String toSql(DBType.DBDatatype type) {
+      return switch (type) {
+         case DOUBLE -> "DOUBLE PRECISION";
+         case BLOB, BINARY, VARBINARY -> "BYTEA";
+         case CLOB -> "TEXT";
+         case POINT, REGION, CIRCLE, POLYGON -> "TEXT";
+         default -> type.toString();
+      };
+   }
+
+   public static String mapTAPTypeToSqlType(TAPType tapType) {
+      return toSql(db(tapType));
+   }
 }

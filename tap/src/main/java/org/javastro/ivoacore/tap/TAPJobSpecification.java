@@ -8,50 +8,66 @@ package org.javastro.ivoacore.tap;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import org.javastro.ivoacore.tap.upload.TAPUploadCacher;
 import org.javastro.ivoacore.uws.BaseJobSpecification;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A "default" simple TAP Job specification.
- * i.e.
- * <ul>
- * <li>no upload</li>
- *</ul>
  */
 @JsonTypeName("TAP")
 public class TAPJobSpecification extends BaseJobSpecification {
 
-
-
-
    String adqlQuery;
-    Long maxrec;
-    String responseFormat;
-    String lang;
-
+   Long maxrec;
+   String responseFormat;
+   String lang;
+   TAPUploadCacher uploader;
+   Map<String, Path> uploads;   /** table name -> URL to the file */
 
    List<ParameterValue> parameters = new ArrayList<>();
+
    /**
-    * Create the Job Specification.
+    * Create the Job Specification, where uploads have been resolved.
     * @param query the ADQL query.
     * @param lang the query language (e.g. "ADQL").
     * @param responseformat the desired response format (e.g. "votable").
     * @param maxrec the maximum number of records to return.
     * @param runId the run identifier for this job.
-    * @param upload the upload parameter value, or {@code null} if not used.
+    * @param uploads Map of {@code String} to {@code Path}  table name and location of VOTable, or {@code null} if not used.
     */
    public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
-                              String upload) {
-      super(runId,buildParameters(query,maxrec,responseformat,lang)); //FIXME need to implement upload
+                              Map<String, Path> uploads) {
+      super(runId,buildParameters(query,maxrec,responseformat,lang));
       this.adqlQuery = query;
       this.maxrec = maxrec;
       this.responseFormat = responseformat;
       this.lang = lang;
+      this.uploads = uploads;
+   }
 
+
+   /**
+    * Create the TAP Job Specification.
+    * @param query the ADQL query.
+    * @param lang the query language (e.g. "ADQL").
+    * @param responseformat the desired response format (e.g. "votable").
+    * @param maxrec the maximum number of records to return.
+    * @param runId the run identifier for this job.
+    * @param uploader an uploader to handle any uploads associated with this job.
+    */
+   public TAPJobSpecification(String query, String lang, String responseformat, Long maxrec, String runId,
+                              TAPUploadCacher uploader) {
+
+      this(query, lang, responseformat, maxrec, runId, new HashMap<>());
+      this.uploader = uploader;
    }
 
    @JsonCreator
@@ -86,7 +102,7 @@ public class TAPJobSpecification extends BaseJobSpecification {
     * @param query the ADQL query string.
     */
    public TAPJobSpecification(String query){
-      this(query,"ADQL","votable", 5000L,null,null);
+      this(query,"ADQL","votable", 5000L,null,new HashMap<>());
    }
 
 
@@ -104,4 +120,6 @@ public class TAPJobSpecification extends BaseJobSpecification {
    public String getAdqlQuery() {
       return adqlQuery;
    }
+
+   public Map<String, Path> getUploads() { return uploads; }
 }
