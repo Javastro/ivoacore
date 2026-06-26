@@ -3,7 +3,6 @@ package org.javastro.ivoacore.uws.persist;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.*;
@@ -36,17 +35,45 @@ public class DatabaseJobStore implements JobStore {
      * Constructs a DatabaseJobStore with the given EntityManager and mapper.
      *
      * @param entityManager the JPA EntityManager for database operations.
+     * @param objectMapper the ObjectMapper used for JSON serialization/deserialization of job specifications.
      * @param factoryAggregator the JobFactoryAggregator used to create job instances.
      */
-    public DatabaseJobStore(EntityManager entityManager, NamedType typeDetails, JobFactoryAggregator factoryAggregator) {
+    public DatabaseJobStore(EntityManager entityManager, ObjectMapper objectMapper, JobFactoryAggregator factoryAggregator) {
         this.entityManager = entityManager;
         this.factoryAggregator = factoryAggregator;
 
-        ObjectMapper om = new ObjectMapper();
-        om.registerSubtypes(typeDetails);
-
         this.mapper = Mappers.getMapper(JobEntityMapper.class);
-        this.mapper.setObjectMapper(om);
+        this.mapper.setObjectMapper(objectMapper);
+    }
+
+    /**
+     * Constructs a DatabaseJobStore with the given EntityManager, type details, and JobFactoryAggregator.
+     *
+     * @param entityManager the JPA EntityManager used for database operations.
+     * @param typeDetails the NamedType specifying the subtypes for JSON deserialization.
+     * @param factoryAggregator the JobFactoryAggregator used to create job instances.
+     */
+    public DatabaseJobStore(EntityManager entityManager, NamedType typeDetails, JobFactoryAggregator factoryAggregator) {
+        this(entityManager, objectMapperFor(typeDetails), factoryAggregator);
+    }
+
+    public static DatabaseJobStore forJobType(EntityManager entityManager, Class<? extends JobSpecification> specificationClass,
+            String typeName, JobFactoryAggregator factoryAggregator) {
+
+        return new DatabaseJobStore(entityManager, new NamedType(specificationClass, typeName), factoryAggregator);
+    }
+
+    /**
+     * Creates and returns a configured {@link ObjectMapper} instance for handling serialization and
+     * deserialization of JSON, specifically registering subtypes as specified by the given type details.
+     *
+     * @param typeDetails the {@link NamedType} representing the subtypes to register for JSON handling.
+     * @return a configured {@link ObjectMapper} instance with the registered subtypes.
+     */
+    private static ObjectMapper objectMapperFor(NamedType typeDetails) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerSubtypes(typeDetails);
+        return objectMapper;
     }
 
     /**
