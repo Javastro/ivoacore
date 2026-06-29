@@ -118,8 +118,8 @@ public class JobManager implements ExecutionControl, UWSCore {
 
    @Override
    public boolean deleteJob(String jobId) throws UWSException {
-      BaseUWSJob thisjob = jobStore.retrieve(jobId);
-      thisjob.abort();
+      BaseUWSJob thisJob = jobStore.retrieve(jobId);
+      thisJob.abort();
       return jobStore.delete(jobId);
    }
 

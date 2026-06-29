@@ -94,12 +94,9 @@ public abstract class BaseUWSResource implements UWS {
     */
    @GET
    @Path("{jobid}/error")
-   public String getJobErrorDetail(@PathParam("jobid") String jobid) throws UWSException
-   {
+   public String getJobErrorDetail(@PathParam("jobid") String jobid) throws UWSException {
       return getJobManager().jobErrorDetail(jobid);
    }
-
-
 
    @Override
    @POST
@@ -129,5 +126,4 @@ public abstract class BaseUWSResource implements UWS {
                .build();
       }
    }
-
 }
