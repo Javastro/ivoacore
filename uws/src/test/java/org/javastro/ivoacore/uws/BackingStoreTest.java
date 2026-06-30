@@ -1,7 +1,6 @@
 package org.javastro.ivoacore.uws;
 
 import jakarta.persistence.EntityTransaction;
-import jakarta.transaction.Transactional;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
