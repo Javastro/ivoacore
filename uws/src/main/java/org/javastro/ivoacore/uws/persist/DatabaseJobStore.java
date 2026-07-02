@@ -215,7 +215,6 @@ public class DatabaseJobStore implements JobStore {
      */
     private BaseUWSJob reinstateJob(UWSJobEntity entity) throws UWSException {
         JobSpecification spec = mapper.toSpecification(entity);
-        PersistedJobRecord jobRecord = new PersistedJobRecord(entity.jobId, spec, entity.executionPhase, entity.creationTime, entity.startTime, entity.endTime);
-        return factoryAggregator.createJob(jobRecord);
+        return new RestoredUWSJob(entity,spec);
     }
 }

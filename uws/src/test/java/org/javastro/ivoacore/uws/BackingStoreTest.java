@@ -88,7 +88,7 @@ class BackingStoreTest {
     @Test
     @DisplayName("Test that the job can be stored in the database, verify with SQL query.")
     public void testBackingStore() {
-        BaseUWSJob job = createJob();
+        RunnableUWSJob job = createJob();
 
         assertNotNull(job);
         EntityTransaction tx = jpa.entityManager().getTransaction();
@@ -178,7 +178,7 @@ class BackingStoreTest {
         //Add two separate jobs, one in the pending phase and one in the aborted phase
         addJob();
 
-        BaseUWSJob job2 = createJob();
+        RunnableUWSJob job2 = createJob();
         job2.abort();
 
         EntityTransaction tx = jpa.entityManager().getTransaction();
@@ -218,9 +218,9 @@ class BackingStoreTest {
      * @return A new instance of {@link BaseUWSJob}.
      * @throws RuntimeException if a {@link UWSException} occurs during job creation.
      */
-    private BaseUWSJob createJob(){
+    private RunnableUWSJob createJob(){
         SimpleLambdaJob.Specification spec = new SimpleLambdaJob.Specification("world", "myrefID");
-        BaseUWSJob job;
+        RunnableUWSJob job;
         try {
             job = jobManager.createJob(spec);
         } catch (UWSException e) {

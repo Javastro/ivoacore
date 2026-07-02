@@ -15,5 +15,5 @@ public interface JobFactory extends JobType { //TODO not quite right that JobFac
     * @return the created job.
     * @throws UWSException if the job cannot be created.
     */
-   BaseUWSJob createJob(JobSpecification jobDescription) throws UWSException;
+   RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException;
 }

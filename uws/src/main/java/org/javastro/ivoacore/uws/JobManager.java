@@ -49,8 +49,8 @@ public class JobManager implements ExecutionControl, UWSCore {
    }
 
    @Override
-   public BaseUWSJob createJob(JobSpecification specification) throws UWSException {
-      BaseUWSJob retval = jobFactory.createJob(specification);
+   public RunnableUWSJob createJob(JobSpecification specification) throws UWSException {
+      RunnableUWSJob retval = jobFactory.createJob(specification);
       jobStore.store(retval);
       return retval;
    }
@@ -89,19 +89,25 @@ public class JobManager implements ExecutionControl, UWSCore {
    @Override
    public ExecutionPhase setPhase(String jobId, String newPhase) throws UWSException {
       BaseUWSJob job = jobStore.retrieve(jobId);
-      switch (newPhase.toUpperCase()) {//IMPL
-         case "RUN":
-            job.submitJobToRun(executorService);
-            jobStore.store(job);
-            break;
-         case "ABORT":
-            job.abort();
-            jobStore.store(job);
-            break;
-         default:
-            throw new UWSException("illegal phase " + newPhase);
+      if(job instanceof RunnableUWSJob runnableUWSJob) {
+         switch (newPhase.toUpperCase()) {//IMPL
+            case "RUN":
+               runnableUWSJob.submitJobToRun(executorService);
+               jobStore.store(job);
+               break;
+            case "ABORT":
+               runnableUWSJob.abort();
+               jobStore.store(job);
+               break;
+            default:
+               throw new UWSException("illegal phase " + newPhase);
+         }
+         return runnableUWSJob.executionPhase;
       }
-      return job.executionPhase;
+      else {
+         log.warn("job id="+jobId+" is only present in backing store, cannot be run" );
+         return job.executionPhase;
+      }
    }
 
 
@@ -119,7 +125,9 @@ public class JobManager implements ExecutionControl, UWSCore {
    @Override
    public boolean deleteJob(String jobId) throws UWSException {
       BaseUWSJob thisJob = jobStore.retrieve(jobId);
-      thisJob.abort();
+      if(thisJob instanceof RunnableUWSJob runnableJob) {
+         runnableJob.abort();
+      }
       return jobStore.delete(jobId);
    }
 
@@ -149,17 +157,29 @@ public class JobManager implements ExecutionControl, UWSCore {
          else {
             return "No error - job is in phase " + job.getExecutionPhase();
          }
-
    }
 
    @Override
    public void runJob(String jobId) throws UWSException {
       BaseUWSJob job = jobStore.retrieve(jobId);
-      job.submitJobToRun(executorService);
+      if(job instanceof RunnableUWSJob runnableUWSJob) {
+         runnableUWSJob.submitJobToRun(executorService);
+      }
+      else {
+         throw new UWSException("cannot run job  "+ jobId + " it does not exist in main memory - copy and recreate job");
+      }
+
    }
 
    @Override
    public void abortJob(String jobId) throws UWSException {
-      jobStore.retrieve(jobId).abort();
+      BaseUWSJob job = jobStore.retrieve(jobId);
+      if(job instanceof RunnableUWSJob runnableUWSJob)
+      {
+         runnableUWSJob.abort();
+      }
+      else {
+         log.warn("attempt to abort a job that is not running, jobid="+jobId);
+      }
    }
 }
