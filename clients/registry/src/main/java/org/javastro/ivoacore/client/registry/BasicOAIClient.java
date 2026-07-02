@@ -58,6 +58,10 @@ public class BasicOAIClient implements OAIInterface {
        */
       public record ListRecordsResponse(List<Record> records, String resumptionToken) {
 
+      /**
+       * has the last reponse resulted in a resumption token.
+        * @return true if it has.
+       */
       public boolean hasResumptionToken() {
             return resumptionToken != null && !resumptionToken.isEmpty();
          }
@@ -333,6 +337,8 @@ public class BasicOAIClient implements OAIInterface {
 
    /**
     * Utility method to convert a DOM Document to a string.
+    * @param doc The DOM Document to convert.
+    * @return A string representation of the XML document.
     * @throws TransformerException if the result cannot be created.
     */
    public String elementToString(Element doc) throws TransformerException {
