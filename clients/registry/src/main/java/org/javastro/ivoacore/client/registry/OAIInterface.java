@@ -23,7 +23,22 @@ import java.util.List;
  */
 public interface OAIInterface {
 
+   /**
+    * Represents a metadata format in the OAI-PMH service.
+    * @param metadataPrefix the metadata prefix.
+    * @param schema the schema.
+    * @param metadataNamespace the namespace.
+    *
+    * @author Paul Harrison (paul.harrison@manchester.ac.uk)    */
    public static record MetadataFormat(String metadataPrefix, String schema, String metadataNamespace){}
+
+   /**
+    * Represents a set in the OAI-PMH service.
+    * @param setSpec the set id.
+    * @param setName the set name.
+    * @param description the description of the set.
+    *
+    * @author Paul Harrison (paul.harrison@manchester.ac.uk)    */
    public static record Set(String setSpec, String setName, String description){}
    /**
     * Represents the header of an OAI-PMH record.
@@ -64,11 +79,57 @@ public interface OAIInterface {
       }
    }
 
-
+   /**
+    * Get a record.
+    * @param identifier the identifier for the record.
+    * @param metadataPrefix the type of matadata to return.
+    * @return the returned record.
+    * @throws OAIException on any error.
+    */
    public Record getRecord(String identifier, String metadataPrefix) throws OAIException;
+
+   /**
+    * The Identification of the OAI-PMH service. This is the first call that should be made to any OAI-PMH service.
+    * @return The identification.
+    * @throws OAIException on any error condition.
+    */
    public Element identify()  throws OAIException;
+
+   /**
+    * List identifiers for records in the OAI-PMH service.
+    * @param metadataPrefix the metadata type.
+    * @param from starting date for searching for records.
+    * @param until ending date for searching for records.
+    * @param set the set identifier fo the records.
+    * @param resumptionToken a resumption token in the case of paged return of records.
+    * @return The list of header records for the identifiers.
+    * @throws OAIException on any error.
+    */
    public List<Header> listIdentifiers(String metadataPrefix, ZonedDateTime from, ZonedDateTime until, String set, String resumptionToken) throws OAIException;
+   /**
+    * List records in the OAI-PMH service.
+    * @param metadataPrefix the metadata type.
+    * @param from starting date for searching for records.
+    * @param until ending date for searching for records.
+    * @param set the set identifier fo the records.
+    * @param resumptionToken a resumption token in the case of paged return of records.
+    * @return The list of header records for the identifiers.
+    * @throws OAIException on any error.
+    */
    public List<Record> listRecords(String metadataPrefix, ZonedDateTime from, ZonedDateTime until, String set, String resumptionToken) throws OAIException;
+
+   /**
+    * list the metadata formats available for a particular record.
+    * @param identifier the identifier of the record.
+    * @return the list of metadata formats.
+    * @throws OAIException on any error.
+    */
    public List<MetadataFormat> listMetadataFormats(String identifier) throws OAIException;
+
+   /**
+    * list the sets that group any records in the archive.
+    * @return the list of sets.
+    * @throws OAIException on any error.
+    */
    public List<Set> listSets() throws OAIException;
 }

@@ -3,6 +3,9 @@ package org.javastro.ivoacore.uws.tools;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import org.javastro.ivoacore.common.testing.AbstractBaseORMTest;
+
+import java.util.List;
 
 /**
  * Utility class to simplify the setup and management of JPA EntityManager and EntityManagerFactory
@@ -19,13 +22,14 @@ import jakarta.persistence.Persistence;
  * <p>This class is particularly useful in testing scenarios where a simple and reusable
  * JPA setup is required.
  */
-public final class JpaTestSupport implements AutoCloseable {
+public final class JpaTestSupport extends AbstractBaseORMTest implements  AutoCloseable {
 
-    private final EntityManagerFactory emf;
+
     private final EntityManager em;
 
-    public JpaTestSupport() {
-        this.emf = Persistence.createEntityManagerFactory("my-pu");
+    public JpaTestSupport()
+    {
+        super("my-pu", List.of("org.javastro.ivoacore.uws.persist.UWSJobEntity"));
         this.em = emf.createEntityManager();
     }
 

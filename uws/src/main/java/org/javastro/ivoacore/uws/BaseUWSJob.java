@@ -5,7 +5,6 @@
 
 package org.javastro.ivoacore.uws;
 
-
 /*
  * Created on 02/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
@@ -20,17 +19,15 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
 
 /**
- * A UWS Job.
+ * A UWS Job. This is basically a description of a Job.
  */
-public abstract class BaseUWSJob implements Job { //IMPL should probably pull some of the methods in this class
-   private static final Logger logger = LoggerFactory.getLogger(BaseUWSJob.class.getName());
+public abstract class BaseUWSJob { //IMPL should probably pull some of the methods in this class
+
+   protected static final Logger logger = LoggerFactory.getLogger(BaseUWSJob.class.getName());
    /** The unique identifier for this job. */
-   private final String jobID;
+   protected final String jobID;
    /** The current execution phase of this job. */
    protected volatile ExecutionPhase executionPhase; //TODO think about thread safety of executionPhase - should it be volatile? should we use an AtomicReference? should we synchronize access to it?
    /** The time at which this job was created. */
@@ -43,8 +40,7 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
    protected final JobSpecification jobSpecification;
    /** The list of result parameter values produced by this job. */
    protected List<ParameterValue> results = new ArrayList<>();
-   /** The future representing the asynchronous execution of this job. */
-   protected CompletableFuture<ExecutionPhase> jobFuture;
+
    /** Any exception that occurred during the execution of this job. */
    protected UWSException exception;
 
@@ -62,7 +58,7 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
 
-   protected BaseUWSJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment){
+      BaseUWSJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment){
       this.jobID = record.jobId();
       this.jobSpecification = record.specification();
       this.executionPhase = record.phase();
@@ -95,14 +91,6 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
          logger.warn("Attempted to restore job {} with mismatched record ID {}", jobID, record.jobId());
          throw new RuntimeException("Attempted to restore job with mismatched record ID");
       }
-   }
-
-   /**
-    * Returns the future representing the asynchronous execution of this job.
-    * @return the {@link CompletableFuture} for this job's execution.
-    */
-   public CompletableFuture<ExecutionPhase> getJobFuture() {
-      return jobFuture;
    }
 
    /**
@@ -156,36 +144,6 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
    public ZonedDateTime getEndTime() {return endTime; }
 
 
-   private Supplier<ExecutionPhase> getJobCallable() {
-      return () -> {
-         logger.info("Starting job execution of {}", jobID);
-         executionPhase = ExecutionPhase.EXECUTING;
-         startTime = ZonedDateTime.now(ZoneId.of("UTC"));
-         try {
-            results = performAction();
-            executionPhase = ExecutionPhase.COMPLETED;
-            endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-            logger.info("Finished execution of {}", jobID);
-            return executionPhase;
-         }
-         catch (UWSException e) {
-            logger.error("Error during execution of job {}: {}\n", jobID, e.getMessage(), e);
-            executionPhase = ExecutionPhase.ERROR;
-            endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-            exception = e;
-            return executionPhase;
-         }
-
-      };
-   }
-
-   /**
-    * Submits this job for asynchronous execution using the given executor service.
-    * @param executorService the executor service to use for running the job.
-    */
-    void submitJobToRun(ExecutorService executorService)  {
-      jobFuture = CompletableFuture.supplyAsync(getJobCallable(),executorService).thenApply(e ->{logger.info("Job {} completed with phase {}", jobID, e); return e;});//TODO perhaps the API should really deal with the CompletableFuture, with that stored in the JobStore
-   }
 
 
    /**
@@ -224,39 +182,6 @@ public abstract class BaseUWSJob implements Job { //IMPL should probably pull so
     */
    public abstract Results createExternalJobResult();
 
-   /**
-    * Aborts this job.
-    */
-   public void abort() {
-      //if it has not started just set the phase to aborted and end time to now, otherwise try to cancel the future
-      boolean cancelled = jobFuture!= null?jobFuture.cancel(true):true;//TODO need to set the status when this happens
-      if (cancelled) {
-         logger.info("Job {} aborted", jobID);
-         executionPhase = ExecutionPhase.ABORTED;
-         endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-      }
-      else  {
-         executionPhase = ExecutionPhase.UNKNOWN;
-         logger.error("Failed top abort job {}", jobID);
-      }
-   }
-
-   /**
-    * This is a blocking call to wait for the job to finish - either successfully or not.
-    * Use with caution as it will block the calling thread until the job completes.
-    * @see #getJobFuture() for a non-blocking way to monitor job completion.
-    * @throws IllegalStateException if the job has not been submitted for execution yet.
-    */
-   public void blockingWaitForFinish() {
-      if (jobFuture == null) {
-         throw new IllegalStateException("Job " + jobID + " has not been submitted for execution");
-      }
-      try {
-         jobFuture.join(); // blocks until the future completes (normally or exceptionally)
-      } catch (java.util.concurrent.CancellationException e) {
-         logger.warn("Job {} was cancelled while waiting for finish", jobID);
-      }
-   }
 
    public ShortJobDescription asShortDescription() {
 

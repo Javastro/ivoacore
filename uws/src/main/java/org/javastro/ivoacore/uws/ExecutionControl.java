@@ -17,10 +17,10 @@ public interface ExecutionControl  {
    /**
     * Creates a new job from the given specification.
     * @param specification the job specification.
-    * @return the created {@link BaseUWSJob}.
+    * @return the created {@link RunnableUWSJob}.
     * @throws UWSException if the job cannot be created.
     */
-   BaseUWSJob createJob(JobSpecification specification) throws UWSException;
+   RunnableUWSJob createJob(JobSpecification specification) throws UWSException;
 
    /**
     * Returns the set of IDs for all known jobs.

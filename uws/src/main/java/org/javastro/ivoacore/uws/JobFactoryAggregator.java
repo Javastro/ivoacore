@@ -11,15 +11,15 @@ import java.util.Map;
 /** A job factory can can create many different types of job.
 
  */
-public class JobFactoryAggregator implements JobFactory, RestorableJobFactory {
+public class JobFactoryAggregator implements JobFactory {
 
-   private final Map<String, CommonJobFactory> jobFactoryMap=new HashMap<>();
+   private final Map<String, JobFactory> jobFactoryMap=new HashMap<>();
 
    /**
     * Adds a {@link JobFactory} to this aggregator, registering it by its job type.
     * @param factory the factory to add.
     */
-   public void addFactory(CommonJobFactory factory)
+   public void addFactory(JobFactory factory)
    {
       jobFactoryMap.put(factory.jobType(), factory);
    }
@@ -27,30 +27,12 @@ public class JobFactoryAggregator implements JobFactory, RestorableJobFactory {
 
 
    @Override
-   public BaseUWSJob createJob(JobSpecification jobDescription) throws UWSException {
+   public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
       if(jobFactoryMap.containsKey(jobDescription.jobTypeIdentifier())) {
          return jobFactoryMap.get(jobDescription.jobTypeIdentifier()).createJob(jobDescription);
       }
       else  {
          throw new UWSException("JobType "+jobDescription.jobTypeIdentifier()+" not registered");
-      }
-   }
-
-   @Override
-   public BaseUWSJob createJob(PersistedJobRecord record) throws UWSException {
-      try {
-         JobSpecification spec = record.specification();
-         RestorableJobFactory factory = jobFactoryMap.get(spec.jobTypeIdentifier());
-
-         if (factory == null) {
-            throw new RuntimeException("No factory for job type " + spec.jobTypeIdentifier());
-         }
-
-         return factory.createJob(record);
-      }
-      catch (Exception e)
-      {
-         throw new UWSException("Failed to restore job "+ record.jobId(), e);
       }
    }
 

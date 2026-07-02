@@ -21,7 +21,7 @@ import java.util.function.Function;
 /**
  * A simple UWS job that delegates its execution to a Java {@link java.util.function.Function}.
  */
-public class SimpleLambdaJob  extends BaseUWSJob {
+public class SimpleLambdaJob  extends RunnableUWSJob {
 
    private static final String SIMPLE_LAMBDA = "simpleLambda";
    final Function<String,String> function;
@@ -34,22 +34,6 @@ public class SimpleLambdaJob  extends BaseUWSJob {
     */
    protected SimpleLambdaJob(String jobID, ExecutionEnvironment executionEnvironment, Function<String, String> func, JobSpecification jobSpecification) {
       super(jobID, jobSpecification, executionEnvironment);
-      this.function = func;
-   }
-
-   /**
-    * Constructs a SimpleLambdaJob using the provided persisted job record, execution environment,
-    * and function to perform the job's action.
-    *
-    * @param record the persisted job record containing the core identity, specifications,
-    *               and lifecycle state of the job.
-    * @param executionEnvironment the environment within which the job executes, providing
-    *                              required resources and context.
-    * @param func the function representing the job's action, taking a string as input
-    *             and producing a string as output.
-    */
-   protected SimpleLambdaJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, Function<String, String> func) {
-      super(record, executionEnvironment);
       this.function = func;
    }
 
@@ -108,21 +92,10 @@ public class SimpleLambdaJob  extends BaseUWSJob {
       }
 
 
-
       @Override
-      public BaseUWSJob createJob(JobSpecification jobDescription) throws UWSException {
+      public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
          final String jobID = idProvider.generateId();
          return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription);
-      }
-
-      /**
-       * Intended for restoring a job from a database.
-       * @param record the persisted job record containing the job's state and specification.
-       * @return a {@link SimpleLambdaJob} instance representing the restored job.
-       */
-      @Override
-      public BaseUWSJob createJob(PersistedJobRecord record) throws UWSException {
-         return new SimpleLambdaJob(record, environmentFactory.create(record.jobId()), theFunc);
       }
    }
 

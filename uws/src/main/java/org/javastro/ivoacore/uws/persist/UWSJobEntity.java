@@ -3,6 +3,7 @@ package org.javastro.ivoacore.uws.persist;
 import jakarta.persistence.*;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 
+import java.io.File;
 import java.time.ZonedDateTime;
 
 @Entity
@@ -22,4 +23,6 @@ public class UWSJobEntity {
 
     @Column(name = "job_spec", columnDefinition = "text")
     public String jobSpecificationJson;
+    public File workdir;
+
 }

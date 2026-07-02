@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * A UWS {@link Job} that executes a TAP (Table Access Protocol) query.
  */
-public class TAPJob extends BaseUWSJob {
+public class TAPJob extends RunnableUWSJob {
 
    public static final String JOB_TYPE = "TAP";
    private static final String SCHEMA_NAME = "TAP_UPLOAD";
@@ -70,16 +70,6 @@ public class TAPJob extends BaseUWSJob {
       super(id, spec, executionEnvironment);
       this.dataSource = ds;
       this.tapJobSpec = spec;
-      this.schemaProvider = schemaProvider;
-      this.uploadService = new TapUploadService(ds);
-      this.queryProcessor = new TapQueryProcessor();
-      cacheUploads();
-   }
-
-   TAPJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
-      super(record, executionEnvironment);
-      this.dataSource = ds;
-      this.tapJobSpec = (TAPJobSpecification) record.specification();
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
       this.queryProcessor = new TapQueryProcessor();
@@ -270,7 +260,7 @@ public class TAPJob extends BaseUWSJob {
       }
 
       @Override
-      public BaseUWSJob createJob(JobSpecification jobDescription) throws UWSException {
+      public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
          if (jobDescription.jobTypeIdentifier().equals("TAP")) {
             final String id = idProvider.generateId();
             return new TAPJob(id, (TAPJobSpecification) jobDescription, environmentFactory.create(id), ds, schemaProvider );
@@ -278,13 +268,6 @@ public class TAPJob extends BaseUWSJob {
 
       }
 
-      @Override
-      public BaseUWSJob createJob(PersistedJobRecord record) throws UWSException {
-         final JobSpecification spec = record.specification();
-         if (spec.jobTypeIdentifier().equals("TAP")) {
-            return new TAPJob(record, environmentFactory.create(record.jobId()), ds, schemaProvider);
-         } else throw new UWSException("Invalid job type");
-      }
 
       /**
        * Creates a TAP job from individual query parameters.

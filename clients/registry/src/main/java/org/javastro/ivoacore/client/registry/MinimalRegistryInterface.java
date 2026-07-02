@@ -31,7 +31,7 @@ public interface MinimalRegistryInterface {
 
    /**
     * Return a resource from its ID.
-    * @param id
+    * @param id the ivoaid of the resource to retrieve.
     * @return the resource
     */
    Resource getResource(Ivoid id);
