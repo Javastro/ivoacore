@@ -36,7 +36,7 @@ public class CachedJobStorePersistenceTest {
                 new DefaultEnvironmentFactory(tmpDir)
         ));
 
-        store = TestPersistenceFactory.create(jpa.entityManager(), agg);
+        store = TestPersistenceFactory.create(jpa.entityManager());
 
         jobManager = new JobManager(agg, new MemoryBasedJobStore(), new DefaultExecutionPolicy());
     }

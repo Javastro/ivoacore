@@ -3,7 +3,6 @@ package org.javastro.ivoacore.uws.tools;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import jakarta.persistence.EntityManager;
-import org.javastro.ivoacore.uws.JobFactoryAggregator;
 import org.javastro.ivoacore.uws.SimpleLambdaJob;
 import org.javastro.ivoacore.uws.persist.DatabaseJobStore;
 
@@ -18,7 +17,7 @@ public final class TestPersistenceFactory {
 
     private TestPersistenceFactory() {}
 
-    public static DatabaseJobStore create(EntityManager em, JobFactoryAggregator agg) {
+    public static DatabaseJobStore create(EntityManager em) {
         NamedType type = new NamedType(SimpleLambdaJob.Specification.class, "SimpleLambda");
         return new DatabaseJobStore(em, type);
     }
