@@ -1,4 +1,4 @@
-package org.javastro.ivoacore.tap;
+package org.javastro.ivoacore.common.testing;
 /*
  * Created on 03/05/2023 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
@@ -11,9 +11,7 @@ import jakarta.persistence.ValidationMode;
 import jakarta.persistence.spi.ClassTransformer;
 import jakarta.persistence.spi.PersistenceUnitInfo;
 import jakarta.persistence.spi.PersistenceUnitTransactionType;
-import org.h2.jdbcx.JdbcDataSource;
 import org.hibernate.Session;
-import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl;
 import org.hibernate.jpa.boot.internal.PersistenceUnitInfoDescriptor;
 
@@ -23,26 +21,25 @@ import java.sql.PreparedStatement;
 import java.util.*;
 
 /**
- * Base Class for doing database tests.
+ * Base Class for doing ORM tests.
  */
-public  class AbstractBaseDBTest {
+public abstract class AbstractBaseORMTest extends AbstractBaseDSTest {
 
 
-    /**
-     * Create an Entity manager for a memory-based test database;
-     * @param puname the persistence unit name of the JPA DB.
-     * @param classNames the list of classes managed by the persistence unit.
-     * @return the EntityManager for the database.
-     */
-    protected static EntityManager setupH2Db(String puname, List<String> classNames) {
 
+    protected final String puname;
+    protected final List<String> classNames;
+    protected EntityManagerFactory emf;
 
-        PersistenceUnitInfo persistenceUnitInfo = new HibernatePersistenceUnitInfo(puname, classNames);
-        Map<String, Object> configuration = new HashMap<>();
-        return new EntityManagerFactoryBuilderImpl(
-              new PersistenceUnitInfoDescriptor(persistenceUnitInfo), configuration)
-              .build().createEntityManager();
-    }
+   protected AbstractBaseORMTest(String puname, List<String> classNames) {
+      this.puname = puname;
+      this.classNames = classNames;
+      PersistenceUnitInfo persistenceUnitInfo = new HibernatePersistenceUnitInfo(puname, classNames);
+      Map<String, Object> configuration = new HashMap<>();
+      this.emf = new EntityManagerFactoryBuilderImpl(
+             new PersistenceUnitInfoDescriptor(persistenceUnitInfo), configuration)
+             .build();
+   }
 
 
     /**
@@ -73,8 +70,8 @@ public  class AbstractBaseDBTest {
 
         public static String JPA_VERSION = "3.1";
         private String persistenceUnitName;
-        private PersistenceUnitTransactionType transactionType
-              = PersistenceUnitTransactionType.RESOURCE_LOCAL;
+        @SuppressWarnings({"deprecation", "removal"})
+        private PersistenceUnitTransactionType transactionType = PersistenceUnitTransactionType.RESOURCE_LOCAL;
         private List<String> managedClassNames;
         private List<String> mappingFileNames = new ArrayList<>();
         private Properties properties;
@@ -94,7 +91,7 @@ public  class AbstractBaseDBTest {
             // properties.put(PersistenceUnitProperties.TARGET_DATABASE, "org.eclipse.persistence.platform.database.DerbyPlatform");
 
             //        //h2
-            properties.put("jakarta.persistence.jdbc.url", "jdbc:h2:mem:"+persistenceUnitName+";DB_CLOSE_DELAY=-1");//IMPL differenrt DB for each PU to stop interactions
+            properties.put("jakarta.persistence.jdbc.url", "jdbc:h2:mem:"+persistenceUnitName+";DB_CLOSE_DELAY=-1;MODE=PostgreSQL");//IMPL differenrt DB for each PU to stop interactions
             properties.put("jakarta.persistence.jdbc.driver", "org.h2.Driver");
             properties.put("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
             //        properties.put(PersistenceUnitProperties.TARGET_DATABASE, "org.eclipse.persistence.platform.database.H2Platform");
@@ -109,11 +106,14 @@ public  class AbstractBaseDBTest {
             properties.put("jakarta.persistence.schema-generation.scripts.create-target", "test.sql");
             properties.put("jakarta.persistence.schema-generation.scripts.drop-target", "test-drop.sql");
             properties.put("hibernate.hbm2ddl.schema-generation.script.append", "false");
+            properties.put("hibernate.hbm2ddl.create_namespaces", "true");
             properties.put("jakarta.persistence.create-database-schemas", "true");
 
             properties.put("jakarta.persistence.schema-generation.create-source", "metadata");
             properties.put("jakarta.persistence.schema-generation.database.action", "drop-and-create");
             properties.put("jakarta.persistence.schema-generation.scripts.action", "drop-and-create");
+            properties.put("hibernate.show_sql","true");
+            properties.put("hibernate.format_sql","true");
             properties.put("jakarta.persistence.jdbc.user", "");
             //        properties.put(PersistenceUnitProperties.CACHE_SHARED_, "false");
 
@@ -152,6 +152,7 @@ public  class AbstractBaseDBTest {
          * overrides @see jakarta.persistence.spi.PersistenceUnitInfo#getTransactionType()
          */
         @Override
+        @SuppressWarnings("removal")
         public PersistenceUnitTransactionType getTransactionType() {
             return  transactionType;     
         }
@@ -292,30 +293,4 @@ public  class AbstractBaseDBTest {
 
    }
 
-    /**
-     * Create a DataSource for an in-memory H2 database and set up the JPA/Hibernate configuration to use it.
-     * @return
-     */
-   public static DataSource createDataSource() {
-       JdbcDataSource dataSource = new JdbcDataSource();
-       dataSource.setURL("jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1");
-       dataSource.setUser("sa");
-       dataSource.setPassword("");
-
-       // Configure JPA/Hibernate properties
-//       Map<String, Object> properties = new HashMap<>();
-//       properties.put("jakarta.persistence.nonJtaDataSource", dataSource);
-//       properties.put("hibernate.hbm2ddl.auto", "create-drop"); // Auto-create tables
-//       properties.put("hibernate.show_sql", "true");
-
-
-//       EntityManagerFactory emf = new HibernatePersistenceProvider()
-//             .createEntityManagerFactory("my-test-unit", properties);
-//
-//       // Create the EntityManager
-//       EntityManager em = emf.createEntityManager();
-
-       return dataSource;
-
-   }
 }

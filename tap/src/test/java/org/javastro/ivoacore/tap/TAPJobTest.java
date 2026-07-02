@@ -5,6 +5,7 @@ import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
+import org.javastro.ivoacore.common.testing.AbstractBaseDSTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  *
  */
-class TAPJobTest extends AbstractBaseDBTest{
+class TAPJobTest extends AbstractBaseDSTest{
+
 
    static JobManager jobManager;
    @BeforeAll
