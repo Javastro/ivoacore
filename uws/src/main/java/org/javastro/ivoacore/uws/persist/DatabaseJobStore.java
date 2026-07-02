@@ -29,8 +29,6 @@ public class DatabaseJobStore implements JobStore {
 
     private final EntityManager entityManager;
     private final JobEntityMapper mapper;
-    private final JobFactoryAggregator factoryAggregator;
-
     /**
      * Constructs a DatabaseJobStore with the given EntityManager and mapper.
      *
@@ -40,8 +38,6 @@ public class DatabaseJobStore implements JobStore {
      */
     public DatabaseJobStore(EntityManager entityManager, ObjectMapper objectMapper, JobFactoryAggregator factoryAggregator) {
         this.entityManager = entityManager;
-        this.factoryAggregator = factoryAggregator;
-
         this.mapper = Mappers.getMapper(JobEntityMapper.class);
         this.mapper.setObjectMapper(objectMapper);
     }

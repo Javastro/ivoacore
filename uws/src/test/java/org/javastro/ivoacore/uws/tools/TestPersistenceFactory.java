@@ -6,8 +6,6 @@ import jakarta.persistence.EntityManager;
 import org.javastro.ivoacore.uws.JobFactoryAggregator;
 import org.javastro.ivoacore.uws.SimpleLambdaJob;
 import org.javastro.ivoacore.uws.persist.DatabaseJobStore;
-import org.javastro.ivoacore.uws.persist.mappers.JobEntityMapper;
-import org.mapstruct.factory.Mappers;
 
 /**
  * A factory class responsible for creating instances of {@link DatabaseJobStore}.
@@ -22,7 +20,7 @@ public final class TestPersistenceFactory {
 
     public static DatabaseJobStore create(EntityManager em, JobFactoryAggregator agg) {
         NamedType type = new NamedType(SimpleLambdaJob.Specification.class, "SimpleLambda");
-        return new DatabaseJobStore(em, type, agg);
+        return new DatabaseJobStore(em, type);
     }
 
     /**
