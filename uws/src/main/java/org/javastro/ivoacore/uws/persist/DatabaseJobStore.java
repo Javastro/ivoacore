@@ -34,9 +34,8 @@ public class DatabaseJobStore implements JobStore {
      *
      * @param entityManager the JPA EntityManager for database operations.
      * @param objectMapper the ObjectMapper used for JSON serialization/deserialization of job specifications.
-     * @param factoryAggregator the JobFactoryAggregator used to create job instances.
      */
-    public DatabaseJobStore(EntityManager entityManager, ObjectMapper objectMapper, JobFactoryAggregator factoryAggregator) {
+    public DatabaseJobStore(EntityManager entityManager, ObjectMapper objectMapper) {
         this.entityManager = entityManager;
         this.mapper = Mappers.getMapper(JobEntityMapper.class);
         this.mapper.setObjectMapper(objectMapper);
@@ -47,16 +46,15 @@ public class DatabaseJobStore implements JobStore {
      *
      * @param entityManager the JPA EntityManager used for database operations.
      * @param typeDetails the NamedType specifying the subtypes for JSON deserialization.
-     * @param factoryAggregator the JobFactoryAggregator used to create job instances.
      */
-    public DatabaseJobStore(EntityManager entityManager, NamedType typeDetails, JobFactoryAggregator factoryAggregator) {
-        this(entityManager, objectMapperFor(typeDetails), factoryAggregator);
+    public DatabaseJobStore(EntityManager entityManager, NamedType typeDetails) {
+        this(entityManager, objectMapperFor(typeDetails));
     }
 
     public static DatabaseJobStore forJobType(EntityManager entityManager, Class<? extends JobSpecification> specificationClass,
             String typeName, JobFactoryAggregator factoryAggregator) {
 
-        return new DatabaseJobStore(entityManager, new NamedType(specificationClass, typeName), factoryAggregator);
+        return new DatabaseJobStore(entityManager, new NamedType(specificationClass, typeName));
     }
 
     /**
