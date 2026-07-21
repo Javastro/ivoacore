@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MemoryBasedJobStore implements JobStore {
 
-   final Map<String, BaseUWSJob> jobs = new ConcurrentHashMap<>();
+   protected final Map<String, BaseUWSJob> jobs = new ConcurrentHashMap<>();
    @Override
    public void store(BaseUWSJob job) {
       jobs.put(job.getID(), job);

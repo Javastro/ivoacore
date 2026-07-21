@@ -51,6 +51,7 @@ public class TAPJob extends RunnableUWSJob {
    public static final String JOB_TYPE = "TAP";
    private static final String SCHEMA_NAME = "TAP_UPLOAD";
    private static final Logger log = LoggerFactory.getLogger(TAPJob.class);
+   public static final String JOB_TYPE_DESCRIPTION = "Runs TAP jobs";
    private final DataSource dataSource;
    private final TAPJobSpecification tapJobSpec;
    private final SchemaProvider schemaProvider;
@@ -254,7 +255,7 @@ public class TAPJob extends RunnableUWSJob {
        * @param ds the JDBC data source used to execute TAP queries.
        */
       public JobFactory(DataSource ds, SchemaProvider schemaProvider, EnvironmentFactory environmentFactory)  {
-         super(JOB_TYPE, "Runs TAP jobs", true, environmentFactory);
+         super(JOB_TYPE, JOB_TYPE_DESCRIPTION, true, environmentFactory);
          this.ds = ds;
          this.schemaProvider = schemaProvider;
       }

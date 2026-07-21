@@ -5,9 +5,6 @@ package org.javastro.ivoacore.uws;
  * Created on 04/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
@@ -23,7 +20,9 @@ import java.util.function.Function;
  */
 public class SimpleLambdaJob  extends RunnableUWSJob {
 
-   private static final String SIMPLE_LAMBDA = "simpleLambda";
+   //FIXME the following pattern of type and description needs to be standardised across all job types - probably should be in the JobType interface
+   static public final String JOB_TYPE = "simpleLambda";
+   static public final String JOB_TYPE_DESCRIPTION = "a job that runs natively in JVM ";
    final Function<String,String> function;
 
    /**
@@ -87,7 +86,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
        * @param func the function that the created jobs will execute.
        */
       public JobFactory(Function<String, String> func, EnvironmentFactory environmentFactory) {
-         super(SIMPLE_LAMBDA, "a job that runs natively in JVM ", true, environmentFactory);
+         super(JOB_TYPE, JOB_TYPE_DESCRIPTION, true, environmentFactory);
          this.theFunc = func;
       }
 
@@ -102,7 +101,6 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
    /**
     * Job specification for a {@link SimpleLambdaJob}, providing a single string input parameter.
     */
-   @JsonTypeName("simpleLambda")
    public static class Specification extends BaseJobSpecification {
 
       /**
@@ -112,23 +110,25 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
        */
       public Specification(final String input, final String runID) {
          super(runID,List.of(new ImmutableStringValue("input", input)));
-         this.theParameter = getParameters().get(0);
       }
 
-      @JsonCreator
-      public Specification(
-              @JsonProperty("runId") String runId,
-              @JsonProperty("parameters")
-              List<ParameterValue> parameters) {
+      private Specification() {
+         super(null, null);
 
-         super(runId, parameters);
-         this.theParameter = parameters.get(0);
       }
-
-      final ParameterValue theParameter;
 
       @Override
-      public String jobTypeIdentifier() {return SIMPLE_LAMBDA;}
+      public String jobDescription() {
+         return JOB_TYPE_DESCRIPTION;
+      }
+
+      @Override
+      public boolean isParameterized() {
+         return false;
+      }
+
+      @Override
+      public String jobTypeIdentifier() {return JOB_TYPE;}
 
       @Override
       public String getJDL() {

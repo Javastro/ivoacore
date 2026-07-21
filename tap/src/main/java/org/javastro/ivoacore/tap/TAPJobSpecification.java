@@ -5,8 +5,6 @@ package org.javastro.ivoacore.tap;
  * Created on 09/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.javastro.ivoacore.tap.upload.TAPUploadCacher;
 import org.javastro.ivoacore.uws.BaseJobSpecification;
@@ -31,8 +29,6 @@ public class TAPJobSpecification extends BaseJobSpecification {
    String lang;
    TAPUploadCacher uploader;
    Map<String, Path> uploads;   /** table name -> URL to the file */
-
-   List<ParameterValue> parameters = new ArrayList<>();
 
    /**
     * Create the Job Specification, where uploads have been resolved.
@@ -70,15 +66,12 @@ public class TAPJobSpecification extends BaseJobSpecification {
       this.uploader = uploader;
    }
 
-   @JsonCreator
-   public TAPJobSpecification(
-           @JsonProperty("runId") String runId,
-           @JsonProperty("parameters")
-           List<ParameterValue> parameters) {
 
-      super(runId, parameters);
-      this.parameters = parameters;
+   private TAPJobSpecification() {
+      super(null, null);
    }
+
+
 
    private static List<ParameterValue> buildParameters(String query, Long maxrec, String responseformat, String lang) {
       List<ParameterValue> parameters = new ArrayList<>();
@@ -105,6 +98,16 @@ public class TAPJobSpecification extends BaseJobSpecification {
       this(query,"ADQL","votable", 5000L,null,new HashMap<>());
    }
 
+
+   @Override
+   public String jobDescription() {
+      return TAPJob.JOB_TYPE_DESCRIPTION;
+   }
+
+   @Override
+   public boolean isParameterized() {
+      return true;
+   }
 
    @Override
    public String jobTypeIdentifier() {

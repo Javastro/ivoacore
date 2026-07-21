@@ -12,7 +12,7 @@ import org.javastro.ivoacore.uws.environment.ExistingExecutionEnvironment;
  * but it can be used to access the results of a previously executed job.
  *
  * @author Paul Harrison (paul.harrison@manchester.ac.uk) */
-class RestoredUWSJob extends BaseUWSJob {
+public class RestoredUWSJob extends BaseUWSJob {
    protected RestoredUWSJob(UWSJobEntity entity, JobSpecification jobSpecification) {
       super(entity.jobId, jobSpecification, new ExistingExecutionEnvironment(null,entity.workdir));
       executionPhase = entity.executionPhase;

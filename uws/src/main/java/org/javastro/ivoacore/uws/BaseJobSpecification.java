@@ -5,29 +5,29 @@ package org.javastro.ivoacore.uws;
  * Created on 09/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
-import com.fasterxml.jackson.annotation.*;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 
 import java.util.List;
 
 /**
  * Base implementation of {@link JobSpecification} storing the run ID and parameter list.
+ * Note that for JSON serialization to work a default constructor is required, which is *not* provided here. Subclasses should provide their own constructors for proper initialization.
  */
 public abstract class BaseJobSpecification implements JobSpecification {
    /** The run ID associated with this job specification. */
-   protected final String runId;
+   protected String runId;
    /** The list of parameter values for this job. */
-   protected final List<ParameterValue> parameters;
+   protected List<ParameterValue> parameters ;
 
    /**
-    * Constructs a BaseJobSpecification with the given run ID and parameters.
-    * @param runId the run identifier for this job.
-    * @param parameters the list of parameter values.
+    * Constructs a new BaseJobSpecification with the given run ID and parameter list.
+    * Note that this constructor is protected and should only be used by subclasses.
+    * @param runId
+    * @param parameterValues
     */
-   @JsonCreator
-   protected BaseJobSpecification(@JsonProperty("runId") String runId, @JsonProperty("parameters") List<ParameterValue> parameters) {
+   protected BaseJobSpecification(String runId, List<ParameterValue> parameterValues) {
       this.runId = runId;
-      this.parameters = parameters;
+      this.parameters = parameterValues;
    }
 
    @Override
@@ -41,8 +41,17 @@ public abstract class BaseJobSpecification implements JobSpecification {
    }
 
    @Override
-   @JsonIgnore    //Only ignored for Jackson mapping until required.
    public String getJDL() {
       return "";
+   }
+
+   //note not public, only for use by mapper
+   void setRunId(String runId) {
+      this.runId = runId;
+   }
+
+   //note not public, only for use by mapper
+   void setParameters(List<ParameterValue> parameters) {
+      this.parameters = parameters;
    }
 }

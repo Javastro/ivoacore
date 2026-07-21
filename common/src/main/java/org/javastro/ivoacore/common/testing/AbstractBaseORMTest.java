@@ -47,7 +47,7 @@ public abstract class AbstractBaseORMTest extends AbstractBaseDSTest {
      * @param em the entity manager for the database.
      * @param filename The name of the file to write the DDL to.
      */
-    protected void dumpDbData(EntityManager em, String filename) {
+    public void dumpDbData(EntityManager em, String filename) {
         //IMPL hibernate specific way of getting connection... generally dirty, see  https://stackoverflow.com/questions/3493495/getting-database-connection-in-pure-jpa-setup
             Session sess = em.unwrap(Session.class);
             sess.doWork(conn -> {

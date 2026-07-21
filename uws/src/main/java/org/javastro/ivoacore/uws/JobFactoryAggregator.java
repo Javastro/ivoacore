@@ -18,10 +18,11 @@ public class JobFactoryAggregator implements JobFactory {
    /**
     * Adds a {@link JobFactory} to this aggregator, registering it by its job type.
     * @param factory the factory to add.
+    *
     */
-   public void addFactory(JobFactory factory)
+   public void addFactory(String type, JobFactory factory)
    {
-      jobFactoryMap.put(factory.jobType(), factory);
+      jobFactoryMap.put(type, factory);
    }
 
 
@@ -36,19 +37,5 @@ public class JobFactoryAggregator implements JobFactory {
       }
    }
 
-   @Override
-   public String jobType() {
-      return "JobFactoryAggregator";
-   }
 
-   @Override
-   public String jobDescription() {
-      return "A JobFactory that aggregates several types of JobFactory";
-   }
-
-
-   @Override
-   public boolean isParameterized() {
-      return false; //IMPL This does not really have much meaning for this aggregator....
-   }
 }

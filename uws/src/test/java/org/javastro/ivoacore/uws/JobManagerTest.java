@@ -4,7 +4,8 @@ import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Jobs;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
-import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
+import org.javastro.ivoacore.uws.persist.JobStore;
+import org.javastro.ivoacore.uws.persist.RecordingJobStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -33,14 +34,14 @@ class JobManagerTest {
    static void setup() throws IOException {
       File tmpdir = Files.createTempDirectory("managerTest").toFile();
       JobFactoryAggregator agg = new JobFactoryAggregator();
-      agg.addFactory(new SimpleLambdaJob.JobFactory(s-> {
+      agg.addFactory(SimpleLambdaJob.JOB_TYPE, new SimpleLambdaJob.JobFactory(s-> {
          try {
             Thread.sleep(2300);
          } catch (InterruptedException e) {
             throw new RuntimeException(e); //TODO review exception handling
          }
          return "hello "+s;},new DefaultEnvironmentFactory(tmpdir)));
-      MemoryBasedJobStore store = new MemoryBasedJobStore();
+      JobStore store = new RecordingJobStore();
       DefaultExecutionPolicy policy = new DefaultExecutionPolicy();
       jobManager = new JobManager( agg, store, policy
       );

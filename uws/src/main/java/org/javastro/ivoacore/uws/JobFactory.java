@@ -1,13 +1,10 @@
 package org.javastro.ivoacore.uws;
 
 
-import org.javastro.ivoacore.uws.description.JobType;
-
 /**
  * Factory interface for creating UWS jobs of a specific type.
  */
-public interface JobFactory extends JobType { //TODO not quite right that JobFactory extends JobType for the JobFactoryAggregator
-
+public interface JobFactory {
    /**
     * Creates a new {@link BaseUWSJob} from the given job specification.
     *
@@ -16,4 +13,6 @@ public interface JobFactory extends JobType { //TODO not quite right that JobFac
     * @throws UWSException if the job cannot be created.
     */
    RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException;
+
+
 }

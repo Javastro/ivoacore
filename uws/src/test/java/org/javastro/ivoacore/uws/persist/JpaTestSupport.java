@@ -1,8 +1,7 @@
-package org.javastro.ivoacore.uws.tools;
+package org.javastro.ivoacore.uws.persist;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
 import org.javastro.ivoacore.common.testing.AbstractBaseORMTest;
 
 import java.util.List;
@@ -31,6 +30,7 @@ public final class JpaTestSupport extends AbstractBaseORMTest implements  AutoCl
     {
         super("my-pu", List.of("org.javastro.ivoacore.uws.persist.UWSJobEntity"));
         this.em = emf.createEntityManager();
+
     }
 
     public EntityManager entityManager() {

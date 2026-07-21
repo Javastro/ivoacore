@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * A UWS Job. This is basically a description of a Job.
  */
-public abstract class BaseUWSJob { //IMPL should probably pull some of the methods in this class
+public abstract class BaseUWSJob  { //IMPL should probably pull some of the methods in this class
 
    protected static final Logger logger = LoggerFactory.getLogger(BaseUWSJob.class.getName());
    /** The unique identifier for this job. */
@@ -58,40 +58,9 @@ public abstract class BaseUWSJob { //IMPL should probably pull some of the metho
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
 
-      BaseUWSJob(PersistedJobRecord record, ExecutionEnvironment executionEnvironment){
-      this.jobID = record.jobId();
-      this.jobSpecification = record.specification();
-      this.executionPhase = record.phase();
-      this.creationTime = record.creationTime();
-      this.startTime = record.startTime();
-      this.endTime = record.endTime();
-      this.executionEnvironment = executionEnvironment;
-   }
-
    /** The execution environment for this job. */
    protected final ExecutionEnvironment executionEnvironment;
 
-   /**
-    * Restores the job's state using the data in the provided persisted record.
-    * This updates the job's execution phase and timestamps if the job ID in the
-    * record matches the current job ID. If there is a mismatch, an exception is thrown.
-    *
-    * @param record the persisted job record containing the data to restore.
-    *               Must have a non-null job ID and execution phase.
-    * @throws RuntimeException if the job ID in the record does not match the current job's ID.
-    */
-   void restore(PersistedJobRecord record) {
-      if (record.jobId() != null && jobID.compareToIgnoreCase(record.jobId()) == 0) {
-         this.executionPhase = record.phase();
-         this.creationTime = record.creationTime();
-         this.startTime = record.startTime();
-         this.endTime = record.endTime();
-      }
-       else {
-         logger.warn("Attempted to restore job {} with mismatched record ID {}", jobID, record.jobId());
-         throw new RuntimeException("Attempted to restore job with mismatched record ID");
-      }
-   }
 
    /**
     * Returns the unique identifier for this job.

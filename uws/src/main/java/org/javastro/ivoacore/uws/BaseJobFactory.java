@@ -36,18 +36,5 @@ public abstract class BaseJobFactory implements JobFactory {
       this.environmentFactory = environmentFactory;
    }
 
-   @Override
-   public String jobType() {
-      return jobType;
-   }
-
-   @Override
-   public String jobDescription() {
-      return jobTypeDescription;
-   }
-
-   @Override
-   public boolean isParameterized() {
-      return isParameterized;
-   }
+   
 }
