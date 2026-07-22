@@ -33,7 +33,7 @@ public abstract class BaseUWSResource implements UWS {
    /**
     * return the correct job redirection. Abstract as that depended on the implementation.
     * @param jobid the job identifier. Note if this is null the redirect will be to the job list.
-    * @return
+    * @return HTTP redirect response to the relevant job resource.
     */
    protected abstract Response redirectToJob(String jobid);
 

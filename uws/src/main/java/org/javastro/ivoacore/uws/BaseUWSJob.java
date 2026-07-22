@@ -25,6 +25,7 @@ import java.util.List;
  */
 public abstract class BaseUWSJob  { //IMPL should probably pull some of the methods in this class
 
+   /** Logger for job lifecycle events. */
    protected static final Logger logger = LoggerFactory.getLogger(BaseUWSJob.class.getName());
    /** The unique identifier for this job. */
    protected final String jobID;
@@ -49,6 +50,7 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     * Constructs a new BaseUWSJob with the given job ID and specification.
     * @param jobID the unique identifier for this job.
     * @param jobSpecification the specification describing the job's parameters and type.
+    * @param executionEnvironment execution context for filesystem and security resources.
     */
    protected BaseUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment) {
       this.jobSpecification = jobSpecification;
@@ -151,7 +153,11 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     */
    public abstract Results createExternalJobResult();
 
-
+   /**
+    * Creates a compact job description suitable for job list responses.
+    *
+    * @return short description of this job.
+    */
    public ShortJobDescription asShortDescription() {
 
       ShortJobDescription.Builder<Void> builder = ShortJobDescription.builder()

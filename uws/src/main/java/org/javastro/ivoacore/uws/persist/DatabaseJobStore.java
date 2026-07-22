@@ -47,6 +47,12 @@ public class DatabaseJobStore implements JobStore {
         this.mapper.setObjectMapper(objectMapper);
     }
 
+    /**
+     * Constructs a DatabaseJobStore using subtype mappings from a job factory aggregator.
+     *
+     * @param entityManager JPA entity manager used for persistence.
+     * @param aggregator provider of job specification subtype mappings.
+     */
     public DatabaseJobStore(EntityManager entityManager, JobFactoryAggregator aggregator) {
         this(entityManager, aggregator.getSpecificationMapping());
     }

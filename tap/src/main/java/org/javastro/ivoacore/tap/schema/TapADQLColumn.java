@@ -21,6 +21,13 @@ public class TapADQLColumn extends DBIdentifier implements DBColumn, VOTableColu
    private final DBTable table;
    private final DBType datatype;
 
+   /**
+    * Creates a TAP-aware ADQL column and attaches it to the provided table.
+    *
+    * @param table owning ADQL table.
+    * @param column TAP_SCHEMA column metadata.
+    * @throws NullPointerException if required metadata is missing.
+    */
    protected TapADQLColumn(TapADQLTable table, Column column) throws NullPointerException {
       super(table.isCaseSensitive()?column.getColumn_name():column.getColumn_name().toUpperCase());//TODO worry about case....
       this.table = table;

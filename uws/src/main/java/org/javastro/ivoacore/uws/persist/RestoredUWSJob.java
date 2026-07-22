@@ -13,6 +13,12 @@ import org.javastro.ivoacore.uws.environment.ExistingExecutionEnvironment;
  *
  * @author Paul Harrison (paul.harrison@manchester.ac.uk) */
 public class RestoredUWSJob extends BaseUWSJob {
+   /**
+    * Rebuilds an in-memory job representation from persisted state.
+    *
+    * @param entity persisted job entity.
+    * @param jobSpecification deserialized job specification.
+    */
    protected RestoredUWSJob(UWSJobEntity entity, JobSpecification jobSpecification) {
       super(entity.jobId, jobSpecification, new ExistingExecutionEnvironment(null,entity.workdir));
       executionPhase = entity.executionPhase;

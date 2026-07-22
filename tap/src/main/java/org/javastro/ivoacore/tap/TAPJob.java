@@ -49,9 +49,11 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class TAPJob extends RunnableUWSJob {
 
+   /** Identifier used for TAP job specifications. */
    public static final String JOB_TYPE = "TAP";
    private static final String SCHEMA_NAME = "TAP_UPLOAD";
    private static final Logger log = LoggerFactory.getLogger(TAPJob.class);
+   /** Human-readable description of TAP jobs. */
    public static final String JOB_TYPE_DESCRIPTION = "Runs TAP jobs";
    private final DataSource dataSource;
    private final TAPJobSpecification tapJobSpec;
@@ -254,6 +256,8 @@ public class TAPJob extends RunnableUWSJob {
        * Constructs a JobFactory using the given data source.
        *
        * @param ds the JDBC data source used to execute TAP queries.
+       * @param schemaProvider schema provider used for query parsing metadata.
+       * @param environmentFactory factory creating job execution environments.
        */
       public JobFactory(DataSource ds, SchemaProvider schemaProvider, EnvironmentFactory environmentFactory)  {
          super(TAPJobSpecification.jobType, TAPJobSpecification.class, environmentFactory);

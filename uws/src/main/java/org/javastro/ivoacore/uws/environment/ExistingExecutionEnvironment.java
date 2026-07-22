@@ -12,6 +12,12 @@ public class ExistingExecutionEnvironment implements ExecutionEnvironment {
     private final SecurityGuard secGuard;
     private final File workDir;
 
+    /**
+     * Creates an execution environment backed by an existing working directory.
+     *
+     * @param secGuard security guard associated with the environment.
+     * @param workDir existing working directory for the job.
+     */
     public ExistingExecutionEnvironment(SecurityGuard secGuard, File workDir) {
         this.secGuard = secGuard;
         this.workDir = workDir;

@@ -98,7 +98,7 @@ public class TAPJobSpecification extends BaseJobSpecification {
    public TAPJobSpecification(String query){
       this(query,"ADQL","votable", 5000L,null,new HashMap<>());
    }
-
+   /** Job type descriptor used by TAP job factories and serialization. */
    public static JobType jobType = new JobType() {
       @Override
       public String jobDescription() {
@@ -127,10 +127,19 @@ public class TAPJobSpecification extends BaseJobSpecification {
       return jobType;
    }
 
-
+   /**
+    * Returns the ADQL query text.
+    *
+    * @return ADQL query.
+    */
    public String getAdqlQuery() {
       return adqlQuery;
    }
 
+   /**
+    * Returns resolved upload resources keyed by upload table name.
+    *
+    * @return upload map.
+    */
    public Map<String, Path> getUploads() { return uploads; }
 }

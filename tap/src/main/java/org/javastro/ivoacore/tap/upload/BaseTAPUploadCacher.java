@@ -9,11 +9,20 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Base {@link TAPUploadCacher} implementation that parses TAP {@code UPLOAD} parameters.
+ */
 public abstract class BaseTAPUploadCacher implements TAPUploadCacher {
 
+   /** Raw TAP {@code UPLOAD} parameter value. */
    protected final String uploadParam;
 
 
+   /**
+    * Creates a cacher for the supplied upload parameter.
+    *
+    * @param uploadParam raw TAP {@code UPLOAD} parameter.
+    */
    protected BaseTAPUploadCacher(String uploadParam) {
       this.uploadParam = uploadParam;
    }
@@ -72,11 +81,19 @@ public abstract class BaseTAPUploadCacher implements TAPUploadCacher {
     * as it may depend on the underlying framework or environment to extract the param values
     * from the Multi-partformdata.
     * @param tableLoc parameter of the DALI UPLOAD query parameter, e.g. "param:t3"
+    * @param uploadDirectory directory where uploaded content should be stored.
     * @return The Path of the uploaded file, or null if the file was not uploaded.
     * @throws IOException If an I/O error occurs while storing the file.
     */
    protected abstract Path storeParam(String tableLoc, Path uploadDirectory) throws IOException;
 
+   /**
+    * Creates a unique filename for a cached upload.
+    *
+    * @param dir destination directory.
+    * @param tableName uploaded table name.
+    * @return path for the cached VOTable.
+    */
    protected Path generateFileName(Path dir, String tableName) {
       UUID uuid = UUID.randomUUID(); //TODO does this really need the extra uuid in name?
       return dir.resolve("tap-upload-" + tableName + "-" + uuid + ".vot");

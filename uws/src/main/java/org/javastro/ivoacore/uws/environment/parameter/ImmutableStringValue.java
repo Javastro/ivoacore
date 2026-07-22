@@ -25,6 +25,12 @@ public class ImmutableStringValue implements ParameterValue {
    private final String name;
    private final boolean indirect = false;
 
+   /**
+    * Creates an immutable string parameter value.
+    *
+    * @param name parameter identifier.
+    * @param val parameter value.
+    */
    @JsonCreator
    public ImmutableStringValue(
            @JsonProperty("id") String name,

@@ -25,6 +25,7 @@ public class DefaultExecutionEnvironment implements ExecutionEnvironment {
    /**
     * Constructs a DefaultExecutionEnvironment with the given base directory for job working directories.
     * @param baseDir the base directory under which per-job working directories will be created.
+    * @param jobID job identifier used to name the working directory.
     */
    public DefaultExecutionEnvironment(File baseDir, String jobID) {
       this.baseDir = baseDir;

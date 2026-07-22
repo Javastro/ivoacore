@@ -21,6 +21,8 @@ public class JobFactoryAggregator implements JobFactory {
 
    /**
     * Adds a {@link JobFactory} to this aggregator, registering it by its job type.
+    * @param <T> concrete job type metadata class.
+    * @param <S> concrete specification class token.
     * @param factory the factory to add.
     *
     */

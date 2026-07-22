@@ -31,6 +31,7 @@ public class CapabilityBuilder {
     * Creates a list of standard VOSI capabilities for the given service URL.
     * @param url the base URL of the service.
     * @return a list of {@link Capability} objects for the VOSI capabilities and availability endpoints.
+    * @throws MalformedURLException if derived capability URLs are malformed.
     */
    static public List<Capability> createVOSICapabilities(URL url) throws MalformedURLException {
       List<Capability> capabilities = new ArrayList<>();
@@ -47,6 +48,13 @@ public class CapabilityBuilder {
       return capabilities;
    }
 
+   /**
+    * Creates TAP and related VOSI capability entries for a TAP service endpoint.
+    *
+    * @param url TAP service base URL.
+    * @return TAP and VOSI tables capabilities.
+    * @throws MalformedURLException if relative capability endpoints cannot be resolved.
+    */
    static public List<Capability> createTAPCapabilities(URL url) throws MalformedURLException {
       List<Capability> capabilities = new ArrayList<>();
       ParamHTTP intf = ParamHTTP.builder().withVersion("1.1").build();//TODO add all the parameters

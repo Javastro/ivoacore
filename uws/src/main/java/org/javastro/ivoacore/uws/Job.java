@@ -14,6 +14,7 @@ public interface Job {
     * What the job actually does. This is where the business logic of each job type is
     * implemented.
     * @return A list of parameter Values.
+    * @throws UWSException if the job fails while executing.
     */
     List<ParameterValue> performAction() throws UWSException;
 

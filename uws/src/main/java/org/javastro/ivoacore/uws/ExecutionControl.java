@@ -73,7 +73,7 @@ public interface ExecutionControl  {
     * Delete a job.
     *
     * @param jobId the identifier of the job to delete.
-    * @return
+    * @return {@code true} when the job was deleted.
     * @throws UWSException if the job cannot be deleted.
     */
    boolean deleteJob(String jobId) throws UWSException;

@@ -30,8 +30,13 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
       return jobFuture;
    }
 
-
-
+   /**
+    * Creates a runnable UWS job.
+    *
+    * @param jobID unique job identifier.
+    * @param jobSpecification job configuration and parameters.
+    * @param executionEnvironment execution environment for job artifacts.
+    */
    protected RunnableUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment) {
       super(jobID, jobSpecification, executionEnvironment);
    }

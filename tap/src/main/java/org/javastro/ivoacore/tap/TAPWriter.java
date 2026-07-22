@@ -22,22 +22,44 @@ public class TAPWriter extends VOTableWriter {
    private boolean timeout = false;
    private URI jobUri = null;
 
+   /**
+    * Creates a TAP writer with default VOTable formatting.
+    *
+    * @param job TAP job whose metadata is rendered into INFO elements.
+    */
    public TAPWriter(TAPJob job) {
       this.job = job;
    }
 
+   /**
+    * Creates a TAP writer with explicit data format and inline mode.
+    *
+    * @param dataFormat VOTable data format.
+    * @param inline whether table data is written inline.
+    * @param job TAP job whose metadata is rendered into INFO elements.
+    */
    public TAPWriter(DataFormat dataFormat, boolean inline, TAPJob job) {
       super(dataFormat, inline);
       this.job = job;
    }
-
-
-
+   /**
+    * Creates a TAP writer with explicit data format, inline mode and VOTable version.
+    *
+    * @param dataFormat VOTable data format.
+    * @param inline whether table data is written inline.
+    * @param version VOTable version.
+    * @param job TAP job whose metadata is rendered into INFO elements.
+    */
    public TAPWriter(DataFormat dataFormat, boolean inline, VOTableVersion version, TAPJob job) {
       super(dataFormat, inline, version);
       this.job = job;
    }
 
+   /**
+    * Marks output as timed-out and includes the asynchronous UWS job URI.
+    *
+    * @param jobUri URI of the background UWS job resource.
+    */
    public void setTimeoutInfo(URI jobUri) {
       this.timeout = true;
       this.jobUri = jobUri;

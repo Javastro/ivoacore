@@ -22,8 +22,10 @@ public abstract class BaseJobFactory<T extends JobType, S extends Class<? extend
    /**  Factory for creating execution environments for new jobs. */
    protected final EnvironmentFactory environmentFactory;
 
+   /** Job type handled by this factory. */
    protected final T type;
 
+   /** Job specification class handled by this factory. */
    protected final S specClass;
 
    /**
@@ -50,7 +52,7 @@ public abstract class BaseJobFactory<T extends JobType, S extends Class<? extend
 
    /**
     * Get the job Specification Class.
-    * @return
+    * @return specification class used by this factory.
     */
    public S getSpecificationClass() {
       return specClass;

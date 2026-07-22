@@ -28,7 +28,7 @@ public interface SchemaProvider {
 
    /**
     * Is the database case sensitive. This is needed by ADQLLib to determine how to handle identifiers.
-    * @return
+    * @return {@code true} when identifiers are case-sensitive.
     */
    boolean isDBCaseSensitive();
 }

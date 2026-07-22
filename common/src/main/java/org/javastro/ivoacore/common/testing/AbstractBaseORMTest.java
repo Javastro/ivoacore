@@ -27,10 +27,19 @@ public abstract class AbstractBaseORMTest extends AbstractBaseDSTest {
 
 
 
+    /** Persistence unit name used for the test EntityManagerFactory. */
     protected final String puname;
+    /** Entity class names included in the temporary persistence unit. */
     protected final List<String> classNames;
+    /** EntityManagerFactory backing this test instance. */
     protected EntityManagerFactory emf;
 
+   /**
+    * Creates an ORM test base configured for the supplied persistence unit and entity classes.
+    *
+    * @param puname persistence unit name.
+    * @param classNames managed entity class names.
+    */
    protected AbstractBaseORMTest(String puname, List<String> classNames) {
       this.puname = puname;
       this.classNames = classNames;

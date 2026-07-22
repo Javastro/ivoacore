@@ -40,12 +40,21 @@ import java.util.List;
  */
 public abstract class BaseSchemaProvider implements SchemaProvider {
    private static final Logger log = LoggerFactory.getLogger(BaseSchemaProvider.class);
+   /** Saxon processor used for XSLT transformation. */
    protected final Processor processor;
+   /** Compiler used to build the TAP-to-VOSI stylesheet. */
    protected final XsltCompiler compiler;
    final List<Schema> schemas = new ArrayList<>();
+   /** Cached VOSI tableset representation. */
    protected  Tableset tableSet;
+   /** Whether database identifiers should preserve case. */
    protected final boolean dbCaseSensitive;
 
+   /**
+    * Creates a base schema provider.
+    *
+    * @param dbCaseSensitive whether schema/table/column names are case-sensitive.
+    */
    public BaseSchemaProvider(boolean dbCaseSensitive) {
       this.dbCaseSensitive = dbCaseSensitive;
       processor = new Processor(false);
@@ -53,6 +62,11 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
 
    }
 
+   /**
+    * Loads TAP_SCHEMA metadata from the backing source.
+    *
+    * @return loaded TAP schemas.
+    */
    protected abstract List<Schema> provideSchemas();
 
    @Override

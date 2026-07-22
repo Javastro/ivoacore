@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MemoryBasedJobStore implements JobStore {
 
+   /** In-memory job storage keyed by job identifier. */
    protected final Map<String, BaseUWSJob> jobs = new ConcurrentHashMap<>();
    @Override
    public void store(BaseUWSJob job) {

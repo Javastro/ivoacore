@@ -39,6 +39,11 @@ public interface JobSpecification {
     */
    String getRunId();
 
+   /**
+    * Returns the semantic job type represented by this specification.
+    *
+    * @return job type metadata.
+    */
    JobType theJobType();
 
 }

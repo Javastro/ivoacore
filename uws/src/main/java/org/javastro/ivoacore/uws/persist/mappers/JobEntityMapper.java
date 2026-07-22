@@ -16,15 +16,26 @@ import java.util.Objects;
 @Mapper
 public abstract class JobEntityMapper {
 
+    /**
+     * the object mapper used for the json serialiation of the job specification. This field must be set before using the mapper.
+     */
     protected ObjectMapper objectMapper;
 
+    /**
+     * set the objectMapper
+     * @param objectMapper object mapper used for specification serialization.
+     */
     public void setObjectMapper(ObjectMapper objectMapper) {
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
     }
 
+    /**
+     * convert a UWS job to the entity form.
+     * @param job The UWS job.
+     * @return the entity.
+     */
     @Mapping(target = "jobId", source = "ID")
     @Mapping(target = "jobSpecificationJson", expression = "java(serializeSpec(job.getJobSpecification()))")
-
     public abstract UWSJobEntity toEntity(BaseUWSJob job);
 
     /**

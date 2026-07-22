@@ -22,13 +22,16 @@ import java.util.function.Function;
 public class SimpleLambdaJob  extends RunnableUWSJob {
 
    //FIXME the following pattern of type and description needs to be standardised across all job types - probably should be in the JobType interface
+   /** Identifier used for this job type in serialized job specifications. */
    static public final String JOB_TYPE = "simpleLambda";
+   /** Human-readable description of the simple lambda job type. */
    static public final String JOB_TYPE_DESCRIPTION = "a job that runs natively in JVM ";
    final Function<String,String> function;
 
    /**
     * Constructs a SimpleLambdaJob with the given ID, function, and specification.
     * @param jobID the unique identifier for this job.
+    * @param executionEnvironment execution context for this job.
     * @param func the function that implements the job's action.
     * @param jobSpecification the specification for this job.
     */
@@ -85,6 +88,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
       /**
        * Constructs a JobFactory for SimpleLambdaJob using the given function.
        * @param func the function that the created jobs will execute.
+       * @param environmentFactory factory creating per-job execution environments.
        */
       public JobFactory(Function<String, String> func, EnvironmentFactory environmentFactory) {
          super(jobType, Specification.class, environmentFactory);
@@ -99,7 +103,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
       }
    }
 
-
+   /** Job type descriptor for {@link SimpleLambdaJob}. */
    public static JobType jobType = new JobType() {
       @Override
       public String jobTypeIdentifier() {

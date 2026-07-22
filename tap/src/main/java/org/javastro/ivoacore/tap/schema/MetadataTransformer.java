@@ -26,6 +26,11 @@ public class MetadataTransformer {
    private static final Logger log = LoggerFactory.getLogger(MetadataTransformer.class);
    private final SchemaProvider schemaProvider;
 
+   /**
+    * Creates a metadata transformer for a schema provider.
+    *
+    * @param schemaProvider schema source used for transformation.
+    */
    public MetadataTransformer(SchemaProvider schemaProvider) {
       this.schemaProvider = schemaProvider;
    }
@@ -35,7 +40,7 @@ public class MetadataTransformer {
     * extra TAPSchema Metadata by using {@link TapADQLTable} and {@link TapADQLColumn}
     * implementations of the ADQLLib {@link DBTable} and {@link adql.db.DBColumn} interfaces.
     *
-    * @return
+    * @return ADQLLib table metadata derived from TAP_SCHEMA content.
     * @see <a href="https://cdsportal.u-strasbg.fr/adqltuto/gettingstarted.html">ADQLLib Getting Started</a>
     */
    public List<DBTable> transformToADQLLib() {
@@ -86,6 +91,12 @@ public class MetadataTransformer {
            new TypeMapping(c -> java.sql.Timestamp.class.isAssignableFrom(c) || java.util.Date.class.isAssignableFrom(c), TAPType.TIMESTAMP)
    );
 
+   /**
+    * Maps a Java content class to a TAP_SCHEMA datatype.
+    *
+    * @param contentClass Java class to map.
+    * @return matching TAP datatype, defaulting to {@link TAPType#VARCHAR}.
+    */
    public static TAPType mapContentClassToTAPType(Class<?> contentClass) {
       return CLASS_TO_TAP.stream()
               .filter(m -> m.matcher().test(contentClass))
@@ -129,6 +140,12 @@ public class MetadataTransformer {
       return resolved;
    }
 
+   /**
+    * Maps a TAP datatype to an ADQLLib database type.
+    *
+    * @param tapType TAP datatype.
+    * @return ADQLLib database type.
+    */
    public static DBType mapDbType(TAPType tapType) {
       return new DBType(db(tapType));
    }
@@ -144,6 +161,12 @@ public class MetadataTransformer {
       };
    }
 
+   /**
+    * Maps a TAP datatype to an SQL type string.
+    *
+    * @param tapType TAP datatype.
+    * @return SQL type name suitable for DDL generation.
+    */
    public static String mapTAPTypeToSqlType(TAPType tapType) {
       return toSql(db(tapType));
    }

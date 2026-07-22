@@ -22,8 +22,8 @@ public abstract class BaseJobSpecification implements JobSpecification {
    /**
     * Constructs a new BaseJobSpecification with the given run ID and parameter list.
     * Note that this constructor is protected and should only be used by subclasses.
-    * @param runId
-    * @param parameterValues
+    * @param runId run identifier for the job.
+    * @param parameterValues parameter values for job execution.
     */
    protected BaseJobSpecification(String runId, List<ParameterValue> parameterValues) {
       this.runId = runId;

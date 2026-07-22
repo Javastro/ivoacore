@@ -5,11 +5,14 @@ import org.h2.jdbcx.JdbcDataSource;
 
 import javax.sql.DataSource;
 
+/**
+ * Base helper for tests that need an in-memory datasource.
+ */
 public abstract class AbstractBaseDSTest {
 
    /**
     * Create a DataSource for an in-memory H2 database and set up the JPA/Hibernate configuration to use it.
-    * @return
+    * @return configured in-memory datasource.
     */
   public static DataSource createDataSource() {
       JdbcDataSource dataSource = new JdbcDataSource();

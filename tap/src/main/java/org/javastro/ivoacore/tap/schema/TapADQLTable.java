@@ -17,6 +17,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+/**
+ * ADQLLib table implementation backed by TAP_SCHEMA table metadata.
+ */
 public class TapADQLTable extends DBIdentifier implements DBTable {
 
 
@@ -26,6 +29,13 @@ public class TapADQLTable extends DBIdentifier implements DBTable {
    private final Map<String, TapADQLColumn> columnMap = new HashMap<>();
    private final Schema schema;
 
+   /**
+    * Creates a table wrapper around TAP_SCHEMA metadata.
+    *
+    * @param s parent schema metadata.
+    * @param table TAP table metadata.
+    * @param dbCaseSensitive whether table and column names are case-sensitive.
+    */
    public TapADQLTable(Schema s, Table table, boolean dbCaseSensitive) {
 
       super(dbCaseSensitive?table.getTable_name():table.getTable_name().toUpperCase());//TODO worry about case....
@@ -74,6 +84,11 @@ public class TapADQLTable extends DBIdentifier implements DBTable {
       return columns.stream().map(c -> (DBColumn) c).iterator();
    }
 
+   /**
+    * Adds a transformed TAP column to this ADQL table.
+    *
+    * @param tapADQLColumn column to add.
+    */
    public void addColumn(TapADQLColumn tapADQLColumn) {
       columns.add(tapADQLColumn);
       columnMap.put(tapADQLColumn.getName(), tapADQLColumn);
