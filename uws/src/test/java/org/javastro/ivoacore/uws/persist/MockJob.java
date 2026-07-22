@@ -1,11 +1,9 @@
 package org.javastro.ivoacore.uws.persist;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Results;
-import org.javastro.ivoacore.uws.BaseJobSpecification;
-import org.javastro.ivoacore.uws.BaseUWSJob;
+import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
@@ -80,9 +78,22 @@ public class MockJob extends BaseUWSJob {
       }
    }
 
-   private final  static DefaultEnvironmentFactory envFactory;
+   private final static DefaultEnvironmentFactory envFactory;
 
-   static {
+   public static class JobFactory extends BaseJobFactory<JobType, Class<Specification>> {
+      public JobFactory() {
+         super(jobType, Specification.class,envFactory);
+      }
+      @Override
+      public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
+         throw new UWSException("MockJob is not runnable");
+      }
+   }
+
+
+
+
+      static {
       try {
          envFactory = new DefaultEnvironmentFactory(Files.createTempDirectory("mock").toFile());
       } catch (IOException e) {
