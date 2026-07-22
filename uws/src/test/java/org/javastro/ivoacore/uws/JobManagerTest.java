@@ -34,7 +34,7 @@ class JobManagerTest {
    static void setup() throws IOException {
       File tmpdir = Files.createTempDirectory("managerTest").toFile();
       JobFactoryAggregator agg = new JobFactoryAggregator();
-      agg.addFactory(SimpleLambdaJob.JOB_TYPE, new SimpleLambdaJob.JobFactory(s-> {
+      agg.addFactory( new SimpleLambdaJob.JobFactory(s-> {
          try {
             Thread.sleep(2300);
          } catch (InterruptedException e) {

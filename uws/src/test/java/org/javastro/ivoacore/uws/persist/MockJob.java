@@ -6,6 +6,7 @@ import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.BaseJobSpecification;
 import org.javastro.ivoacore.uws.BaseUWSJob;
+import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
@@ -19,6 +20,9 @@ import java.util.List;
  *
  * @author Paul Harrison (paul.harrison@manchester.ac.uk) */
 public class MockJob extends BaseUWSJob {
+
+   public static final String JOB_TYPE = "mock";
+   public static final String JOB_TYPE_DESCRIPTION = "A mock job that does nothing and is not runnable - just for testing storage";
 
    /**
     * Constructs a new BaseUWSJob with the given job ID and specification.
@@ -43,6 +47,24 @@ public class MockJob extends BaseUWSJob {
    }
 
 
+   public static JobType jobType = new JobType() {
+
+      @Override
+      public String jobDescription() {
+         return JOB_TYPE_DESCRIPTION;
+      }
+
+      @Override
+      public boolean isParameterized() {
+         return true;
+      }
+
+      @Override
+      public String jobTypeIdentifier() {
+         return JOB_TYPE;
+      }
+   };
+
    public static class Specification extends BaseJobSpecification {
       public Specification(String runId) {
          super(runId, List.of(new ImmutableStringValue("p1","pval")));
@@ -53,21 +75,9 @@ public class MockJob extends BaseUWSJob {
       }
 
       @Override
-      public String jobDescription() {
-         return "A mock job that does nothing and is not runnable - just for testing storage";
+      public JobType theJobType() {
+         return jobType;
       }
-
-      @Override
-      @JsonIgnore
-      public boolean isParameterized() {
-         return false;
-      }
-
-      @Override
-      public String jobTypeIdentifier() {
-         return "mock";
-      }
-
    }
 
    private final  static DefaultEnvironmentFactory envFactory;
@@ -79,6 +89,8 @@ public class MockJob extends BaseUWSJob {
          throw new RuntimeException(e);
       }
    }
+
+
 
 
 

@@ -18,7 +18,7 @@ import java.util.List;
  * *how* the job is run, that is the responsibility of the {@link JobManager} and the {@link JobFactory}.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "@type")
-public interface JobSpecification extends JobType {
+public interface JobSpecification {
 
    /**
     * Returns the Job Description Language (JDL) string for this job, if applicable.
@@ -38,5 +38,7 @@ public interface JobSpecification extends JobType {
     * @return the run identifier string.
     */
    String getRunId();
+
+   JobType theJobType();
 
 }

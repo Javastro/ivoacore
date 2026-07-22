@@ -1,6 +1,8 @@
 package org.javastro.ivoacore.uws;
 
 
+import org.javastro.ivoacore.uws.description.JobType;
+
 /**
  * Factory interface for creating UWS jobs of a specific type.
  */

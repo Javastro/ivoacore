@@ -8,6 +8,7 @@ package org.javastro.ivoacore.tap;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.javastro.ivoacore.tap.upload.TAPUploadCacher;
 import org.javastro.ivoacore.uws.BaseJobSpecification;
+import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
@@ -98,25 +99,32 @@ public class TAPJobSpecification extends BaseJobSpecification {
       this(query,"ADQL","votable", 5000L,null,new HashMap<>());
    }
 
+   public static JobType jobType = new JobType() {
+      @Override
+      public String jobDescription() {
+         return TAPJob.JOB_TYPE_DESCRIPTION;
+      }
 
-   @Override
-   public String jobDescription() {
-      return TAPJob.JOB_TYPE_DESCRIPTION;
-   }
+      @Override
+      public boolean isParameterized() {
+         return true;
+      }
 
-   @Override
-   public boolean isParameterized() {
-      return true;
-   }
-
-   @Override
-   public String jobTypeIdentifier() {
-      return TAPJob.JOB_TYPE;
-   }
-
+      @Override
+      public String jobTypeIdentifier() {
+         return TAPJob.JOB_TYPE;
+      }
+   };
    @Override
    public String getJDL() {
       return ""; //IMPL
+   }
+
+
+
+   @Override
+   public JobType theJobType() {
+      return jobType;
    }
 
 

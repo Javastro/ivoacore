@@ -4,6 +4,8 @@ package org.javastro.ivoacore.uws.persist;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.junit.jupiter.api.*;
 
+import java.util.List;
+
 public class DataBaseJobStoreTest extends BaseStorageTest {
 
    private static JpaTestSupport jpa;
@@ -11,7 +13,7 @@ public class DataBaseJobStoreTest extends BaseStorageTest {
    @BeforeAll
    static void setJobStore(){
       jpa = new JpaTestSupport();
-      jobStore = new DatabaseJobStore(jpa.entityManager(),new NamedType(MockJob.Specification.class, "mock"));
+      jobStore = new DatabaseJobStore(jpa.entityManager(), List.of(new NamedType(MockJob.Specification.class, MockJob.JOB_TYPE)));
    }
 
    @Override

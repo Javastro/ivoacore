@@ -23,6 +23,7 @@ import org.javastro.ivoacore.tap.schema.TapADQLColumn;
 import org.javastro.ivoacore.tap.upload.TAPUploadCacher;
 import org.javastro.ivoacore.tap.upload.TapUploadService;
 import org.javastro.ivoacore.uws.*;
+import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
@@ -245,7 +246,7 @@ public class TAPJob extends RunnableUWSJob {
    /**
      * Factory for creating {@link TAPJob} instances.
      */
-    public static class JobFactory extends BaseJobFactory {
+    public static class JobFactory extends BaseJobFactory<JobType, Class<TAPJobSpecification>> {
       private final DataSource ds;
       private final SchemaProvider schemaProvider;
 
@@ -255,14 +256,14 @@ public class TAPJob extends RunnableUWSJob {
        * @param ds the JDBC data source used to execute TAP queries.
        */
       public JobFactory(DataSource ds, SchemaProvider schemaProvider, EnvironmentFactory environmentFactory)  {
-         super(JOB_TYPE, JOB_TYPE_DESCRIPTION, true, environmentFactory);
+         super(TAPJobSpecification.jobType, TAPJobSpecification.class, environmentFactory);
          this.ds = ds;
          this.schemaProvider = schemaProvider;
       }
 
       @Override
       public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
-         if (jobDescription.jobTypeIdentifier().equals("TAP")) {
+         if (jobDescription.theJobType().jobTypeIdentifier().equals(JOB_TYPE)) {
             final String id = idProvider.generateId();
             return new TAPJob(id, (TAPJobSpecification) jobDescription, environmentFactory.create(id), ds, schemaProvider );
          } else throw new UWSException("Invalid job type");

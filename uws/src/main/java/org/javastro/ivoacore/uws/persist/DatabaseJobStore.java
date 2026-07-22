@@ -29,17 +29,6 @@ public class DatabaseJobStore implements JobStore {
 
     private final EntityManager entityManager;
     private final JobEntityMapper mapper;
-    /**
-     * Constructs a DatabaseJobStore with the given EntityManager and mapper.
-     *
-     * @param entityManager the JPA EntityManager for database operations.
-     * @param objectMapper the ObjectMapper used for JSON serialization/deserialization of job specifications.
-     */
-    private DatabaseJobStore(EntityManager entityManager, ObjectMapper objectMapper) {
-        this.entityManager = entityManager;
-        this.mapper = Mappers.getMapper(JobEntityMapper.class);
-        this.mapper.setObjectMapper(objectMapper);
-    }
 
     /**
      * Constructs a DatabaseJobStore with the given EntityManager, type details, and JobFactoryAggregator.
@@ -47,23 +36,21 @@ public class DatabaseJobStore implements JobStore {
      * @param entityManager the JPA EntityManager used for database operations.
      * @param typeDetails the NamedType specifying the subtypes for JSON deserialization.
      */
-    public DatabaseJobStore(EntityManager entityManager, NamedType typeDetails) {
-        this(entityManager, objectMapperFor(typeDetails));
-    }
+    public DatabaseJobStore(EntityManager entityManager, List<NamedType> typeDetails) {
 
-
-    /**
-     * Creates and returns a configured {@link ObjectMapper} instance for handling serialization and
-     * deserialization of JSON, specifically registering subtypes as specified by the given type details.
-     *
-     * @param typeDetails the {@link NamedType} representing the subtypes to register for JSON handling.
-     * @return a configured {@link ObjectMapper} instance with the registered subtypes.
-     */
-    private static ObjectMapper objectMapperFor(NamedType typeDetails) {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerSubtypes(typeDetails);
-        return objectMapper;
+        for (NamedType namedType : typeDetails) {
+            objectMapper.registerSubtypes(namedType);
+        }
+        this.entityManager = entityManager;
+        this.mapper = Mappers.getMapper(JobEntityMapper.class);
+        this.mapper.setObjectMapper(objectMapper);
     }
+
+    public DatabaseJobStore(EntityManager entityManager, JobFactoryAggregator aggregator) {
+        this(entityManager, aggregator.getSpecificationMapping());
+    }
+
 
     /**
      * Persists a BaseUWSJob instance into the database by converting it into an appropriate

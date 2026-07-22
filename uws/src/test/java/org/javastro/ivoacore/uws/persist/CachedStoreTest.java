@@ -28,7 +28,7 @@ public class CachedStoreTest {
         File tmpDir = Files.createTempDirectory("managerTest").toFile();
 
         JobFactoryAggregator agg = new JobFactoryAggregator();
-        agg.addFactory(SimpleLambdaJob.JOB_TYPE, new SimpleLambdaJob.JobFactory(
+        agg.addFactory( new SimpleLambdaJob.JobFactory(
                 CachedStoreTest::runLambdaJob,
                 new DefaultEnvironmentFactory(tmpDir)
         ));

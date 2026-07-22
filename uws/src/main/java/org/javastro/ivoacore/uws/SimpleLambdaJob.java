@@ -7,6 +7,7 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
+import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
@@ -77,7 +78,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
    /**
     * Factory for creating {@link SimpleLambdaJob} instances.
     */
-   public static class JobFactory extends BaseJobFactory {
+   public static class JobFactory extends BaseJobFactory<JobType, Class<Specification>> {
 
       private final Function<String, String> theFunc;
 
@@ -86,7 +87,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
        * @param func the function that the created jobs will execute.
        */
       public JobFactory(Function<String, String> func, EnvironmentFactory environmentFactory) {
-         super(JOB_TYPE, JOB_TYPE_DESCRIPTION, true, environmentFactory);
+         super(jobType, Specification.class, environmentFactory);
          this.theFunc = func;
       }
 
@@ -97,6 +98,24 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
          return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription);
       }
    }
+
+
+   public static JobType jobType = new JobType() {
+      @Override
+      public String jobTypeIdentifier() {
+         return JOB_TYPE;
+      }
+
+      @Override
+      public String jobDescription() {
+         return JOB_TYPE_DESCRIPTION;
+      }
+
+      @Override
+      public boolean isParameterized() {
+         return false;
+      }
+   };
 
    /**
     * Job specification for a {@link SimpleLambdaJob}, providing a single string input parameter.
@@ -118,21 +137,13 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
       }
 
       @Override
-      public String jobDescription() {
-         return JOB_TYPE_DESCRIPTION;
-      }
-
-      @Override
-      public boolean isParameterized() {
-         return false;
-      }
-
-      @Override
-      public String jobTypeIdentifier() {return JOB_TYPE;}
-
-      @Override
       public String getJDL() {
          return "";
+      }
+
+      @Override
+      public JobType theJobType() {
+         return jobType;
       }
 
    }
