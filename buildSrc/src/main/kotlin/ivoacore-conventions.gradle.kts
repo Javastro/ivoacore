@@ -1,14 +1,28 @@
+
 plugins {
     `java-library`
     `jvm-test-suite`
     `maven-publish`
     jacoco
     signing
-
+  //   id("com.github.jmongard.git-semver-plugin") not quite ready for multi version monorepos - see https://github.com/jmongard/Git.SemVersioning.Gradle/issues/93
+    id("pl.allegro.tech.build.axion-release")
 }
 
 group = "org.javastro.ivoa.core"
-version = "0.1.0-SNAPSHOT"
+
+scmVersion {
+   tag {
+       initialVersion({c,p -> "0.9.0"})
+       prefix.set(project.name)
+       versionSeparator.set("_")
+   }
+}
+
+
+version = scmVersion.version
+
+
 
 repositories {
     mavenCentral()

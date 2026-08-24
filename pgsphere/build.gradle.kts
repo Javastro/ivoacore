@@ -3,7 +3,7 @@ plugins {
     id("org.kordamp.gradle.jandex") version "2.3.0"
 }
 description = "IVOA Spherical Geometry library"
-version = "0.9.1-SNAPSHOT"
+
 
 tasks.javadoc {
     dependsOn(tasks.jandex)
