@@ -31,7 +31,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Publish with Gradle Wrapper
-        run: ./gradlew publish
+        run: ./gradlew publish -DskipSigning
         env:
           UKSRC_REPO_USERNAME: ${{ secrets.UKSRC_REPO_USERNAME }}
           UKSRC_REPO_PASSWORD: ${{ secrets.UKSRC_REPO_PASSWORD }}
