@@ -7,7 +7,7 @@ dependencies {
     api(project(":uws"))
     api("uk.ac.starlink:stil")
     api("org.javastro.ivoa.dm:tapschema:0.9.9")
-    api("net.ivoa:ADQLLib:2.1-SNAPSHOT")
+    api("org.javastro.ivoa:ADQLLib:2.1")
     implementation(project(":common"))
     implementation("net.sf.saxon:Saxon-HE:12.5")
 
