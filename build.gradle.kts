@@ -1,5 +1,6 @@
 plugins {
 //    id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
+    id("pl.allegro.tech.build.axion-release")
 }
 
 //TODO when finished with SNAPSHOT phase revert to publishing to maven-central
@@ -15,6 +16,25 @@ plugins {
 //        }
 //    }
 //}
+
+tasks.register("publishSnapshots") {
+    group = "publishing"
+    description = "Publishes only the subprojects that are at snapshot versions"
+
+    subprojects {
+        val subproj = this
+        if(subproj.version.toString().endsWith("SNAPSHOT")) {
+            logger.lifecycle("Subproject [${subproj.name}] is a SNAPSHOT version. Registering for release.")
+            dependsOn("{${subproj.name}:publish}")
+
+            } else {
+                logger.lifecycle("Subproject [${subproj.name}] is unchanged since release. Skipping.")
+            }
+
+    }
+}
+
+
 
 // ---------------------------------------------------------------------------
 // Aggregated Javadoc across all Java submodules
