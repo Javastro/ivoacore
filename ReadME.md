@@ -21,3 +21,6 @@ then there are client libraries for the protocols in the [clients](clients) dire
 * [VOSpace](https://www.ivoa.net/documents/VOSpace/)
 
 
+## Versioning
+
+versioning is managed with the [axion release plugin](https://axion-release-plugin.readthedocs.io/en/latest/)
