@@ -11,3 +11,4 @@ doc/_build/
 
 /buildSrc/.kotlin/errors
 
+/buildSrc/.kotlin/
