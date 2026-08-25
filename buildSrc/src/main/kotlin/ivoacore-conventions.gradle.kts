@@ -1,4 +1,5 @@
 import pl.allegro.tech.build.axion.release.domain.hooks.HookContext
+import pl.allegro.tech.build.axion.release.domain.hooks.ReleaseHookAction
 
 plugins {
     `java-library`
@@ -21,9 +22,9 @@ scmVersion {
     hooks {
         pre("fileUpdate", mapOf(
             "encoding" to "utf-8",
-            "file" to file("README.md"),
-            "pattern" to { v: String, c: HookContext -> "/${project.name}:$v/" },
-            "replacement" to {v: String, c: HookContext -> "${project.name}:$v" }
+            "file" to rootDir.resolve("README.md").toString(),
+            "pattern" to KotlinClosure2<String, HookContext,String>({ v, c -> "/${project.name}:${v}/" } ),
+            "replacement" to KotlinClosure2<String, HookContext,String>( {v, c -> "${project.name}:${v}" })
         ))
 
 
