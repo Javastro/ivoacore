@@ -34,6 +34,23 @@ tasks.register("publishSnapshots") {
     }
 }
 
+tasks.register("documentVersions") {
+    group = "publishing"
+    description = "documents the latest versions"
+
+    subprojects {
+        val subproj = this
+        if(!subproj.version.toString().endsWith("SNAPSHOT")) {
+            logger.lifecycle("Subproject [${subproj.name}] is a RELEASE version. Registering for release.")
+            dependsOn("{${subproj.name}:publish}")
+
+        } else {
+            logger.lifecycle("Subproject [${subproj.name}] is unchanged since release. Skipping.")
+        }
+
+    }
+}
+
 
 
 // ---------------------------------------------------------------------------

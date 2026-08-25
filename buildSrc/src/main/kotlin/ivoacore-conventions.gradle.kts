@@ -1,3 +1,4 @@
+import pl.allegro.tech.build.axion.release.domain.hooks.HookContext
 
 plugins {
     `java-library`
@@ -17,6 +18,16 @@ scmVersion {
        prefix.set(project.name)
        versionSeparator.set("_")
    }
+    hooks {
+        pre("fileUpdate", mapOf(
+            "encoding" to "utf-8",
+            "file" to file("README.md"),
+            "pattern" to { v: String, c: HookContext -> "/${project.name}:$v/" },
+            "replacement" to {v: String, c: HookContext -> "${project.name}:$v" }
+        ))
+
+
+    }
 }
 
 
