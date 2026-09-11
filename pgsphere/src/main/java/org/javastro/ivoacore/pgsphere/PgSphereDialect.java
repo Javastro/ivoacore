@@ -55,6 +55,7 @@ public class PgSphereDialect extends PostgreSQLDialect {
     //TODO review these function definitions.
     @Override
     public void initializeFunctionRegistry(FunctionContributions functionContributions) {
+        super.initializeFunctionRegistry(functionContributions);
         SqmFunctionRegistry functionRegistry = functionContributions.getFunctionRegistry();
 
         var typeConfig = functionContributions.getTypeConfiguration();
