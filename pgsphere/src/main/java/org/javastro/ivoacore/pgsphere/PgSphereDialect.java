@@ -38,6 +38,8 @@ public class PgSphereDialect extends PostgreSQLDialect {
         typeContributions.contributeJavaType(CircleJavaType.INSTANCE);
         typeContributions.contributeJdbcType(EllipseJDBCType.INSTANCE);
         typeContributions.contributeJavaType(EllipseJavaType.INSTANCE);
+        typeContributions.contributeJdbcType(PolygonJDBCType.INSTANCE);
+        typeContributions.contributeJavaType(PolygonJavaType.INSTANCE);
 
     }
 
@@ -48,6 +50,7 @@ public class PgSphereDialect extends PostgreSQLDialect {
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(PgSphereTypes.POINT,"spoint",this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(PgSphereTypes.CIRCLE, "scircle",this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(PgSphereTypes.ELLIPSE, "sellipse",this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(PgSphereTypes.POLYGON, "spoly",this));
 
     }
 
@@ -125,4 +128,3 @@ public class PgSphereDialect extends PostgreSQLDialect {
 }
 
  
-

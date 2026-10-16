@@ -15,7 +15,6 @@ group = "org.javastro.ivoa.core"
 
 scmVersion {
    tag {
-       initialVersion({c,p -> "0.9.0"})
        prefix.set(project.name)
        versionSeparator.set("_")
    }
@@ -27,7 +26,9 @@ scmVersion {
             "replacement" to KotlinClosure2<String, HookContext,String>( {v, c -> "${project.name}:${v}" })
         ))
 
-
+    }
+    monorepo {
+        include(listOf<String>(projectDir.toString().substring(rootDir.toString().length + 1)))
     }
 }
 
