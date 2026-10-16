@@ -17,6 +17,7 @@ import jakarta.xml.bind.Unmarshaller;
 import net.sf.saxon.s9api.*;
 import org.ivoa.dm.tapschema.Schema;
 import org.ivoa.dm.tapschema.TapschemaModel;
+import org.ivoa.dm.tapschema.utils.VOSIWriter;
 import org.javastro.ivoa.entities.IvoaJAXBContextFactory;
 import org.javastro.ivoa.entities.vosi.tables.Tableset;
 import org.slf4j.Logger;
@@ -40,26 +41,25 @@ import java.util.List;
  */
 public abstract class BaseSchemaProvider implements SchemaProvider {
    private static final Logger log = LoggerFactory.getLogger(BaseSchemaProvider.class);
-   /** Saxon processor used for XSLT transformation. */
-   protected final Processor processor;
-   /** Compiler used to build the TAP-to-VOSI stylesheet. */
-   protected final XsltCompiler compiler;
+
    final List<Schema> schemas = new ArrayList<>();
    /** Cached VOSI tableset representation. */
    protected  Tableset tableSet;
    /** Whether database identifiers should preserve case. */
    protected final boolean dbCaseSensitive;
+   /** whether to use TAP types (if true) or VOTABLEtypes (if false) in the VOSI representation.*/
+   protected final boolean useTapTypes;
+
 
    /**
     * Creates a base schema provider.
     *
     * @param dbCaseSensitive whether schema/table/column names are case-sensitive.
+    * @param useTapTypes whether to use TAP types (if true) or VOTABLEtypes (if false) in the VOSI representation.
     */
-   public BaseSchemaProvider(boolean dbCaseSensitive) {
+   public BaseSchemaProvider(boolean dbCaseSensitive, boolean useTapTypes) {
       this.dbCaseSensitive = dbCaseSensitive;
-      processor = new Processor(false);
-      compiler = processor.newXsltCompiler();
-
+      this.useTapTypes = useTapTypes;
    }
 
    /**
@@ -101,17 +101,7 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
          so go via string representations.
           */
    private Tableset writeVOSI() throws SaxonApiException, JAXBException {
-         XsltExecutable stylesheet = null;
-         try {
-            stylesheet = compiler.compile(new StreamSource(TapschemaModel.class.getResourceAsStream("/tap2VOSI.xsl")));
-         } catch (SaxonApiException e) {
-            log.error("cannot compile the VOSI stylesheet");
-            throw new RuntimeException(e);
-         }
-         StringWriter swo = new StringWriter();
-         Serializer out = processor.newSerializer(swo);
-         out.setOutputProperty(Serializer.Property.METHOD, "xml");
-         Xslt30Transformer transformer = stylesheet.load30();
+
          TapschemaModel model = new TapschemaModel();
          for(var s:getSchemas()){
             model.addContent(s);
@@ -120,10 +110,11 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
          Marshaller mar = jc.createMarshaller();
          StringWriter sw = new StringWriter();
          mar.marshal(model, sw);
-         transformer.transform(new StreamSource(new StringReader(sw.toString())), out);
+         VOSIWriter vosiWriter = new VOSIWriter();
+         String swo =  vosiWriter.convertToVOSI(new StreamSource(new StringReader(sw.toString())), VOSIWriter.VOSIDataType.TAP);
          JAXBContext context = IvoaJAXBContextFactory.newInstance();
          Unmarshaller unmarshaller = context.createUnmarshaller();
-         Object rv = unmarshaller.unmarshal(new StringReader(swo.toString()));
+         Object rv = unmarshaller.unmarshal(new StringReader(swo));
          if (rv instanceof Tableset) {
             return (Tableset) rv;
          }

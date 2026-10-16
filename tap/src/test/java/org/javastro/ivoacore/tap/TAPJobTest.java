@@ -33,7 +33,7 @@ class TAPJobTest extends AbstractBaseDSTest{
       File tmpdir = Files.createTempDirectory("managerTest").toFile();
       JobFactoryAggregator agg = new JobFactoryAggregator();
       DataSource ds = createDataSource();
-      TestSchemaProvider schemaProvider = new TestSchemaProvider(false);
+      TestSchemaProvider schemaProvider = new TestSchemaProvider(false, true);
       schemaProvider.writeDataBaseDDL(ds.getConnection());
       schemaProvider.populateDataBase(ds.getConnection());
 

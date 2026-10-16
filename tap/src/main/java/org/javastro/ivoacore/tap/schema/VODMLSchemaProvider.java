@@ -36,11 +36,12 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
     * Constructs a VODMLSchemaProvider by loading the named TAP schema resource.
     * The standard TAP_SCHEMA is always loaded in addition to the named resource.
     *
-    * @param tapSchemaResource   the classpath resource path of the VO-DML TAP schema XML file.
+    * @param tapSchemaResource the classpath resource path of the VO-DML TAP schema XML file.
     * @param isDbCaseSensitive is the database case sensitive.
+    * @param useTAPtypes whether to use TAP types of VOTable Types in the VOSI response.
     */
-   public VODMLSchemaProvider(String tapSchemaResource, boolean isDbCaseSensitive) {
-      super(isDbCaseSensitive);
+   public VODMLSchemaProvider(String tapSchemaResource, boolean isDbCaseSensitive, boolean useTAPtypes) {
+      super(isDbCaseSensitive, useTAPtypes);
       this.tapSchemaResource = tapSchemaResource;
 
    }
@@ -51,7 +52,7 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
     * @param isDbCaseSensitive
     */
    VODMLSchemaProvider(boolean isDbCaseSensitive) {
-      super(isDbCaseSensitive);
+      super(isDbCaseSensitive, true);
       this.tapSchemaResource = null;
    }
 

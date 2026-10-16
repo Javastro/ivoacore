@@ -13,10 +13,7 @@ package org.javastro.ivoacore.tap;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
-import net.sf.saxon.s9api.SaxonApiException;
-import net.sf.saxon.s9api.Serializer;
-import net.sf.saxon.s9api.Xslt30Transformer;
-import net.sf.saxon.s9api.XsltExecutable;
+import net.sf.saxon.s9api.*;
 import org.ivoa.dm.tapschema.*;
 import org.javastro.ivoacore.tap.schema.BaseSchemaProvider;
 import org.javastro.ivoacore.tap.schema.SchemaProvider;
@@ -33,13 +30,23 @@ import java.util.List;
 
 public class TestSchemaProvider extends BaseSchemaProvider implements SchemaProvider {
 
-
+   /** Compiler used to build the TAP-to-VOSI stylesheet. */
+   final XsltCompiler compiler;
+   /** Saxon processor used for XSLT transformation. */
+   final Processor processor;
    private static final Logger log = LoggerFactory.getLogger(TestSchemaProvider.class);
    private final XsltExecutable stylesheet;
 
-   public TestSchemaProvider(boolean caseSensitive) {
-      super(caseSensitive);
+   /**
+    * Constructor for the TestSchemaProvider.
+    * @param caseSensitive is db case sensitive.
+    * @param tapTypes should tap or votable types be used in vosi description
+    */
+   public TestSchemaProvider(boolean caseSensitive, boolean tapTypes) {
+      super(caseSensitive, tapTypes);
       try {
+         processor = new Processor(false);
+         compiler = processor.newXsltCompiler();
          stylesheet = compiler.compile(new StreamSource(TapschemaModel.class.getResourceAsStream("/tap2schemaDDL.xsl")));
       } catch (SaxonApiException e) {
          log.error("cannot compile the TAP_SCHEMA stylesheet");
@@ -57,7 +64,7 @@ public class TestSchemaProvider extends BaseSchemaProvider implements SchemaProv
                   c.column_name = "id";
                   c.datatype = TAPType.INTEGER;
                   c.description = "The unique identifier for the record";
-                  c.indexed = true; //IMPL need this as primary key heuristic if no joins
+                  c.indexed = 1; //IMPL need this as primary key heuristic if no joins
                }), Column.createColumn(c -> {
                   c.column_name = "avalue";
                   c.datatype = TAPType.VARCHAR;
