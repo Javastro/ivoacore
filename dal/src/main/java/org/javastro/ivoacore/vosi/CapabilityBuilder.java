@@ -91,7 +91,12 @@ public class CapabilityBuilder {
                         new OutputFormat("text/csv", List.of("csv"), "ivo://ivoa.net/std/TAPRegExt#output-csv")
                   )
                   )
-
+                  .withUploadMethods(List.of(
+                        new UploadMethod("ivo://ivoa.net/std/TAPRegExt#upload-inline"),
+                        new UploadMethod("ivo://ivoa.net/std/TAPRegExt#upload-https"),
+                        new UploadMethod("ivo://ivoa.net/std/TAPRegExt#upload-http")
+                     )
+                  )
             .build()
       );
       URL tablesURL = new URL(url, "tables");
