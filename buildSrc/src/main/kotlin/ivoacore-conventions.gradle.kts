@@ -27,9 +27,7 @@ scmVersion {
         ))
 
     }
-    monorepo {
-        include(listOf<String>(projectDir.toString().substring(rootDir.toString().length + 1)))
-    }
+
 }
 
 
