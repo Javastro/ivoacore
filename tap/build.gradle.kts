@@ -6,10 +6,10 @@ description = "IVOA TAP server library"
 dependencies {
     api(project(":uws"))
     api("uk.ac.starlink:stil")
-    api("org.javastro.ivoa.dm:tapschema:0.9.10")
+    api("org.javastro.ivoa.dm:tapschema:0.9.11")
     api("org.javastro.ivoa:ADQLLib:2.1")
     implementation(project(":common"))
-    implementation("net.sf.saxon:Saxon-HE:12.5")
+    implementation("net.sf.saxon:Saxon-HE:12.10")
 
 
     testImplementation("com.h2database:h2:2.3.232") // for database testing
