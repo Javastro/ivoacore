@@ -9,6 +9,7 @@ package org.javastro.ivoacore.uws.webapi;
  * Created on 05/03/2026 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import org.javastro.ivoa.entities.uws.*;
@@ -57,9 +58,17 @@ public abstract class BaseUWSResource implements UWS {
       }
    }
 
+   /**
+    * Performs a job delete with an FORM action.
+    * @param jobid the JobID
+    * @param action the action paramters
+    * @return a redirect to the job list.
+    * @throws UWSException if there is a problem.
+    */
    @POST
    @Path("{jobid}")
-   public Response jobAction(@PathParam("jobid") String jobid, @FormParam("ACTION") String action) throws UWSException {
+   @Transactional
+   public Response jobActionDelete(@PathParam("jobid") String jobid, @FormParam("ACTION") String action) throws UWSException {
       final Job job = getJobManager().jobDetail(jobid);
       if (job != null) {
 
@@ -143,6 +152,7 @@ public abstract class BaseUWSResource implements UWS {
 
    @Override
    @DELETE
+   @Transactional
    @Path("{jobid}")
    public Response deleteJob(@PathParam("jobid")String jobid) throws UWSException {
       boolean success = getJobManager().deleteJob(jobid);
