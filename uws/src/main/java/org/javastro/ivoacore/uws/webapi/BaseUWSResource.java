@@ -49,9 +49,38 @@ public abstract class BaseUWSResource implements UWS {
    @Override
    public Job jobDetail(@PathParam("jobid") String jobid) throws UWSException {
       final Job job = getJobManager().jobDetail(jobid);
-
-      return job; //FIXME need 404 for not found...when job is null - perhaps do with exception handler...
+      if(job != null) {
+         return job;
+      }
+      else {
+         throw new NotFoundException("Job with id " + jobid + " not found");
+      }
    }
+
+   @POST
+   @Path("{jobid}")
+   public Response jobAction(@PathParam("jobid") String jobid, @FormParam("ACTION") String action) throws UWSException {
+      final Job job = getJobManager().jobDetail(jobid);
+      if (job != null) {
+
+         switch(action){
+            case "DELETE":
+               boolean success = getJobManager().deleteJob(jobid);
+               if(success) {
+                  return redirectToJob(null);
+               } else {
+                  throw new InternalServerErrorException("Failed to delete job " + jobid);
+               }
+            default:
+               throw new BadRequestException("Unknown action: " + action);
+         }
+
+      } else {
+         throw new NotFoundException("Job with id " + jobid + " not found");
+      }
+   }
+
+
 
    @GET
    @Path("{jobid}/results")
@@ -120,7 +149,6 @@ public abstract class BaseUWSResource implements UWS {
       if (success) {
          return redirectToJob(null);
       } else {
-
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                .entity("Failed to delete job " + jobid)
                .build();
