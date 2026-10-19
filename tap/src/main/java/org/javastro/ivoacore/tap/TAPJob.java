@@ -60,6 +60,7 @@ public class TAPJob extends RunnableUWSJob {
    private final SchemaProvider schemaProvider;
    private final TapUploadService uploadService;
    private final TapQueryProcessor queryProcessor;
+   private final AtomicReference<Connection> thisConnection = new AtomicReference<>();
 
    /**
     * Constructs a new TAPJob with the given identifier, specification and data source.
@@ -112,6 +113,8 @@ public class TAPJob extends RunnableUWSJob {
 
          outputResult(query, table, votable);
 
+        // table.getConnection().close();
+
       } catch (SQLException | ParseException | TranslationException | IOException e) {
          log.error("Error while executing TAP query", e);
          throw new UWSException("Error while executing TAP query", e);
@@ -119,6 +122,13 @@ public class TAPJob extends RunnableUWSJob {
           throw new RuntimeException(e);
       } finally {
          uploadService.cleanupUploadTable(uploadContexts);
+         if(thisConnection.get() != null) {
+            try {
+               thisConnection.get().close();
+            } catch (SQLException e) {
+               throw new RuntimeException("Error closing database connection", e);
+            }
+         }
       }
       return resultParameter(votable);
    }
@@ -176,25 +186,17 @@ public class TAPJob extends RunnableUWSJob {
     * @throws SQLException If an error occurs while creating the database connection or executing the query.
     */
    private JDBCStarTable getResultTable(String sql) throws SQLException{
-      final AtomicReference<Connection> thisConnection = new AtomicReference<>();
+
       Connector connector = () -> {
-         thisConnection.set(dataSource.getConnection());//IMPL new connection each time requested - STIL documentation implies that is what is desired.
+         if(thisConnection.get() == null) {
+            thisConnection.set(dataSource.getConnection());//IMPL not getting new connection each time requested - contrary to STIL documentation which implies that is what is desired.
+         }
          return thisConnection.get();
       };
 
-
       //SQL executed here
-      JDBCStarTable table =  new JDBCStarTable(connector, sql, false);
+      JDBCStarTable table =  new JDBCStarTable(connector, sql, true); // IMPL make non-streaming to allow for overflow logic - TODO if this uses too much resource make streaming again - but would need to write specialized JDBCStarTable
       table.setName("result");
-
-      try {
-         if (thisConnection.get() != null) {
-            thisConnection.get().close();  //IMPL close the connection - STIL documentation implies that this is what is desired - but we should check whether this causes any issues with connection pooling etc.
-         }
-      } catch (SQLException e) {
-
-         log.warn("Failed to close database connection", e);
-      }
 
       return table;
    }
@@ -296,6 +298,20 @@ public class TAPJob extends RunnableUWSJob {
                this.ds,
                this.schemaProvider
          );
+       }
+    }
+
+   /**
+    * Get the maximum number of records that this tap job is allowed to return. If the maxrec parameter is not set or is less than or equal to zero, this method returns 0, indicating no limit.
+    * @return The maximum number of records that this tap job is allowed to return.
+    */
+    public long getMaxRecords()
+    {
+       if(tapJobSpec.maxrec != null && tapJobSpec.maxrec > 0) { // TODO take into account MAXREC from the environment.
+          return tapJobSpec.maxrec;
+       }
+       else {
+          return 0;
        }
     }
 }

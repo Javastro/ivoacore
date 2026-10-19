@@ -6,11 +6,16 @@
 package org.javastro.ivoacore.tap;
 
 
+import uk.ac.starlink.table.StarTable;
 import uk.ac.starlink.votable.DataFormat;
 import uk.ac.starlink.votable.VOSerializer;
 import uk.ac.starlink.votable.VOTableVersion;
 import uk.ac.starlink.votable.VOTableWriter;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 
 /**
@@ -21,6 +26,7 @@ public class TAPWriter extends VOTableWriter {
    final private TAPJob job;
    private boolean timeout = false;
    private URI jobUri = null;
+   private StarTable table;
 
    /**
     * Creates a TAP writer with default VOTable formatting.
@@ -93,5 +99,20 @@ public class TAPWriter extends VOTableWriter {
          sbuf.append("/>\n");
       }
       return sbuf.toString();
+   }
+
+   @Override
+   public void writeStarTable(StarTable startab, OutputStream out, File file) throws IOException {
+      table = startab; // save the table for later use in writePostTableXML
+      super.writeStarTable(startab, out, file);
+   }
+
+   @Override
+   public void writePostTableXML(BufferedWriter writer) throws IOException {
+      if (table.getRowCount() == job.getMaxRecords()) { //IMPL might be exactly the same without overflow!
+         // Write the INFO element for the number of rows in the table
+         writer.write("<INFO name=\"QUERY_STATUS\" value=\"OVERFLOW\"/>\n");
+      }
+      super.writePostTableXML(writer);
    }
 }
