@@ -62,7 +62,7 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
       }
       else  {
          executionPhase = ExecutionPhase.UNKNOWN;
-         logger.error("Failed top abort job {}", jobID);
+         logger.error("Failed to abort job {}", jobID);
       }
    }
 
