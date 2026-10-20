@@ -119,7 +119,8 @@ public class TAPJob extends RunnableUWSJob {
          log.error("Error while executing TAP query", e);
          throw new UWSException("Error while executing TAP query", e);
       } catch (Exception e) {
-          throw new RuntimeException(e);
+         log.error("Unexpected error while executing TAP query", e);
+          throw new UWSException("Unexpected error while executing TAP query", e);
       } finally {
          uploadService.cleanupUploadTable(uploadContexts);
          if(thisConnection.get() != null) {

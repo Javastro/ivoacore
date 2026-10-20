@@ -5,6 +5,7 @@ import org.ivoa.dm.tapschema.Schema;
 import org.ivoa.dm.tapschema.Table;
 import org.javastro.ivoacore.tap.schema.MetadataTransformer;
 import org.javastro.ivoacore.tap.schema.TapADQLTable;
+import org.javastro.ivoacore.uws.UWSException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.ColumnInfo;
@@ -15,6 +16,7 @@ import uk.ac.starlink.table.jdbc.WriteMode;
 import uk.ac.starlink.votable.VOTableBuilder;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -84,10 +86,8 @@ public class TapUploadService {
      * @param schemaName the name of the database schema where the upload table will be created.
      * @return an {@code UploadContext} object containing metadata and contextual information
      *         for the created upload table.
-     * @throws RuntimeException if an error occurs during the upload process, such as issues with
-     *                   the upload URI, database connection, schema creation, or table population.
      */
-    public List<UploadContext> processUpload(Map<String, Path> uploads, String jobId, String schemaName) throws RuntimeException{
+    public List<UploadContext> processUpload(Map<String, Path> uploads, String jobId, String schemaName) {
         if (uploads == null || uploads.isEmpty()) {
             throw new IllegalArgumentException("Upload values must be provided");
         }
@@ -111,9 +111,9 @@ public class TapUploadService {
                 TapADQLTable adqlTable = createUploadMetadata(table, schemaName);
 
                 uploadContexts.add(new UploadContext(table.getName(), physicalTableName, adqlTable));
-            } catch (Exception e) {
-                //Split exception handling?
-                throw new RuntimeException(e);
+            } catch (IOException | SQLException e) {
+                log.error("Failed to process upload for table {} from path {}", name, path, e);
+                throw new RuntimeException("Failed to process table upload",e);
             }
         });
 
@@ -196,9 +196,10 @@ public class TapUploadService {
      * @param uploadTable the {@code StarTable} object containing the data to populate in the table.
      * @param jobId a unique identifier for the job, which is used as part of the constructed table name.
      * @return the physical table name created in the database.
-     * @throws Exception if any error occurs during table creation, formatting, or population.
+     * @throws SQLException if a database access error occurs while creating or populating the table.
+     * @throws IOException if an I/O error occurs while reading the input data or writing the output data.
      */
-    private String createAndPopulateUploadTable(Connection conn, StarTable uploadTable, String jobId, String schemaName) throws Exception {
+    private String createAndPopulateUploadTable(Connection conn, StarTable uploadTable, String jobId, String schemaName) throws SQLException, IOException {
 
         //Table naming format = tap_upload_<jobId>_<table name>
         String tableName = "tap_upload_" + jobId.replace("-", "_") + "_" + uploadTable.getName();
@@ -242,7 +243,7 @@ public class TapUploadService {
             column.setColumn_name(info.getName().toUpperCase());
 
             column.setDatatype(
-                    MetadataTransformer.mapContentClassToTAPType(info.getContentClass()));
+                    MetadataTransformer.mapVOTableToTAPType(info));
 
             result.createColumn(column);
         }
@@ -296,7 +297,7 @@ public class TapUploadService {
             columns.add(
                     "\"" + info.getName().toUpperCase() + "\" "
                             + mapContentClassToSqlType(
-                            info.getContentClass()));
+                            info));
         }
 
         return "CREATE TABLE IF NOT EXISTS "
@@ -307,16 +308,17 @@ public class TapUploadService {
     }
 
     /**
-     * Maps a Java class type (from STIL ColumnInfo.getContentClass()) to a PostgreSQL SQL type string.
+     * Maps a  STIL ColumnInfo to a PostgreSQL SQL type string.
      * Delegates to MetadataTransformer to ensure a single source of truth for type mappings.
      *
-     * @param contentClass the Java class representing the column data type
+     * @param ColumnInfo the Java class representing the column data type
      * @return a PostgreSQL SQL type string (e.g., "VARCHAR", "BIGINT", "DOUBLE PRECISION")
      */
-    private String mapContentClassToSqlType(Class<?> contentClass) {
+    private String mapContentClassToSqlType(ColumnInfo contentClass) {
         // Delegate: first map the Java class to a TAPType, then map TAPType to SQL type.
-        var tapType = MetadataTransformer.mapContentClassToTAPType(contentClass);
+        var tapType = MetadataTransformer.mapVOTableToTAPType(contentClass);
         return MetadataTransformer.mapTAPTypeToSqlType(tapType);
+
     }
 
     /**
