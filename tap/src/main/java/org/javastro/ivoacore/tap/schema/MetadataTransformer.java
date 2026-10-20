@@ -12,6 +12,7 @@ import adql.db.DefaultDBTable;
 import org.ivoa.dm.tapschema.TAPType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.starlink.table.ColumnInfo;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -92,10 +93,31 @@ public class MetadataTransformer {
    );
 
    /**
+    * Maps a ColumnInfo to a TAPType, using the content class and optionally the xtype.
+    * @param columnInfo The ColumnInfo derived from a VOTable.
+    * @return the TAP Type.
+    */
+   public static TAPType mapVOTableToTAPType(ColumnInfo  columnInfo) {
+      TAPType retval = mapContentClassToTAPType(columnInfo != null ? columnInfo.getContentClass() : null);
+      if(columnInfo.getXtype() != null) {
+         switch (columnInfo.getXtype().toUpperCase()) {
+            case "TIMESTAMP" -> retval = TAPType.TIMESTAMP;
+            case "POINT" -> retval = TAPType.POINT;
+            case "REGION" -> retval = TAPType.REGION;
+            case "POLYGON" -> retval = TAPType.POLYGON; //FIXME these below are not "standard"
+            case "CIRCLE" -> retval = TAPType.CIRCLE;
+            case "ELLIPSE" -> retval = TAPType.ELLIPSE;
+         }
+      }
+      return retval;
+   }
+
+   /**
     * Maps a Java content class to a TAP_SCHEMA datatype.
     *
     * @param contentClass Java class to map.
     * @return matching TAP datatype, defaulting to {@link TAPType#VARCHAR}.
+    *
     */
    public static TAPType mapContentClassToTAPType(Class<?> contentClass) {
       return CLASS_TO_TAP.stream()
@@ -151,6 +173,8 @@ public class MetadataTransformer {
    }
 
    // --------------------------- Map between TAPType and SQL type --------------------------------------
+
+   //FIXME below would be better done with hibernate Metadata mapping and schema creation from an XML definition - so that differences between databases are automatically accounted for with Dialects
    private static String toSql(DBType.DBDatatype type) {
       return switch (type) {
          case DOUBLE -> "DOUBLE PRECISION";

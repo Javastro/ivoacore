@@ -208,6 +208,7 @@ public class TapUploadService {
 
         createUploadTable(conn, uploadTable, physicalTableName);
 
+        //FIXME the JDBCFormatter cannot deal with Dates (or other advanced types) - need to write new one as not really extensible
         JDBCFormatter formatter = new JDBCFormatter(conn, uploadTable);
 
         formatter.createJDBCTable(physicalTableName, WriteMode.APPEND);
