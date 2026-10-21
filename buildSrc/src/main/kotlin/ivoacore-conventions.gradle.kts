@@ -1,5 +1,6 @@
 import pl.allegro.tech.build.axion.release.domain.hooks.HookContext
 import pl.allegro.tech.build.axion.release.domain.hooks.ReleaseHookAction
+import pl.allegro.tech.build.axion.release.domain.scm.ScmPosition
 
 plugins {
     `java-library`
@@ -25,6 +26,9 @@ scmVersion {
             "pattern" to KotlinClosure2<String, HookContext,String>({ v, c -> "/${project.name}:${v}/" } ),
             "replacement" to KotlinClosure2<String, HookContext,String>( {v, c -> "${project.name}:${v}" })
         ))
+        pre("commit" , KotlinClosure2<String, ScmPosition,String>({ v, p-> "Updating README for version ${v}" }))
+        pre("push")
+
 
     }
 
