@@ -3,6 +3,7 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -36,9 +37,10 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
     * @param jobID unique job identifier.
     * @param jobSpecification job configuration and parameters.
     * @param executionEnvironment execution environment for job artifacts.
+    * @param ExecutionPolicy executionPolicy
     */
-   protected RunnableUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment) {
-      super(jobID, jobSpecification, executionEnvironment);
+   protected RunnableUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment, ExecutionPolicy executionPolicy) {
+      super(jobID, jobSpecification, executionEnvironment, executionPolicy);
    }
 
    /**

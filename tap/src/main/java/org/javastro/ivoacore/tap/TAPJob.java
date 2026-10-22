@@ -24,6 +24,7 @@ import org.javastro.ivoacore.tap.upload.TAPUploadCacher;
 import org.javastro.ivoacore.tap.upload.TapUploadService;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.description.JobType;
+import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
@@ -72,7 +73,7 @@ public class TAPJob extends RunnableUWSJob {
     * @param schemaProvider       the schema provider for the TAP job.
     */
    public TAPJob(String id, TAPJobSpecification spec, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
-      super(id, spec, executionEnvironment);
+      super(id, spec, executionEnvironment, new DefaultExecutionPolicy());
       this.dataSource = ds;
       this.tapJobSpec = spec;
       this.schemaProvider = schemaProvider;

@@ -11,6 +11,7 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.*;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,10 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
    protected volatile ZonedDateTime endTime;
    /** The specification describing this job's parameters and type. */
    protected final JobSpecification jobSpecification;
+   /** The execution environment for this job. */
+   protected final ExecutionEnvironment executionEnvironment;
+   /** The execution policy for this job. */
+   protected final ExecutionPolicy executionPolicy;
    /** The list of result parameter values produced by this job. */
    protected List<ParameterValue> results = new ArrayList<>();
 
@@ -52,17 +57,14 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     * @param jobSpecification the specification describing the job's parameters and type.
     * @param executionEnvironment execution context for filesystem and security resources.
     */
-   protected BaseUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment) {
+   protected BaseUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment, ExecutionPolicy executionPolicy) {
       this.jobSpecification = jobSpecification;
       this.jobID = jobID;
       this.executionEnvironment = executionEnvironment;
+      this.executionPolicy = executionPolicy;
       this.executionPhase = ExecutionPhase.PENDING;
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
-
-   /** The execution environment for this job. */
-   protected final ExecutionEnvironment executionEnvironment;
-
 
    /**
     * Returns the unique identifier for this job.

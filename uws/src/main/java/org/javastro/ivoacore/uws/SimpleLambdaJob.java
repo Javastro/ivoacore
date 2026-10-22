@@ -8,6 +8,7 @@ package org.javastro.ivoacore.uws;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.description.JobType;
+import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
@@ -36,7 +37,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
     * @param jobSpecification the specification for this job.
     */
    protected SimpleLambdaJob(String jobID, ExecutionEnvironment executionEnvironment, Function<String, String> func, JobSpecification jobSpecification) {
-      super(jobID, jobSpecification, executionEnvironment);
+      super(jobID, jobSpecification, executionEnvironment, new DefaultExecutionPolicy());
       this.function = func;
    }
 

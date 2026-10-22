@@ -6,6 +6,7 @@ import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
+import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
 import java.io.IOException;
@@ -30,7 +31,7 @@ public class MockJob extends BaseUWSJob {
     * @param phase
     */
    protected MockJob(String jobID, String runid, ZonedDateTime cDate, ExecutionPhase phase) {
-      super(jobID, new Specification(runid), envFactory.create(jobID));
+      super(jobID, new Specification(runid), envFactory.create(jobID), new DefaultExecutionPolicy());
       this.creationTime = cDate;
       this.executionPhase = phase;
    }
