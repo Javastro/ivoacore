@@ -56,6 +56,7 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     * @param jobID the unique identifier for this job.
     * @param jobSpecification the specification describing the job's parameters and type.
     * @param executionEnvironment execution context for filesystem and security resources.
+    * @param executionPolicy execution policy governing job execution.
     */
    protected BaseUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment, ExecutionPolicy executionPolicy) {
       this.jobSpecification = jobSpecification;
@@ -116,7 +117,15 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     */
    public ZonedDateTime getEndTime() {return endTime; }
 
-
+   /**
+    * Retrieves the execution policy associated with this job.
+    * The execution policy defines constraints and behaviours, such as
+    * maximum runtime, concurrency limits, and lifecycle management,
+    * that govern the job's execution within the system.
+    *
+    * @return the {@link ExecutionPolicy} instance associated with this job.
+    */
+   public ExecutionPolicy getExecutionPolicy() {return executionPolicy; }
 
 
    /**
