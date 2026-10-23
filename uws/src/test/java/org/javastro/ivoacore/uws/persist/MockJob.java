@@ -26,9 +26,9 @@ public class MockJob extends BaseUWSJob {
    /**
     * Constructs a new BaseUWSJob with the given job ID and specification.
     *
-    * @param jobID     the unique identifier for this job.
-    * @param cDate
-    * @param phase
+    * @param jobID   the unique identifier for this job.
+    * @param cDate   the creation date of the job.
+    * @param phase   the execution phase of the job.
     */
    protected MockJob(String jobID, String runid, ZonedDateTime cDate, ExecutionPhase phase) {
       super(jobID, new Specification(runid), envFactory.create(jobID), new DefaultExecutionPolicy());
@@ -91,19 +91,11 @@ public class MockJob extends BaseUWSJob {
       }
    }
 
-
-
-
-      static {
+   static {
       try {
          envFactory = new DefaultEnvironmentFactory(Files.createTempDirectory("mock").toFile());
       } catch (IOException e) {
          throw new RuntimeException(e);
       }
    }
-
-
-
-
-
 }
