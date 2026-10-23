@@ -7,6 +7,7 @@ import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
 import java.io.IOException;
@@ -82,8 +83,8 @@ public class MockJob extends BaseUWSJob {
    private final static DefaultEnvironmentFactory envFactory;
 
    public static class JobFactory extends BaseJobFactory<JobType, Class<Specification>> {
-      public JobFactory() {
-         super(jobType, Specification.class,envFactory);
+      public JobFactory(ExecutionPolicy policy) {
+         super(jobType, Specification.class,envFactory, policy);
       }
       @Override
       public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {

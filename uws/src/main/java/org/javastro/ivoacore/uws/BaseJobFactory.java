@@ -7,6 +7,7 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.IdProvider;
 import org.javastro.ivoacore.uws.environment.UUIDProvider;
 
@@ -21,6 +22,8 @@ public abstract class BaseJobFactory<T extends JobType, S extends Class<? extend
    protected final IdProvider idProvider = new UUIDProvider(); // IMPL fixed for now...
    /**  Factory for creating execution environments for new jobs. */
    protected final EnvironmentFactory environmentFactory;
+   /** Execution policy for new jobs. */
+   protected final ExecutionPolicy executionPolicy;
 
    /** Job type handled by this factory. */
    protected final T type;
@@ -33,12 +36,13 @@ public abstract class BaseJobFactory<T extends JobType, S extends Class<? extend
     * @param type the type of job to create.
     * @param spec the specification for the new job.
     * @param environmentFactory the factory for creating execution environments for new jobs.
+    * @param executionPolicy the execution policy for new jobs.
     */
-   public BaseJobFactory(T type, S spec, EnvironmentFactory  environmentFactory) {
-
-      this.environmentFactory = environmentFactory;
+   public BaseJobFactory(T type, S spec, EnvironmentFactory  environmentFactory, ExecutionPolicy executionPolicy) {
       this.type = type;
       this.specClass = spec;
+      this.environmentFactory = environmentFactory;
+      this.executionPolicy = executionPolicy;
    }
 
 

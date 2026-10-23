@@ -4,6 +4,7 @@ package org.javastro.ivoacore.uws.persist;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.javastro.ivoa.entities.stc.v1.OrbitType;
 import org.javastro.ivoacore.uws.JobFactoryAggregator;
+import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -16,7 +17,7 @@ public class DataBaseJobStoreTest extends BaseStorageTest {
    static void setJobStore(){
       jpa = new JpaTestSupport();
       JobFactoryAggregator agg = new JobFactoryAggregator();
-      agg.addFactory(new MockJob.JobFactory());
+      agg.addFactory(new MockJob.JobFactory(new DefaultExecutionPolicy()));
       jobStore = new DatabaseJobStore(jpa.entityManager(), agg);
    }
 

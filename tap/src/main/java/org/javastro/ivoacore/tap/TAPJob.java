@@ -27,6 +27,7 @@ import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.tap.upload.TapUploadService.UploadContext;
 import org.slf4j.Logger;
@@ -72,8 +73,8 @@ public class TAPJob extends RunnableUWSJob {
     * @param ds                   the JDBC data source to execute the query against.
     * @param schemaProvider       the schema provider for the TAP job.
     */
-   public TAPJob(String id, TAPJobSpecification spec, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider) {
-      super(id, spec, executionEnvironment, new DefaultExecutionPolicy());
+   public TAPJob(String id, TAPJobSpecification spec, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider, ExecutionPolicy executionPolicy) {
+      super(id, spec, executionEnvironment, executionPolicy);
       this.dataSource = ds;
       this.tapJobSpec = spec;
       this.schemaProvider = schemaProvider;
@@ -262,9 +263,10 @@ public class TAPJob extends RunnableUWSJob {
        * @param ds the JDBC data source used to execute TAP queries.
        * @param schemaProvider schema provider used for query parsing metadata.
        * @param environmentFactory factory creating job execution environments.
+       * @param executionPolicy the execution policy governing job execution.
        */
-      public JobFactory(DataSource ds, SchemaProvider schemaProvider, EnvironmentFactory environmentFactory)  {
-         super(TAPJobSpecification.jobType, TAPJobSpecification.class, environmentFactory);
+      public JobFactory(DataSource ds, SchemaProvider schemaProvider, EnvironmentFactory environmentFactory, ExecutionPolicy executionPolicy)  {
+         super(TAPJobSpecification.jobType, TAPJobSpecification.class, environmentFactory, executionPolicy);
          this.ds = ds;
          this.schemaProvider = schemaProvider;
       }
@@ -273,7 +275,7 @@ public class TAPJob extends RunnableUWSJob {
       public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
          if (jobDescription.theJobType().jobTypeIdentifier().equals(JOB_TYPE)) {
             final String id = idProvider.generateId();
-            return new TAPJob(id, (TAPJobSpecification) jobDescription, environmentFactory.create(id), ds, schemaProvider );
+            return new TAPJob(id, (TAPJobSpecification) jobDescription, environmentFactory.create(id), ds, schemaProvider, executionPolicy );
          } else throw new UWSException("Invalid job type");
 
       }
@@ -294,11 +296,12 @@ public class TAPJob extends RunnableUWSJob {
                               TAPUploadCacher uploader) {
          String id = idProvider.generateId();
          return new TAPJob(
-               id,
-               new TAPJobSpecification(query, lang, responseformat, maxrec, runid, uploader),
-               environmentFactory.create(id),
-               this.ds,
-               this.schemaProvider
+                 id,
+                 new TAPJobSpecification(query, lang, responseformat, maxrec, runid, uploader),
+                 environmentFactory.create(id),
+                 this.ds,
+                 this.schemaProvider,
+                 executionPolicy
          );
        }
     }

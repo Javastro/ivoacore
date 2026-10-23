@@ -5,7 +5,6 @@ import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.BaseUWSJob;
 import org.javastro.ivoacore.uws.JobSpecification;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
-import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.ExistingExecutionEnvironment;
 
 

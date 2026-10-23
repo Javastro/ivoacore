@@ -40,7 +40,7 @@ class JobManagerTest {
          } catch (InterruptedException e) {
             throw new RuntimeException(e); //TODO review exception handling
          }
-         return "hello "+s;},new DefaultEnvironmentFactory(tmpdir)));
+         return "hello "+s;},new DefaultEnvironmentFactory(tmpdir), new DefaultExecutionPolicy()));
       JobStore store = new RecordingJobStore();
       DefaultExecutionPolicy policy = new DefaultExecutionPolicy();
       jobManager = new JobManager( agg, store, policy

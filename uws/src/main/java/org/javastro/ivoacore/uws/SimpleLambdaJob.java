@@ -11,6 +11,7 @@ import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.EnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
@@ -36,8 +37,8 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
     * @param func the function that implements the job's action.
     * @param jobSpecification the specification for this job.
     */
-   protected SimpleLambdaJob(String jobID, ExecutionEnvironment executionEnvironment, Function<String, String> func, JobSpecification jobSpecification) {
-      super(jobID, jobSpecification, executionEnvironment, new DefaultExecutionPolicy());
+   protected SimpleLambdaJob(String jobID, ExecutionEnvironment executionEnvironment, Function<String, String> func, JobSpecification jobSpecification, ExecutionPolicy executionPolicy) {
+      super(jobID, jobSpecification, executionEnvironment, executionPolicy);
       this.function = func;
    }
 
@@ -91,8 +92,8 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
        * @param func the function that the created jobs will execute.
        * @param environmentFactory factory creating per-job execution environments.
        */
-      public JobFactory(Function<String, String> func, EnvironmentFactory environmentFactory) {
-         super(jobType, Specification.class, environmentFactory);
+      public JobFactory(Function<String, String> func, EnvironmentFactory environmentFactory, ExecutionPolicy executionPolicy) {
+         super(jobType, Specification.class, environmentFactory, executionPolicy);
          this.theFunc = func;
       }
 
@@ -100,7 +101,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
       @Override
       public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
          final String jobID = idProvider.generateId();
-         return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription);
+         return new SimpleLambdaJob( jobID, environmentFactory.create(jobID), theFunc, jobDescription, executionPolicy);
       }
    }
 
