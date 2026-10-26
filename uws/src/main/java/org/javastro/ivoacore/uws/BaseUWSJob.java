@@ -34,6 +34,10 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
    protected volatile ExecutionPhase executionPhase; //TODO think about thread safety of executionPhase - should it be volatile? should we use an AtomicReference? should we synchronize access to it?
    /** The time at which this job was created. */
    protected ZonedDateTime creationTime;
+   /** The time at which this job should be destroyed. */
+   protected ZonedDateTime destructionTime;
+   /** The maximum execution duration for this job, in seconds. */
+   protected int executionDuration;
    /** The time at which this job started executing. */
    protected ZonedDateTime startTime;
    /** The time at which this job finished executing. */
@@ -65,6 +69,8 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
       this.executionPolicy = executionPolicy;
       this.executionPhase = ExecutionPhase.PENDING;
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
+      this.destructionTime = creationTime.plusSeconds(executionPolicy.getDefaultLifetime());
+      this.executionDuration = executionPolicy.getMaxRunTime();
    }
 
    /**
@@ -118,6 +124,30 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
    public ZonedDateTime getEndTime() {return endTime; }
 
    /**
+    * Retrieves the destruction time of this job.
+    * @return the destruction time as a {@link ZonedDateTime} instance.
+    */
+   public ZonedDateTime getDestructionTime() { return destructionTime; }
+
+   /**
+    * Sets the destruction time of this job.
+    * @param destructionTime the new destruction time.
+    */
+   public void setDestructionTime(ZonedDateTime destructionTime) { this.destructionTime = destructionTime; }
+
+   /**
+    * Retrieves the maximum execution duration for this job, in seconds.
+    * @return the execution duration.
+    */
+   public int getExecutionDuration() { return executionDuration; }
+
+   /**
+    * Sets the maximum execution duration for this job, in seconds.
+    * @param executionDuration the new execution duration.
+    */
+   public void setExecutionDuration(int executionDuration) { this.executionDuration = executionDuration; }
+
+   /**
     * Retrieves the execution policy associated with this job.
     * The execution policy defines constraints and behaviours, such as
     * maximum runtime, concurrency limits, and lifecycle management,
@@ -137,6 +167,8 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
             .withJobId(jobID)
             .withPhase(executionPhase)
             .withCreationTime(creationTime)
+            .withDestruction(destructionTime)
+            .withExecutionDuration(executionDuration)
             .withParameters(new Parameters(jobSpecification.getParameters().stream()
                   .map(p->{return new Parameter(p.getValue(),false,p.getId(),false);//FIXME parameters can be much more nuanced  - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
                   }).toList()

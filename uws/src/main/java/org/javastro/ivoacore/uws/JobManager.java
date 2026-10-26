@@ -113,12 +113,32 @@ public class JobManager implements ExecutionControl, UWSCore {
 
    @Override
    public ZonedDateTime setDestruction(String jobId, ZonedDateTime destructionTime) throws UWSException {
-      throw new UWSException("Not yet implemented");
+      BaseUWSJob job = requireJob(jobId);
+      if (destructionTime == null) {
+         throw new UWSException("Destruction time is required");
+      }
+      job.setDestructionTime(destructionTime);
+      jobStore.store(job);
+      return job.getDestructionTime();
    }
 
    @Override
    public Long setExecutionDuration(String jobId, Long duration) throws UWSException {
-      throw new UWSException("Not yet implemented");
+      BaseUWSJob job = requireJob(jobId);
+      if (duration == null || duration < 0 || duration > Integer.MAX_VALUE) {
+         throw new UWSException("Execution duration must be between 0 and " + Integer.MAX_VALUE + " seconds");
+      }
+      job.setExecutionDuration(duration.intValue());
+      jobStore.store(job);
+      return (long) job.getExecutionDuration();
+   }
+
+   private BaseUWSJob requireJob(String jobId) throws UWSException {
+      BaseUWSJob job = jobStore.retrieve(jobId);
+      if (job == null) {
+         throw new UWSException("Job with id " + jobId + " not found");
+      }
+      return job;
    }
 
 

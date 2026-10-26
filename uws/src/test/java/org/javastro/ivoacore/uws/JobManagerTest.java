@@ -109,6 +109,31 @@ class JobManagerTest {
       assertThrows(UWSException.class, () -> jobManager.listJobs("NOT_A_PHASE", null, null));
    }
 
+   @Test
+   void executionPolicyDefaultsAndJobControlChangesAreExposed() throws UWSException {
+      BaseUWSJob job = jobManager.createJob(new SimpleLambdaJob.Specification("control", "run-control"));
+      org.javastro.ivoa.entities.uws.Job initial = jobManager.jobDetail(job.getID());
+      ZonedDateTime expectedDestruction = job.getCreationTime().plusSeconds(job.getExecutionPolicy().getDefaultLifetime());
+
+      assertEquals(expectedDestruction, initial.getDestruction());
+      assertEquals(job.getExecutionPolicy().getMaxRunTime(), initial.getExecutionDuration());
+
+      ZonedDateTime requestedDestruction = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(3);
+      assertEquals(requestedDestruction, jobManager.setDestruction(job.getID(), requestedDestruction));
+      assertEquals(requestedDestruction, jobManager.jobDetail(job.getID()).getDestruction());
+
+      assertEquals(120L, jobManager.setExecutionDuration(job.getID(), 120L));
+      assertEquals(120, jobManager.jobDetail(job.getID()).getExecutionDuration());
+   }
+
+   @Test
+   void setExecutionDurationRejectsInvalidValues() throws UWSException {
+      BaseUWSJob job = jobManager.createJob(new SimpleLambdaJob.Specification("control", "run-invalid-duration"));
+
+      assertThrows(UWSException.class, () -> jobManager.setExecutionDuration(job.getID(), -1L));
+      assertThrows(UWSException.class, () -> jobManager.setExecutionDuration("missing-job", 10L));
+   }
+
    private static List<String> extractIds(Jobs jobs) {
 
        return  jobs.getJobreves().stream().map(j->j.getId()).collect(Collectors.toList());
