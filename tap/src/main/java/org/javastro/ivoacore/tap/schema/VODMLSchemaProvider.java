@@ -76,6 +76,8 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
             }
             return schemas;
          }
+      } else {
+         log.error("Could not read schema from null stream");
       }
       return new ArrayList<>();
    }
@@ -84,10 +86,18 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
    protected List<Schema> provideSchemas() {
       List<Schema> retval = new ArrayList<>();
       try {
-         if(tapSchemaResource!=null)
-            retval.addAll(readSchema(this.getClass().getResourceAsStream("/"+tapSchemaResource)));
+         if(tapSchemaResource!=null) {
+            final InputStream resourceAsStream = this.getClass().getResourceAsStream("/" + tapSchemaResource);
+            if(resourceAsStream==null){
+               throw new RuntimeException("Could not find resource "+tapSchemaResource+" to load TAP Schema from");
+            }
+            retval.addAll(readSchema(resourceAsStream));
+         }
+         if (retval.stream().noneMatch(s -> "TAP_SCHEMA".equals(s.getSchema_name()))) {
+            log.trace("TAP_SCHEMA not found in provided schema, loading standard TAP_SCHEMA");
+            retval.addAll(readSchema(TapschemaModel.TAPSchema()));
+         }
 
-         retval.addAll(readSchema(TapschemaModel.TAPSchema()));
       } catch (JAXBException e) {
          log.error("problem loading schemas",e);
          throw new RuntimeException(e);
