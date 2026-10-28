@@ -35,11 +35,11 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
    /** The time at which this job was created. */
    protected ZonedDateTime creationTime;
    /** The time at which this job should be destroyed. */
-   protected ZonedDateTime destructionTime;
+   protected volatile ZonedDateTime destructionTime;
    /** The maximum execution duration for this job, in seconds. */
-   protected int executionDuration;
+   protected volatile int executionDuration;
    /** The time at which this job started executing. */
-   protected ZonedDateTime startTime;
+   protected volatile ZonedDateTime startTime;
    /** The time at which this job finished executing. */
    protected volatile ZonedDateTime endTime;
    /** The specification describing this job's parameters and type. */

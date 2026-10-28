@@ -18,20 +18,26 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Manager for UWS jobs that handles creation, execution, and lifecycle management of jobs.
  */
-public class JobManager implements ExecutionControl, UWSCore {
+public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
 
    private static final Logger log = LoggerFactory.getLogger(JobManager.class);
    private final JobStore jobStore;
    private final JobFactory jobFactory;
    private final ExecutionPolicy executionPolicy;
+   private final Map<String, RunnableUWSJob> activeJobs = new ConcurrentHashMap<>();
    final ExecutorService executorService;
+   private final ScheduledExecutorService executionMonitor;
 
    /**
     * Constructs a new JobManager with the given environment, factory, store and policy.
@@ -43,7 +49,20 @@ public class JobManager implements ExecutionControl, UWSCore {
       this.jobFactory = jobFactory;
       this.jobStore = jobStore;
       this.executionPolicy = executionPolicy;
+      if (executionPolicy.getMaxConcurrent() <= 0) {
+         throw new IllegalArgumentException("Maximum concurrent jobs must be greater than zero");
+      }
+      if (executionPolicy.getKillPeriod() <= 0) {
+         throw new IllegalArgumentException("Execution kill period must be greater than zero seconds");
+      }
       this.executorService = Executors.newFixedThreadPool(executionPolicy.getMaxConcurrent());
+      this.executionMonitor = Executors.newSingleThreadScheduledExecutor(task -> {
+         Thread thread = new Thread(task, "uws-execution-monitor");
+         thread.setDaemon(true);
+         return thread;
+      });
+      this.executionMonitor.scheduleAtFixedRate(this::checkExecutionDurations,
+            executionPolicy.getKillPeriod(), executionPolicy.getKillPeriod(), TimeUnit.SECONDS);
       log.info("Created JobManager");
 
    }
@@ -92,7 +111,7 @@ public class JobManager implements ExecutionControl, UWSCore {
       if(job instanceof RunnableUWSJob runnableUWSJob) {
          switch (newPhase.toUpperCase()) {//IMPL
             case "RUN":
-               runnableUWSJob.submitJobToRun(executorService);
+               submitRunnableJob(runnableUWSJob);
                jobStore.store(job);
                break;
             case "ABORT":
@@ -128,6 +147,10 @@ public class JobManager implements ExecutionControl, UWSCore {
       if (duration == null || duration < 0 || duration > Integer.MAX_VALUE) {
          throw new UWSException("Execution duration must be between 0 and " + Integer.MAX_VALUE + " seconds");
       }
+      int maxRunTime = job.getExecutionPolicy().getMaxRunTime();
+      if (maxRunTime > 0 && duration > maxRunTime) {
+         throw new UWSException("Execution duration cannot exceed the policy maximum of " + maxRunTime + " seconds");
+      }
       job.setExecutionDuration(duration.intValue());
       jobStore.store(job);
       return (long) job.getExecutionDuration();
@@ -139,6 +162,39 @@ public class JobManager implements ExecutionControl, UWSCore {
          throw new UWSException("Job with id " + jobId + " not found");
       }
       return job;
+   }
+
+   private void submitRunnableJob(RunnableUWSJob job) {
+      activeJobs.put(job.getID(), job);
+      try {
+         job.submitJobToRun(executorService);
+         job.getJobFuture().whenComplete((phase, error) -> activeJobs.remove(job.getID(), job));
+      } catch (RuntimeException e) {
+         activeJobs.remove(job.getID(), job);
+         throw e;
+      }
+   }
+
+   private void checkExecutionDurations() {
+      try {
+         ZonedDateTime now = ZonedDateTime.now();
+         for (RunnableUWSJob job : activeJobs.values()) {
+            if (job.getExecutionPhase() != ExecutionPhase.EXECUTING) {
+               continue;
+            }
+            int jobLimit = job.getExecutionDuration();
+            int policyLimit = job.getExecutionPolicy().getMaxRunTime();
+            int effectiveLimit = jobLimit <= 0 ? policyLimit
+                  : policyLimit <= 0 ? jobLimit : Math.min(jobLimit, policyLimit);
+            ZonedDateTime startTime = job.getStartTime();
+            if (effectiveLimit > 0 && startTime != null && !now.isBefore(startTime.plusSeconds(effectiveLimit))) {
+               log.warn("Execution duration exceeded for job {}; requesting cancellation", job.getID());
+               job.abortForExecutionTimeout();
+            }
+         }
+      } catch (RuntimeException e) {
+         log.error("Failed while checking job execution durations", e);
+      }
    }
 
 
@@ -183,7 +239,7 @@ public class JobManager implements ExecutionControl, UWSCore {
    public void runJob(String jobId) throws UWSException {
       BaseUWSJob job = jobStore.retrieve(jobId);
       if(job instanceof RunnableUWSJob runnableUWSJob) {
-         runnableUWSJob.submitJobToRun(executorService);
+         submitRunnableJob(runnableUWSJob);
       }
       else {
          throw new UWSException("cannot run job  "+ jobId + " it does not exist in main memory - copy and recreate job");
@@ -201,5 +257,14 @@ public class JobManager implements ExecutionControl, UWSCore {
       else {
          log.warn("attempt to abort a job that is not running, jobid="+jobId);
       }
+   }
+
+   /**
+    * Stops the manager's execution monitor and worker pool.
+    */
+   @Override
+   public void close() {
+      executionMonitor.shutdownNow();
+      executorService.shutdownNow();
    }
 }

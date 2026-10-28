@@ -72,6 +72,7 @@ public class TAPJob extends RunnableUWSJob {
     * @param executionEnvironment the execution environment for this job.
     * @param ds                   the JDBC data source to execute the query against.
     * @param schemaProvider       the schema provider for the TAP job.
+    * @param executionPolicy       the execution policy governing job execution.
     */
    public TAPJob(String id, TAPJobSpecification spec, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider, ExecutionPolicy executionPolicy) {
       super(id, spec, executionEnvironment, executionPolicy);

@@ -2,8 +2,10 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Jobs;
+import org.javastro.ivoa.entities.uws.ShortJobDescription;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.persist.JobStore;
 import org.javastro.ivoacore.uws.persist.RecordingJobStore;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,6 +17,8 @@ import java.nio.file.Files;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -109,6 +113,11 @@ class JobManagerTest {
       assertThrows(UWSException.class, () -> jobManager.listJobs("NOT_A_PHASE", null, null));
    }
 
+   /**
+    * Test that the execution policy defaults and job control changes are correctly exposed through the job detail.
+    * This test creates a job, checks its initial destruction time and execution duration, then modifies these values
+    * and verifies that the changes are reflected in the job detail.
+    */
    @Test
    void executionPolicyDefaultsAndJobControlChangesAreExposed() throws UWSException {
       BaseUWSJob job = jobManager.createJob(new SimpleLambdaJob.Specification("control", "run-control"));
@@ -126,17 +135,84 @@ class JobManagerTest {
       assertEquals(120, jobManager.jobDetail(job.getID()).getExecutionDuration());
    }
 
+   /**
+    * Test that the setExecutionDuration method correctly rejects invalid values, including negative durations,
+    * durations exceeding the policy maximum, and attempts to set the duration for a non-existent job.
+    */
    @Test
    void setExecutionDurationRejectsInvalidValues() throws UWSException {
       BaseUWSJob job = jobManager.createJob(new SimpleLambdaJob.Specification("control", "run-invalid-duration"));
 
       assertThrows(UWSException.class, () -> jobManager.setExecutionDuration(job.getID(), -1L));
+      assertThrows(UWSException.class, () -> jobManager.setExecutionDuration(
+            job.getID(), (long) job.getExecutionPolicy().getMaxRunTime() + 1));
       assertThrows(UWSException.class, () -> jobManager.setExecutionDuration("missing-job", 10L));
    }
 
-   private static List<String> extractIds(Jobs jobs) {
+   /**
+    * Test that the execution monitor correctly interrupts and aborts jobs that exceed their allowed execution duration.
+    * This test creates two jobs: one with a short execution duration and another with a policy-limited duration.
+    * Both jobs are forced to sleep for a longer time than allowed, and we verify that they are interrupted and aborted.
+    */
+   @Test
+   void executionMonitorInterruptsJobsPastTheirDuration() throws Exception {
+      //Force a short execution duration and a short policy max run time to test
+      // that the job is interrupted and aborted.
+      File tmpdir = Files.createTempDirectory("timeoutTest").toFile();
+      ExecutionPolicy policy = new DefaultExecutionPolicy() {
+         @Override
+         public int getMaxRunTime() {
+            return 2;
+         }
 
-       return  jobs.getJobreves().stream().map(j->j.getId()).collect(Collectors.toList());
+         @Override
+         public int getKillPeriod() {
+            return 1;
+         }
+      };
+
+      // Force the jobs to sleep for 10 seconds, which is longer than the allowed
+      // execution duration and policy max run time.
+      AtomicInteger interruptCount = new AtomicInteger();
+      JobFactoryAggregator agg = new JobFactoryAggregator();
+      agg.addFactory(new SimpleLambdaJob.JobFactory(input -> {
+         try {
+            Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+         } catch (InterruptedException e) {
+            interruptCount.incrementAndGet();
+            Thread.currentThread().interrupt();
+         }
+         return input;
+      }, new DefaultEnvironmentFactory(tmpdir), policy));
+
+      // Create a JobManager with the custom policy and run two jobs
+      // one with a short execution duration and another with a policy-limited duration.
+      try (JobManager manager = new JobManager(agg, new RecordingJobStore(), policy)) {
+         BaseUWSJob shortJob = manager.createJob(new SimpleLambdaJob.Specification("timeout", "short-timeout-test"));
+         BaseUWSJob policyLimitedJob = manager.createJob(new SimpleLambdaJob.Specification("timeout", "policy-timeout-test"));
+         manager.setExecutionDuration(shortJob.getID(), 1L);
+         manager.setExecutionDuration(policyLimitedJob.getID(), 0L);
+
+         //Start jobs
+         manager.runJob(shortJob.getID());
+         manager.runJob(policyLimitedJob.getID());
+
+         // Wait for both jobs to be aborted due to exceeding their execution durations.
+         long timeoutAt = System.nanoTime() + TimeUnit.SECONDS.toNanos(6);
+         while ((shortJob.getExecutionPhase() != ExecutionPhase.ABORTED
+               || policyLimitedJob.getExecutionPhase() != ExecutionPhase.ABORTED)
+               && System.nanoTime() < timeoutAt) {
+            Thread.sleep(20);
+         }
+
+         assertEquals(ExecutionPhase.ABORTED, shortJob.getExecutionPhase());
+         assertEquals(ExecutionPhase.ABORTED, policyLimitedJob.getExecutionPhase());
+         assertEquals(2, interruptCount.get(), "each timed-out job should receive an interrupt");
+      }
+   }
+
+   private static List<String> extractIds(Jobs jobs) {
+       return  jobs.getJobreves().stream().map(ShortJobDescription::getId).collect(Collectors.toList());
    }
 
 

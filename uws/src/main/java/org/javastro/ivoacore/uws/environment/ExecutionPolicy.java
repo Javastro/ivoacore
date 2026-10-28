@@ -20,7 +20,8 @@ public interface ExecutionPolicy {
 
     
     /**
-     * Returns the period of the checks for overruning applications.
+     * Returns the period of the checks for overrunning applications.
+     * How often the system checks for jobs that have exceeded their runtime limit.
      * @return the period in seconds
      */
     int getKillPeriod();
@@ -34,6 +35,7 @@ public interface ExecutionPolicy {
     
     /**
      * Returns the period of the checks for jobs that should be destroyed.
+     * How often the system checks for jobs whose destruction time has passed and deletes them.
      * @return the period in seconds
      */
     int getDestroyPeriod();

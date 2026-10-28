@@ -35,6 +35,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
     * @param executionEnvironment execution context for this job.
     * @param func the function that implements the job's action.
     * @param jobSpecification the specification for this job.
+    * @param executionPolicy execution policy governing job execution.
     */
    protected SimpleLambdaJob(String jobID, ExecutionEnvironment executionEnvironment, Function<String, String> func, JobSpecification jobSpecification, ExecutionPolicy executionPolicy) {
       super(jobID, jobSpecification, executionEnvironment, executionPolicy);
@@ -90,6 +91,7 @@ public class SimpleLambdaJob  extends RunnableUWSJob {
        * Constructs a JobFactory for SimpleLambdaJob using the given function.
        * @param func the function that the created jobs will execute.
        * @param environmentFactory factory creating per-job execution environments.
+       * @param executionPolicy execution policy governing job execution.
        */
       public JobFactory(Function<String, String> func, EnvironmentFactory environmentFactory, ExecutionPolicy executionPolicy) {
          super(jobType, Specification.class, environmentFactory, executionPolicy);
