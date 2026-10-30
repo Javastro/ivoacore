@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.function.Supplier;
 
 
@@ -23,10 +24,22 @@ import java.util.function.Supplier;
  * @author Paul Harrison (paul.harrison@manchester.ac.uk) */
 public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
 
-   /** The future representing the asynchronous execution of this job. */
+   //Separate the actual worker's execution from the UWS's reported outcome.
+   //The worker may be executing, but the UWS may have already reported the job as ABORTED or ERROR.
+
+   /** UWS's reported outcome such as ABORTED, ERROR, COMPLETED, etc. */
    protected volatile CompletableFuture<ExecutionPhase> jobFuture;
+   /** The actual worker that may still be running after the UWS state has changed (for example to ABORTED) */
+   private volatile CompletableFuture<Void> workerTermination;
+
    private volatile Future<?> executionTask;
    private volatile boolean cancellationRequested;
+   private volatile String terminationReason;
+
+   private final Object workerStartLock = new Object();
+   private boolean workerStarted;
+
+   private boolean prepared;
 
    /**
     * Returns the future representing the asynchronous execution of this job.
@@ -34,6 +47,22 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
     */
    public CompletableFuture<ExecutionPhase> getJobFuture() {
       return jobFuture;
+   }
+
+   /**
+    * Returns a future that completes when the worker executing this job has terminated.
+    * @return the {@link CompletableFuture} that completes when the worker has terminated.
+    */
+   public CompletableFuture<Void> getWorkerTermination() {
+      return workerTermination;
+   }
+
+   /**
+    * Returns the reason for the termination of this job, if any.
+    * @return the termination reason, or {@code null} if the job has not terminated.
+    */
+   public String getTerminationReason() {
+      return terminationReason;
    }
 
    /**
@@ -48,26 +77,100 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
       super(jobID, jobSpecification, executionEnvironment, executionPolicy);
    }
 
+   synchronized void prepareForSubmission() {
+      if (prepared) {
+         throw new IllegalStateException(
+                 "Job " + jobID + " has already been prepared for submission");
+      }
+
+      if (executionPhase != ExecutionPhase.PENDING) {
+         throw new IllegalStateException(
+                 "Job " + jobID + " is not pending");
+      }
+
+      prepared = true;
+      cancellationRequested = false;
+      workerStarted = false;
+      terminationReason = null;
+
+      jobFuture = new CompletableFuture<>();
+      workerTermination = new CompletableFuture<>();
+   }
+
    /**
     * Submits this job for asynchronous execution using the given executor service.
     * @param executorService the executor service to use for running the job.
     */
-   synchronized void submitJobToRun(ExecutorService executorService)  {
-      if (executionPhase != ExecutionPhase.PENDING) {
-         throw new IllegalStateException("Job " + jobID + " is not pending");
+   synchronized void submitJobToRun(ExecutorService executorService) {
+      if (!prepared) {
+         throw new IllegalStateException(
+                 "Job " + jobID + " has not been prepared for submission");
       }
-      cancellationRequested = false;
-      jobFuture = new CompletableFuture<>();
-      executionTask = executorService.submit(() -> {
+
+      if (executionPhase != ExecutionPhase.PENDING) {
+         throw new IllegalStateException(
+                 "Job " + jobID + " is not pending");
+      }
+
+      FutureTask<Void> task = new FutureTask<>(() -> {
          try {
             ExecutionPhase phase = getJobCallable().get();
             jobFuture.complete(phase);
-            logger.info("Job {} completed with phase {}", jobID, phase);
+            return null;
          } catch (RuntimeException | Error e) {
             jobFuture.completeExceptionally(e);
             throw e;
          }
-      });
+      }) {
+         @Override
+         public void run() {
+            synchronized (workerStartLock) {
+               if (isCancelled()) {
+                  return;
+               }
+               workerStarted = true;
+            }
+
+            try {
+               super.run();
+            } finally {
+               workerTermination.complete(null);
+            }
+         }
+
+         @Override
+         public boolean cancel(boolean mayInterruptIfRunning) {
+            synchronized (workerStartLock) {
+               boolean cancelled = super.cancel(mayInterruptIfRunning);
+               if (cancelled && !workerStarted) {
+                  workerTermination.complete(null);
+               }
+               return cancelled;
+            }
+         }
+      };
+
+      executionTask = task;
+
+      try {
+         executorService.execute(task);
+      } catch (RuntimeException e) {
+         failSubmission(e);
+         task.cancel(false);
+         jobFuture.completeExceptionally(e);
+         throw e;
+      }
+   }
+
+   synchronized void failSubmission(RuntimeException cause) {
+      if (workerStarted || executionPhase != ExecutionPhase.PENDING) {
+         return;
+      }
+
+      exception = new UWSException("Failed to submit job " + jobID + ": " + cause.getMessage(), cause);
+
+      executionPhase = ExecutionPhase.ERROR;
+      endTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
 
    /**
@@ -86,21 +189,27 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
 
    private void cancel(ExecutionPhase terminalPhase, String reason) {
       if (executionPhase == ExecutionPhase.COMPLETED
-            || executionPhase == ExecutionPhase.ERROR
-            || executionPhase == ExecutionPhase.ABORTED) {
+              || executionPhase == ExecutionPhase.ERROR
+              || executionPhase == ExecutionPhase.ABORTED) {
          return;
       }
+
       cancellationRequested = true;
+      terminationReason = reason;
+
       Future<?> task = executionTask;
       if (task != null) {
          task.cancel(true);
       }
+
       executionPhase = terminalPhase;
       endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-      CompletableFuture<ExecutionPhase> future = jobFuture;
-      if (future != null) {
-         future.complete(terminalPhase);
+
+      CompletableFuture<ExecutionPhase> outcome = jobFuture;
+      if (outcome != null) {
+         outcome.complete(terminalPhase);
       }
+
       logger.info("Job {} {}", jobID, reason);
    }
 

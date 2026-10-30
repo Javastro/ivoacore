@@ -111,7 +111,18 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       if(job instanceof RunnableUWSJob runnableUWSJob) {
          switch (newPhase.toUpperCase()) {//IMPL
             case "RUN":
-               submitRunnableJob(runnableUWSJob);
+               try {
+                  submitRunnableJob(runnableUWSJob);
+               } catch (RuntimeException e) {
+                  if (runnableUWSJob.getExecutionPhase() == ExecutionPhase.ERROR) {
+                     jobStore.store(job); //Persist a failed submission state to the job store
+                     log.error("Failed to submit job {}", jobId, e);
+                     break;
+                  }
+
+                  throw new UWSException("Cannot run job " + jobId + ": " + e.getMessage());
+               }
+
                jobStore.store(job);
                break;
             case "ABORT":
@@ -165,35 +176,54 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
    }
 
    private void submitRunnableJob(RunnableUWSJob job) {
-      activeJobs.put(job.getID(), job);
+      String jobId = job.getID();
+
+      if (activeJobs.putIfAbsent(jobId, job) != null) {
+         throw new IllegalStateException("Job is already active: " + jobId);
+      }
+
       try {
+         job.prepareForSubmission();
+
+         // Ensure that the job is removed from activeJobs when it completes, regardless of success or failure
+         job.getWorkerTermination().whenComplete((ignored, error) -> activeJobs.remove(jobId, job));
+
+         //Once the job is prepared, submit it to the executor service for execution
          job.submitJobToRun(executorService);
-         job.getJobFuture().whenComplete((phase, error) -> activeJobs.remove(job.getID(), job));
       } catch (RuntimeException e) {
-         activeJobs.remove(job.getID(), job);
+         activeJobs.remove(jobId, job);
          throw e;
       }
    }
 
    private void checkExecutionDurations() {
-      try {
-         ZonedDateTime now = ZonedDateTime.now();
-         for (RunnableUWSJob job : activeJobs.values()) {
+      ZonedDateTime now = ZonedDateTime.now();
+
+      for (RunnableUWSJob job : activeJobs.values()) {
+         try {
             if (job.getExecutionPhase() != ExecutionPhase.EXECUTING) {
                continue;
             }
+
             int jobLimit = job.getExecutionDuration();
             int policyLimit = job.getExecutionPolicy().getMaxRunTime();
+
             int effectiveLimit = jobLimit <= 0 ? policyLimit
-                  : policyLimit <= 0 ? jobLimit : Math.min(jobLimit, policyLimit);
+                    : policyLimit <= 0 ? jobLimit
+                    : Math.min(jobLimit, policyLimit);
+
             ZonedDateTime startTime = job.getStartTime();
-            if (effectiveLimit > 0 && startTime != null && !now.isBefore(startTime.plusSeconds(effectiveLimit))) {
-               log.warn("Execution duration exceeded for job {}; requesting cancellation", job.getID());
+
+            if (effectiveLimit > 0
+                    && startTime != null
+                    && !now.isBefore(startTime.plusSeconds(effectiveLimit))) {
+               log.warn("Execution duration exceeded for job {}; requesting cancellation",
+                       job.getID());
                job.abortForExecutionTimeout();
             }
+         } catch (RuntimeException e) {
+            log.error("Failed to check execution duration for job {}", job.getID(), e);
          }
-      } catch (RuntimeException e) {
-         log.error("Failed while checking job execution durations", e);
       }
    }
 

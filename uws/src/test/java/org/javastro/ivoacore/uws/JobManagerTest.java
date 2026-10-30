@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -154,15 +155,15 @@ class JobManagerTest {
     * This test creates two jobs: one with a short execution duration and another with a policy-limited duration.
     * Both jobs are forced to sleep for a longer time than allowed, and we verify that they are interrupted and aborted.
     */
+
    @Test
    void executionMonitorInterruptsJobsPastTheirDuration() throws Exception {
-      //Force a short execution duration and a short policy max run time to test
-      // that the job is interrupted and aborted.
       File tmpdir = Files.createTempDirectory("timeoutTest").toFile();
+
       ExecutionPolicy policy = new DefaultExecutionPolicy() {
          @Override
          public int getMaxRunTime() {
-            return 2;
+            return 3;
          }
 
          @Override
@@ -171,45 +172,140 @@ class JobManagerTest {
          }
       };
 
-      // Force the jobs to sleep for 10 seconds, which is longer than the allowed
-      // execution duration and policy max run time.
+      CountDownLatch started = new CountDownLatch(2);
+      CountDownLatch interrupted = new CountDownLatch(2);
       AtomicInteger interruptCount = new AtomicInteger();
+
       JobFactoryAggregator agg = new JobFactoryAggregator();
       agg.addFactory(new SimpleLambdaJob.JobFactory(input -> {
+         started.countDown();
          try {
-            Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+            Thread.sleep(TimeUnit.SECONDS.toMillis(30));
          } catch (InterruptedException e) {
             interruptCount.incrementAndGet();
+            interrupted.countDown();
             Thread.currentThread().interrupt();
          }
          return input;
       }, new DefaultEnvironmentFactory(tmpdir), policy));
 
-      // Create a JobManager with the custom policy and run two jobs
-      // one with a short execution duration and another with a policy-limited duration.
-      try (JobManager manager = new JobManager(agg, new RecordingJobStore(), policy)) {
-         BaseUWSJob shortJob = manager.createJob(new SimpleLambdaJob.Specification("timeout", "short-timeout-test"));
-         BaseUWSJob policyLimitedJob = manager.createJob(new SimpleLambdaJob.Specification("timeout", "policy-timeout-test"));
+      try (JobManager manager = new JobManager(
+              agg, new RecordingJobStore(), policy)) {
+
+         BaseUWSJob shortJob = manager.createJob(
+                 new SimpleLambdaJob.Specification(
+                         "timeout", "short-timeout-test"));
+
+         BaseUWSJob policyLimitedJob = manager.createJob(
+                 new SimpleLambdaJob.Specification(
+                         "timeout", "policy-timeout-test"));
+
          manager.setExecutionDuration(shortJob.getID(), 1L);
          manager.setExecutionDuration(policyLimitedJob.getID(), 0L);
 
-         //Start jobs
          manager.runJob(shortJob.getID());
          manager.runJob(policyLimitedJob.getID());
 
-         // Wait for both jobs to be aborted due to exceeding their execution durations.
-         long timeoutAt = System.nanoTime() + TimeUnit.SECONDS.toNanos(6);
-         while ((shortJob.getExecutionPhase() != ExecutionPhase.ABORTED
-               || policyLimitedJob.getExecutionPhase() != ExecutionPhase.ABORTED)
-               && System.nanoTime() < timeoutAt) {
+         assertTrue(started.await(5, TimeUnit.SECONDS),
+                 "Both jobs should start before the timeout is checked");
+
+         assertTrue(interrupted.await(8, TimeUnit.SECONDS),
+                 "Both jobs should be interrupted after exceeding their limits");
+
+         assertEquals(2, interruptCount.get(),
+                 "Each timed-out job should receive an interrupt");
+
+         assertEquals(ExecutionPhase.ABORTED, shortJob.getExecutionPhase());
+         assertEquals(ExecutionPhase.ABORTED,
+                 policyLimitedJob.getExecutionPhase());
+      }
+   }
+
+
+   @Test
+   void executionDurationCannotExceedPolicyMaximum() throws Exception {
+      File tmpdir = Files.createTempDirectory("durationPolicyTest").toFile();
+
+      ExecutionPolicy policy = new DefaultExecutionPolicy() {
+         @Override
+         public int getMaxRunTime() {
+            return 3;
+         }
+
+         @Override
+         public int getKillPeriod() {
+            return 1;
+         }
+      };
+
+      JobFactoryAggregator agg = new JobFactoryAggregator();
+      agg.addFactory(new SimpleLambdaJob.JobFactory(
+              input -> input,
+              new DefaultEnvironmentFactory(tmpdir),
+              policy));
+
+      try (JobManager manager = new JobManager(
+              agg, new RecordingJobStore(), policy)) {
+
+         BaseUWSJob job = manager.createJob(
+                 new SimpleLambdaJob.Specification("duration", "policy-limit"));
+
+         assertThrows(UWSException.class,
+                 () -> manager.setExecutionDuration(job.getID(), 4L));
+
+         assertEquals(3, job.getExecutionPolicy().getMaxRunTime());
+      }
+   }
+
+
+   @Test
+   void completedJobIsNotAbortedByExecutionMonitor() throws Exception {
+      File tmpdir = Files.createTempDirectory("completedJobTest").toFile();
+
+      ExecutionPolicy policy = new DefaultExecutionPolicy() {
+         @Override
+         public int getMaxRunTime() {
+            return 30;
+         }
+
+         @Override
+         public int getKillPeriod() {
+            return 1;
+         }
+      };
+
+      JobFactoryAggregator agg = new JobFactoryAggregator();
+      agg.addFactory(new SimpleLambdaJob.JobFactory(
+              input -> input,
+              new DefaultEnvironmentFactory(tmpdir),
+              policy));
+
+      try (JobManager manager = new JobManager(
+              agg, new RecordingJobStore(), policy)) {
+
+         BaseUWSJob job = manager.createJob(
+                 new SimpleLambdaJob.Specification("fast", "completed-job"));
+
+         manager.runJob(job.getID());
+
+         long deadline = System.nanoTime()
+                 + TimeUnit.SECONDS.toNanos(5);
+
+         while (job.getExecutionPhase() != ExecutionPhase.COMPLETED
+                 && System.nanoTime() < deadline) {
             Thread.sleep(20);
          }
 
-         assertEquals(ExecutionPhase.ABORTED, shortJob.getExecutionPhase());
-         assertEquals(ExecutionPhase.ABORTED, policyLimitedJob.getExecutionPhase());
-         assertEquals(2, interruptCount.get(), "each timed-out job should receive an interrupt");
+         assertEquals(ExecutionPhase.COMPLETED, job.getExecutionPhase());
+
+         // Allow a subsequent monitor tick to occur.
+         Thread.sleep(1100);
+
+         assertEquals(ExecutionPhase.COMPLETED, job.getExecutionPhase());
       }
    }
+
+
 
    private static List<String> extractIds(Jobs jobs) {
        return  jobs.getJobreves().stream().map(ShortJobDescription::getId).collect(Collectors.toList());
