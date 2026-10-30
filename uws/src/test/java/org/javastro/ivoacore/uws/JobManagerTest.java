@@ -6,6 +6,7 @@ import org.javastro.ivoa.entities.uws.ShortJobDescription;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
+import org.javastro.ivoacore.uws.persist.MemoryBasedJobStore;
 import org.javastro.ivoacore.uws.persist.JobStore;
 import org.javastro.ivoacore.uws.persist.RecordingJobStore;
 import org.junit.jupiter.api.BeforeAll;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -302,6 +304,92 @@ class JobManagerTest {
          Thread.sleep(1100);
 
          assertEquals(ExecutionPhase.COMPLETED, job.getExecutionPhase());
+      }
+   }
+
+   @Test
+   void expiredCompletedJobsAreDeletedPeriodically() throws Exception {
+      File tmpdir = Files.createTempDirectory("jobDestructionTest").toFile();
+      ExecutionPolicy policy = new DefaultExecutionPolicy() {
+         @Override
+         public int getKillPeriod() {
+            return 1;
+         }
+
+         @Override
+         public int getDestroyPeriod() {
+            return 1;
+         }
+      };
+      JobFactoryAggregator agg = new JobFactoryAggregator();
+      agg.addFactory(new SimpleLambdaJob.JobFactory(
+              input -> input, new DefaultEnvironmentFactory(tmpdir), policy));
+      JobStore store = new MemoryBasedJobStore();
+
+      try (JobManager manager = new JobManager(agg, store, policy)) {
+         BaseUWSJob job = manager.createJob(
+                 new SimpleLambdaJob.Specification("retained", "completed-retention"));
+         manager.runJob(job.getID());
+
+         long completionDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+         while (job.getExecutionPhase() != ExecutionPhase.COMPLETED
+                 && System.nanoTime() < completionDeadline) {
+            Thread.sleep(20);
+         }
+         assertEquals(ExecutionPhase.COMPLETED, job.getExecutionPhase());
+         assertNotNull(store.retrieve(job.getID()),
+                 "Completed jobs should remain available before destruction time");
+
+         manager.setDestruction(job.getID(), ZonedDateTime.now(ZoneId.of("UTC")).minusSeconds(1));
+
+         long deletionDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+         while (store.retrieve(job.getID()) != null && System.nanoTime() < deletionDeadline) {
+            Thread.sleep(20);
+         }
+         assertNull(store.retrieve(job.getID()),
+                 "The periodic destruction check should remove expired completed jobs");
+      }
+   }
+
+   @Test
+   void failedWorkerStateIsStoredAfterItTerminates() throws Exception {
+      File tmpdir = Files.createTempDirectory("failedJobPersistenceTest").toFile();
+      ExecutionPolicy policy = new DefaultExecutionPolicy() {
+         @Override
+         public int getKillPeriod() {
+            return 1;
+         }
+
+         @Override
+         public int getDestroyPeriod() {
+            return 1;
+         }
+      };
+      CountDownLatch failureStored = new CountDownLatch(1);
+      MemoryBasedJobStore store = new MemoryBasedJobStore() {
+         @Override
+         public void store(BaseUWSJob job) {
+            super.store(job);
+            if (job.getExecutionPhase() == ExecutionPhase.ERROR) {
+               failureStored.countDown();
+            }
+         }
+      };
+      JobFactoryAggregator agg = new JobFactoryAggregator();
+      agg.addFactory(new SimpleLambdaJob.JobFactory(
+              input -> {
+                 throw new IllegalStateException("expected test failure");
+              }, new DefaultEnvironmentFactory(tmpdir), policy));
+
+      try (JobManager manager = new JobManager(agg, store, policy)) {
+         BaseUWSJob job = manager.createJob(
+                 new SimpleLambdaJob.Specification("failure", "failed-persistence"));
+         manager.runJob(job.getID());
+
+         assertTrue(failureStored.await(5, TimeUnit.SECONDS),
+                 "The terminal job state should be written after worker termination");
+         assertEquals(ExecutionPhase.ERROR, store.retrieve(job.getID()).getExecutionPhase());
+         assertNotNull(store.retrieve(job.getID()).getErrorMessage());
       }
    }
 

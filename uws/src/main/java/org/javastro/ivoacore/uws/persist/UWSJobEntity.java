@@ -31,10 +31,17 @@ public class UWSJobEntity {
      * The time the job was created, started and ended.
      */
     public ZonedDateTime creationTime;
+    /** UTC time after which this job record may be destroyed. */
+    public ZonedDateTime destructionTime;
+    /** Maximum allowed execution duration in seconds. */
+    public Integer executionDuration;
     /** UTC start time of job execution. */
     public ZonedDateTime startTime;
     /** UTC end time of job execution. */
     public ZonedDateTime endTime;
+    /** Failure message for jobs that ended in the ERROR phase. */
+    @Column(name = "error_message", columnDefinition = "text")
+    public String errorMessage;
 
     /**
      * The job specification as a JSON string.

@@ -32,6 +32,8 @@ public abstract class BaseStorageTest {
    @Test
    @Order(1)
    void store() {
+       job1.setDestructionTime(LATER_DATE);
+       job1.setExecutionDuration(99);
        startTransaction();
        jobStore.store(job1);
        jobStore.store(job2);
@@ -55,6 +57,8 @@ public abstract class BaseStorageTest {
        BaseUWSJob ret = jobStore.retrieve("job1");
        assertNotNull(ret);
        assertEquals(ExecutionPhase.COMPLETED, ret.getExecutionPhase());
+       assertEquals(LATER_DATE, ret.getDestructionTime());
+       assertEquals(99, ret.getExecutionDuration());
    }
 
    @Test

@@ -36,8 +36,9 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
    private final JobFactory jobFactory;
    private final ExecutionPolicy executionPolicy;
    private final Map<String, RunnableUWSJob> activeJobs = new ConcurrentHashMap<>();
+   private final Set<String> pendingDeletion = ConcurrentHashMap.newKeySet();
    final ExecutorService executorService;
-   private final ScheduledExecutorService executionMonitor;
+   private final ScheduledExecutorService jobMonitor;
 
    /**
     * Constructs a new JobManager with the given environment, factory, store and policy.
@@ -55,14 +56,19 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       if (executionPolicy.getKillPeriod() <= 0) {
          throw new IllegalArgumentException("Execution kill period must be greater than zero seconds");
       }
+      if (executionPolicy.getDestroyPeriod() <= 0) {
+         throw new IllegalArgumentException("Job destruction check period must be greater than zero seconds");
+      }
       this.executorService = Executors.newFixedThreadPool(executionPolicy.getMaxConcurrent());
-      this.executionMonitor = Executors.newSingleThreadScheduledExecutor(task -> {
-         Thread thread = new Thread(task, "uws-execution-monitor");
+      this.jobMonitor = Executors.newScheduledThreadPool(2, task -> {
+         Thread thread = new Thread(task, "uws-job-monitor");
          thread.setDaemon(true);
          return thread;
       });
-      this.executionMonitor.scheduleAtFixedRate(this::checkExecutionDurations,
+      this.jobMonitor.scheduleAtFixedRate(this::checkExecutionDurations,
             executionPolicy.getKillPeriod(), executionPolicy.getKillPeriod(), TimeUnit.SECONDS);
+      this.jobMonitor.scheduleAtFixedRate(this::destroyExpiredJobs,
+            executionPolicy.getDestroyPeriod(), executionPolicy.getDestroyPeriod(), TimeUnit.SECONDS);
       log.info("Created JobManager");
 
    }
@@ -185,8 +191,20 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       try {
          job.prepareForSubmission();
 
-         // Ensure that the job is removed from activeJobs when it completes, regardless of success or failure
-         job.getWorkerTermination().whenComplete((ignored, error) -> activeJobs.remove(jobId, job));
+         job.getWorkerTermination().whenComplete((ignored, error) -> {
+            synchronized (job) {
+               activeJobs.remove(jobId, job);
+               try {
+                  if (pendingDeletion.remove(jobId)) {
+                     jobStore.delete(jobId);
+                  } else {
+                     jobStore.store(job);
+                  }
+               } catch (RuntimeException e) {
+                  log.error("Failed to persist final state for job {}", jobId, e);
+               }
+            }
+         });
 
          //Once the job is prepared, submit it to the executor service for execution
          job.submitJobToRun(executorService);
@@ -227,14 +245,47 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       }
    }
 
+   private void destroyExpiredJobs() {
+      try {
+         ZonedDateTime now = ZonedDateTime.now();
+         for (BaseUWSJob storedJob : jobStore.getJobs(null, null, null)) {
+            ZonedDateTime destructionTime = storedJob.getDestructionTime();
+            if (destructionTime == null || destructionTime.isAfter(now)) {
+               continue;
+            }
+
+            String jobId = storedJob.getID();
+            RunnableUWSJob activeJob = activeJobs.get(jobId);
+            synchronized (activeJob == null ? storedJob : activeJob) {
+               if (activeJob != null) {
+                  pendingDeletion.add(jobId);
+                  activeJob.abort();
+               }
+               if (jobStore.delete(jobId)) {
+                  log.info("Destroyed expired job {}", jobId);
+               }
+            }
+         }
+      } catch (RuntimeException e) {
+         log.error("Failed to destroy expired UWS jobs", e);
+      }
+   }
+
 
    @Override
    public boolean deleteJob(String jobId) throws UWSException {
       BaseUWSJob thisJob = jobStore.retrieve(jobId);
-      if(thisJob instanceof RunnableUWSJob runnableJob) {
-         runnableJob.abort();
+      if (thisJob == null) {
+         return false;
       }
-      return jobStore.delete(jobId);
+      RunnableUWSJob activeJob = activeJobs.get(jobId);
+      synchronized (activeJob == null ? thisJob : activeJob) {
+         if (activeJob != null) {
+            pendingDeletion.add(jobId);
+            activeJob.abort();
+         }
+         return jobStore.delete(jobId);
+      }
    }
 
    @Override
@@ -283,6 +334,7 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       if(job instanceof RunnableUWSJob runnableUWSJob)
       {
          runnableUWSJob.abort();
+         jobStore.store(job);
       }
       else {
          log.warn("attempt to abort a job that is not running, jobid="+jobId);
@@ -294,7 +346,7 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
     */
    @Override
    public void close() {
-      executionMonitor.shutdownNow();
+      jobMonitor.shutdownNow();
       executorService.shutdownNow();
    }
 }

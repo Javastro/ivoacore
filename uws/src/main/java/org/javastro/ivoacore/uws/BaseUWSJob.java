@@ -157,6 +157,20 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     */
    public ExecutionPolicy getExecutionPolicy() {return executionPolicy; }
 
+   /**
+    * Returns the execution environment used by this job.
+    * @return the execution environment.
+    */
+   public ExecutionEnvironment getExecutionEnvironment() { return executionEnvironment; }
+
+   /**
+    * Returns the job failure message, if the job failed.
+    * @return the failure message, or {@code null} if there is no recorded failure.
+    */
+   public String getErrorMessage() {
+      return exception == null ? null : exception.getMessage();
+   }
+
 
    /**
     * creates an interface version of the job.
