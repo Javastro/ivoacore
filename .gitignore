@@ -12,3 +12,7 @@ doc/_build/
 /buildSrc/.kotlin/errors
 
 /buildSrc/.kotlin/
+
+/uws/uws_dump.sql
+/uws/test-drop.sql
+/uws/test.sql
