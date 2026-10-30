@@ -248,7 +248,7 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
    private void destroyExpiredJobs() {
       try {
          ZonedDateTime now = ZonedDateTime.now();
-         for (BaseUWSJob storedJob : jobStore.getJobs(null, null, null)) {
+         for (BaseUWSJob storedJob : jobStore.getJobs(null, null, null)) { //TODO make this more efficient by only retrieving jobs with destruction times in the past
             ZonedDateTime destructionTime = storedJob.getDestructionTime();
             if (destructionTime == null || destructionTime.isAfter(now)) {
                continue;
