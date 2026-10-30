@@ -260,9 +260,10 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
                if (activeJob != null) {
                   pendingDeletion.add(jobId);
                   activeJob.abort();
-               }
-               if (jobStore.delete(jobId)) {
-                  log.info("Destroyed expired job {}", jobId);
+               } else {
+                  if (jobStore.delete(jobId)) {
+                     log.info("Destroyed expired job {}", jobId);
+                  }
                }
             }
          }
