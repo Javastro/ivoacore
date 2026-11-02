@@ -146,7 +146,17 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       }
    }
 
-
+   /**
+    * Sets the destruction time of a job specified by its identifier.
+    * The destruction time determines the point at which the job and its associated
+    * resources will be removed from the system. If the specified destruction time
+    * is null, an exception will be thrown.
+    *
+    * @param jobId the unique identifier of the job whose destruction time is to be set.
+    * @param destructionTime the {@link ZonedDateTime} representing the new destruction time for the job; must not be null.
+    * @return the {@link ZonedDateTime} of the job's updated destruction time after being successfully set.
+    * @throws UWSException if the job cannot be found or if the destruction time is null.
+    */
    @Override
    public ZonedDateTime setDestruction(String jobId, ZonedDateTime destructionTime) throws UWSException {
       BaseUWSJob job = requireJob(jobId);
@@ -158,6 +168,19 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       return job.getDestructionTime();
    }
 
+   /**
+    * Sets the execution duration for a specific job identified by its unique identifier.
+    * The execution duration represents the amount of time in seconds that the job is
+    * allowed to execute. If the specified duration is invalid (null, negative, or
+    * exceeding the maximum allowed value), an exception will be thrown. Additionally,
+    * if the execution duration exceeds a policy-defined maximum runtime, an exception is raised.
+    *
+    * @param jobId the unique identifier of the job for which the execution duration is to be set.
+    * @param duration the duration in seconds for the job's execution; must be non-null, non-negative,
+    *                 and within the range of valid integer values.
+    * @return the actual execution duration of the job after it has been successfully updated.
+    * @throws UWSException if the job cannot be found or if the specified duration is invalid.
+    */
    @Override
    public Long setExecutionDuration(String jobId, Long duration) throws UWSException {
       BaseUWSJob job = requireJob(jobId);
@@ -173,6 +196,14 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       return (long) job.getExecutionDuration();
    }
 
+   /**
+    * Retrieves a job by its unique identifier and ensures its existence.
+    * If the job does not exist, an exception is thrown.
+    *
+    * @param jobId the unique identifier of the job to be retrieved; must not be null or empty.
+    * @return the {@link BaseUWSJob} instance corresponding to the specified job ID.
+    * @throws UWSException if the job cannot be found or retrieved.
+    */
    private BaseUWSJob requireJob(String jobId) throws UWSException {
       BaseUWSJob job = jobStore.retrieve(jobId);
       if (job == null) {
@@ -181,6 +212,19 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       return job;
    }
 
+   /**
+    * Submits a {@link RunnableUWSJob} for execution while ensuring proper lifecycle management.
+    * The job is prepared, tracked, and handled based on its execution state. If a job with the
+    * same ID is already active, an exception is thrown.
+    *
+    * @param job the {@link RunnableUWSJob} to be submitted for execution; must not be null.
+    *            The job must implement all required lifecycle operations including preparation,
+    *            execution, and termination handling.
+    *
+    * @throws IllegalStateException if a job with the same ID is already active.
+    * @throws RuntimeException if an error occurs during job preparation, submission to the
+    *                          executor service, or final state persistence.
+    */
    private void submitRunnableJob(RunnableUWSJob job) {
       String jobId = job.getID();
 
@@ -214,6 +258,23 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       }
    }
 
+   /**
+    * Checks the execution durations of all active jobs and takes appropriate action if a job exceeds
+    * its allowed execution time. The allowed execution time is determined by the lesser of the job's
+    * specific execution duration limit and the global execution policy's maximum runtime.
+    * <p>
+    * The method iterates through all active jobs and performs the following:
+    * - Skips jobs that are not in the EXECUTING phase.
+    * - Calculates the effective execution time limit for each job.
+    * - If the job has exceeded its effective duration, logs a warning message and requests the job's cancellation.
+    * - Handles any runtime exceptions encountered during this process by logging an error without interrupting
+    *   the overall iteration.
+    * <p>
+    * This method is designed to ensure that jobs adhere to their allocated runtime constraints and
+    * that long-running jobs are terminated to comply with policy requirements.
+    * <p>
+    * Note: This method is invoked periodically to enforce execution time limits effectively.
+    */
    private void checkExecutionDurations() {
       ZonedDateTime now = ZonedDateTime.now();
 
@@ -235,8 +296,7 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
             if (effectiveLimit > 0
                     && startTime != null
                     && !now.isBefore(startTime.plusSeconds(effectiveLimit))) {
-               log.warn("Execution duration exceeded for job {}; requesting cancellation",
-                       job.getID());
+               log.warn("Execution duration exceeded for job {}; requesting cancellation", job.getID());
                job.abortForExecutionTimeout();
             }
          } catch (RuntimeException e) {
@@ -245,10 +305,24 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       }
    }
 
+   /**
+    * Cleans up and removes jobs that have expired based on their destruction times.
+    * Expired jobs are jobs whose destruction times are in the past relative to the
+    * current system time. The method handles both active and stored jobs.
+    * <p>
+    * Processing logic includes:
+    * - Retrieving all stored jobs that may potentially need clean-up (with optimisations flagged for improvement).
+    * - Checking each job's destruction time against the current system time.
+    * - If the job is still active, marking it for pending deletion and requesting its abortion.
+    * - If the job is not active, deleting it directly from the job store and logging the clean-up.
+    * <p>
+    * If an exception occurs during processing, an error is logged, and the method ensures
+    * the overall clean-up execution continues for remaining jobs.
+    */
    private void destroyExpiredJobs() {
       try {
          ZonedDateTime now = ZonedDateTime.now();
-         for (BaseUWSJob storedJob : jobStore.getJobs(null, null, null)) { //TODO make this more efficient by only retrieving jobs with destruction times in the past
+         for (BaseUWSJob storedJob : jobStore.getJobs(null, null, null)) { //TODO make this more efficient by only retrieving jobs within a reduced time window that may have expired
             ZonedDateTime destructionTime = storedJob.getDestructionTime();
             if (destructionTime == null || destructionTime.isAfter(now)) {
                continue;
@@ -272,7 +346,16 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       }
    }
 
-
+   /**
+    * Deletes a job from the job store based on the provided job identifier. If the job
+    * is active, it will be aborted and marked for pending deletion before being removed.
+    * If the job does not exist, the method will return false.
+    *
+    * @param jobId the unique identifier of the job to be deleted; must not be null or empty.
+    * @return true if the job was successfully deleted, false if the job was not found.
+    * @throws UWSException if any error occurs during the operation, such as retrieval
+    *                      or deletion of the job from the store.
+    */
    @Override
    public boolean deleteJob(String jobId) throws UWSException {
       BaseUWSJob thisJob = jobStore.retrieve(jobId);

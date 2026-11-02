@@ -226,7 +226,17 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
       jobFuture.join();
    }
 
-
+   /**
+    * Creates a callable supplier that is responsible for managing the execution
+    * of the job. The callable handles job states including execution, cancellation,
+    * error handling, and completion.
+    * <p>
+    * The job's execution phase is updated based on its progress or issues encountered
+    * during execution, and critical operations are synchronised to ensure thread safety.
+    *
+    * @return a {@code Supplier} that, when invoked, returns the {@link ExecutionPhase}
+    *         representing the current or final state of the job's execution.
+    */
    private Supplier<ExecutionPhase> getJobCallable() {
       return () -> {
          synchronized (this) {

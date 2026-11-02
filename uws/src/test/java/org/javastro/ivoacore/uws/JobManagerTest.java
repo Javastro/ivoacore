@@ -223,7 +223,30 @@ class JobManagerTest {
       }
    }
 
-
+   /**
+    * Tests that the execution duration of a job cannot exceed the maximum runtime specified
+    * by the configured execution policy.
+    *
+    * The test performs the following actions:
+    * - Creates a temporary directory to manage job-related files during the test execution.
+    * - Defines a custom {@code ExecutionPolicy} with a maximum runtime of 3 seconds and a
+    *   kill period of 1 second.
+    * - Creates a {@code JobManager} initialized with a {@code JobFactoryAggregator} that uses
+    *   the custom execution policy.
+    * - Adds a job specification via the {@code SimpleLambdaJob} factory to the job manager and
+    *   creates a job.
+    * - Attempts to set an execution duration beyond the policy maximum (4 seconds) and verifies
+    *   that an exception is thrown.
+    * - Asserts that the maximum runtime retrieved from the job's execution policy matches the
+    *   value defined in the custom policy (3 seconds).
+    *
+    * Assertions:
+    * - Attempting to set an execution duration exceeding the policy maximum throws
+    *   {@code UWSException}.
+    * - The job's maximum runtime is correctly retrieved from the configured execution policy.
+    *
+    * @throws Exception if an unexpected error occurs during test execution
+    */
    @Test
    void executionDurationCannotExceedPolicyMaximum() throws Exception {
       File tmpdir = Files.createTempDirectory("durationPolicyTest").toFile();
@@ -259,7 +282,24 @@ class JobManagerTest {
       }
    }
 
-
+   /**
+    * Verifies that a job which has completed is not erroneously aborted by the execution monitor.
+    * <p>
+    * The test performs the following steps:
+    * - Creates a temporary directory for managing job-related files.
+    * - Configures a custom {@link ExecutionPolicy} with a short monitoring period for detecting overrunning jobs.
+    * - Initialises a {@link JobManager} with a job store and a job factory producing simple lambda jobs.
+    * - Creates and runs a job, ensuring it reaches the {@code COMPLETED} execution phase within a timeout period.
+    * - Waits for a subsequent monitor tick to ensure the monitor runs after job completion.
+    * - Confirms through assertions that the job remains in the {@code COMPLETED} phase and is not erroneously moved
+    *   to another phase or aborted by the execution monitor.
+    * <p>
+    * Assertions:
+    * - The job reaches the {@code COMPLETED} execution phase within the specified timeframe.
+    * - The execution monitor does not interfere with the job after it transitions to the {@code COMPLETED} phase.
+    *
+    * @throws Exception if an unexpected error occurs during test execution
+    */
    @Test
    void completedJobIsNotAbortedByExecutionMonitor() throws Exception {
       File tmpdir = Files.createTempDirectory("completedJobTest").toFile();
@@ -307,6 +347,24 @@ class JobManagerTest {
       }
    }
 
+   /**
+    * The job manager deletes tests that expired completed jobs periodically.
+    * <p>
+    * The test:
+    * - Creates a temporary directory for managing job environment files during execution.
+    * - Configures a custom {@link ExecutionPolicy} with short check intervals for killing and destroying jobs.
+    * - Initialises a {@link JobManager} with a job store and a factory producing simple lambda jobs.
+    * - Creates and runs a job, verifying that it reaches the completed phase within a specified timeframe.
+    * - Sets the destruction time for the completed job to be in the past.
+    * - Verifies that the completed job remains in the store until its destruction time and is eventually deleted
+    *   by the periodic destruction check.
+    * <p>
+    * Assertions ensure that:
+    * - Completed jobs remain available before their destruction time.
+    * - Destroyed jobs are correctly removed from the job store after the destruction period elapses.
+    *
+    * @throws Exception if an unexpected error occurs during the test execution
+    */
    @Test
    void expiredCompletedJobsAreDeletedPeriodically() throws Exception {
       File tmpdir = Files.createTempDirectory("jobDestructionTest").toFile();
@@ -351,6 +409,21 @@ class JobManagerTest {
       }
    }
 
+   /**
+    * Verifies that a failed worker's state is correctly stored in the job store after it terminates.
+    *
+    * <ul>
+    * <li>A temporary directory is created for managing job environment files during the test.</li>
+    * <li>A custom {@code ExecutionPolicy} is defined with short kill and destroy periods to accelerate the test.</li>
+    * <li>A custom {@code MemoryBasedJobStore} is used to intercept and verify the storage of a job in the terminal error state.</li>
+    * <li>A {@code JobManager} instance is configured with a {@code SimpleLambdaJob} that simulates failure.</li>
+    * <li>After executing the job, the test ensures the failed job state is stored in the job store, its execution phase is set to {@code ERROR},
+    *     and the error message is populated.</li>
+    * <li>The test validates that this process completes within a predefined timeout period.</li>
+    * </ul>
+    *
+    * @throws Exception if an unexpected error occurs during the test execution
+    */
    @Test
    void failedWorkerStateIsStoredAfterItTerminates() throws Exception {
       File tmpdir = Files.createTempDirectory("failedJobPersistenceTest").toFile();
@@ -393,8 +466,12 @@ class JobManagerTest {
       }
    }
 
-
-
+   /**
+    * Extracts a list of job IDs from the provided {@code Jobs} object.
+    *
+    * @param jobs the {@code Jobs} object containing the job details
+    * @return a list of job IDs as {@code String}s extracted from the job references
+    */
    private static List<String> extractIds(Jobs jobs) {
        return  jobs.getJobreves().stream().map(ShortJobDescription::getId).collect(Collectors.toList());
    }
