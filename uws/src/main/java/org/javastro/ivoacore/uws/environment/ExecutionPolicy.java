@@ -11,13 +11,18 @@ import org.javastro.ivoacore.uws.JobManager;
  * @since VOTech Stage 7
  */
 public interface ExecutionPolicy {
-    
+
     /**
      * Returns the maximum run time for applications in seconds. A value of 0 implies unlimited run times;
      * @return the maximum run time in seconds, or 0 for unlimited.
      */
     int getMaxRunTime();
 
+    /**
+     * Returns the default run time for applications in seconds. A value of 0 implies unlimited run times;
+     * @return the default run time in seconds, or 0 for unlimited.
+     */
+    int getDefaultRunTime();
     
     /**
      * Returns the period of the checks for overrunning applications.
@@ -32,7 +37,13 @@ public interface ExecutionPolicy {
      * @return the default lifetime in seconds.
      */
     int getDefaultLifetime();
-    
+
+    /**
+     * The maximum lifetime that a job record can exist for.
+     * @return The maximum time in seconds.
+     */
+    int getMaxLifetime();
+
     /**
      * Returns the period of the checks for jobs that should be destroyed.
      * How often the system checks for jobs whose destruction time has passed and deletes them.

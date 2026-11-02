@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,7 +71,7 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
       this.executionPhase = ExecutionPhase.PENDING;
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
       this.destructionTime = creationTime.plusSeconds(executionPolicy.getDefaultLifetime());
-      this.executionDuration = executionPolicy.getMaxRunTime();
+      this.executionDuration = executionPolicy.getDefaultRunTime();
    }
 
    /**
@@ -133,7 +134,12 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     * Sets the destruction time of this job.
     * @param destructionTime the new destruction time.
     */
-   public void setDestructionTime(ZonedDateTime destructionTime) { this.destructionTime = destructionTime; }
+   public void setDestructionTime(ZonedDateTime destructionTime) {
+      if( ChronoUnit.SECONDS.between(destructionTime, this.creationTime) > this.executionPolicy.getMaxLifetime()) {
+         throw new IllegalArgumentException("Destruction time exceeds maximum lifetime allowed by execution policy. " + creationTime.plusSeconds(this.executionPolicy.getMaxLifetime()).toString());
+      }
+      this.destructionTime = destructionTime;
+   }
 
    /**
     * Retrieves the maximum execution duration for this job, in seconds.
@@ -145,7 +151,13 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     * Sets the maximum execution duration for this job, in seconds.
     * @param executionDuration the new execution duration.
     */
-   public void setExecutionDuration(int executionDuration) { this.executionDuration = executionDuration; }
+   public void setExecutionDuration(int executionDuration) {
+      if((this.executionPolicy.getMaxRunTime() != 0 && executionDuration > this.executionPolicy.getMaxRunTime())
+        || (executionDuration == 0 && this.executionPolicy.getMaxRunTime() != 0) ) {
+         throw new IllegalArgumentException("Execution duration exceeds maximum run time allowed by execution policy. " + this.executionPolicy.getMaxRunTime());
+      }
+      this.executionDuration = executionDuration;
+   }
 
    /**
     * Retrieves the execution policy associated with this job.

@@ -11,6 +11,11 @@ public class DefaultExecutionPolicy implements ExecutionPolicy {
    }
 
    @Override
+   public int getDefaultRunTime() {
+      return 3600;
+   }
+
+   @Override
    public int getKillPeriod() {
       return 60;
    }
@@ -18,6 +23,11 @@ public class DefaultExecutionPolicy implements ExecutionPolicy {
    @Override
    public int getDefaultLifetime() {
       return 86400*14;
+   }
+
+   @Override
+   public int getMaxLifetime() {
+      return 86400*180;
    }
 
    @Override

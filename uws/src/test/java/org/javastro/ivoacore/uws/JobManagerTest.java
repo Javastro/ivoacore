@@ -128,7 +128,7 @@ class JobManagerTest {
       ZonedDateTime expectedDestruction = job.getCreationTime().plusSeconds(job.getExecutionPolicy().getDefaultLifetime());
 
       assertEquals(expectedDestruction, initial.getDestruction());
-      assertEquals(job.getExecutionPolicy().getMaxRunTime(), initial.getExecutionDuration());
+      assertEquals(job.getExecutionPolicy().getDefaultRunTime(), initial.getExecutionDuration());
 
       ZonedDateTime requestedDestruction = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(3);
       assertEquals(requestedDestruction, jobManager.setDestruction(job.getID(), requestedDestruction));
@@ -203,7 +203,7 @@ class JobManagerTest {
                          "timeout", "policy-timeout-test"));
 
          manager.setExecutionDuration(shortJob.getID(), 1L);
-         manager.setExecutionDuration(policyLimitedJob.getID(), 0L);
+         manager.setExecutionDuration(policyLimitedJob.getID(), 3L);
 
          manager.runJob(shortJob.getID());
          manager.runJob(policyLimitedJob.getID());
