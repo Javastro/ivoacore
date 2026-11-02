@@ -99,7 +99,7 @@ public class CapabilityBuilder {
                   )
             .build()
       );
-      URL tablesURL = new URL(url, "tables");
+      URL tablesURL = new URL(url, "/tables");
       capabilities.add(Capability.builder().withStandardID("ivo://ivoa.net/std/VOSI#tables")
             .withInterfaces(List.of(
                   intf.newCopyBuilder().addAccessURLs(new AccessURL(tablesURL.toString(), "full")).build()
