@@ -4,6 +4,8 @@ package org.javastro.ivoacore.uws.persist;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.BaseUWSJob;
 import org.javastro.ivoacore.uws.JobSpecification;
+import org.javastro.ivoacore.uws.UWSException;
+import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.ExistingExecutionEnvironment;
 
 
@@ -20,11 +22,20 @@ public class RestoredUWSJob extends BaseUWSJob {
     * @param jobSpecification deserialized job specification.
     */
    protected RestoredUWSJob(UWSJobEntity entity, JobSpecification jobSpecification) {
-      super(entity.jobId, jobSpecification, new ExistingExecutionEnvironment(null,entity.workdir));
+      super(entity.jobId, jobSpecification, new ExistingExecutionEnvironment(null,entity.workdir), new DefaultExecutionPolicy());
       executionPhase = entity.executionPhase;
       creationTime = entity.creationTime;
+      destructionTime = entity.destructionTime != null
+              ? entity.destructionTime
+              : creationTime.plusSeconds(executionPolicy.getDefaultLifetime());
+      if (entity.executionDuration != null) {
+         executionDuration = entity.executionDuration;
+      }
       startTime = entity.startTime;
       endTime = entity.endTime;
+      if (entity.errorMessage != null) {
+         exception = new UWSException(entity.errorMessage);
+      }
    }
 
    @Override

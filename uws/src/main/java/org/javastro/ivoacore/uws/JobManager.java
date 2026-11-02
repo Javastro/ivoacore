@@ -18,20 +18,27 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Manager for UWS jobs that handles creation, execution, and lifecycle management of jobs.
  */
-public class JobManager implements ExecutionControl, UWSCore {
+public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
 
    private static final Logger log = LoggerFactory.getLogger(JobManager.class);
    private final JobStore jobStore;
    private final JobFactory jobFactory;
    private final ExecutionPolicy executionPolicy;
+   private final Map<String, RunnableUWSJob> activeJobs = new ConcurrentHashMap<>();
+   private final Set<String> pendingDeletion = ConcurrentHashMap.newKeySet();
    final ExecutorService executorService;
+   private final ScheduledExecutorService jobMonitor;
 
    /**
     * Constructs a new JobManager with the given environment, factory, store and policy.
@@ -43,7 +50,25 @@ public class JobManager implements ExecutionControl, UWSCore {
       this.jobFactory = jobFactory;
       this.jobStore = jobStore;
       this.executionPolicy = executionPolicy;
+      if (executionPolicy.getMaxConcurrent() <= 0) {
+         throw new IllegalArgumentException("Maximum concurrent jobs must be greater than zero");
+      }
+      if (executionPolicy.getKillPeriod() <= 0) {
+         throw new IllegalArgumentException("Execution kill period must be greater than zero seconds");
+      }
+      if (executionPolicy.getDestroyPeriod() <= 0) {
+         throw new IllegalArgumentException("Job destruction check period must be greater than zero seconds");
+      }
       this.executorService = Executors.newFixedThreadPool(executionPolicy.getMaxConcurrent());
+      this.jobMonitor = Executors.newScheduledThreadPool(2, task -> {
+         Thread thread = new Thread(task, "uws-job-monitor");
+         thread.setDaemon(true);
+         return thread;
+      });
+      this.jobMonitor.scheduleAtFixedRate(this::checkExecutionDurations,
+            executionPolicy.getKillPeriod(), executionPolicy.getKillPeriod(), TimeUnit.SECONDS);
+      this.jobMonitor.scheduleAtFixedRate(this::destroyExpiredJobs,
+            executionPolicy.getDestroyPeriod(), executionPolicy.getDestroyPeriod(), TimeUnit.SECONDS);
       log.info("Created JobManager");
 
    }
@@ -92,7 +117,18 @@ public class JobManager implements ExecutionControl, UWSCore {
       if(job instanceof RunnableUWSJob runnableUWSJob) {
          switch (newPhase.toUpperCase()) {//IMPL
             case "RUN":
-               runnableUWSJob.submitJobToRun(executorService);
+               try {
+                  submitRunnableJob(runnableUWSJob);
+               } catch (RuntimeException e) {
+                  if (runnableUWSJob.getExecutionPhase() == ExecutionPhase.ERROR) {
+                     jobStore.store(job); //Persist a failed submission state to the job store
+                     log.error("Failed to submit job {}", jobId, e);
+                     break;
+                  }
+
+                  throw new UWSException("Cannot run job " + jobId + ": " + e.getMessage());
+               }
+
                jobStore.store(job);
                break;
             case "ABORT":
@@ -110,25 +146,230 @@ public class JobManager implements ExecutionControl, UWSCore {
       }
    }
 
-
+   /**
+    * Sets the destruction time of a job specified by its identifier.
+    * The destruction time determines the point at which the job and its associated
+    * resources will be removed from the system. If the specified destruction time
+    * is null, an exception will be thrown.
+    *
+    * @param jobId the unique identifier of the job whose destruction time is to be set.
+    * @param destructionTime the {@link ZonedDateTime} representing the new destruction time for the job; must not be null.
+    * @return the {@link ZonedDateTime} of the job's updated destruction time after being successfully set.
+    * @throws UWSException if the job cannot be found or if the destruction time is null.
+    */
    @Override
    public ZonedDateTime setDestruction(String jobId, ZonedDateTime destructionTime) throws UWSException {
-      throw new UWSException("Not yet implemented");
+      BaseUWSJob job = requireJob(jobId);
+      if (destructionTime == null) {
+         throw new UWSException("Destruction time is required");
+      }
+      job.setDestructionTime(destructionTime);
+      jobStore.store(job);
+      return job.getDestructionTime();
    }
 
+   /**
+    * Sets the execution duration for a specific job identified by its unique identifier.
+    * The execution duration represents the amount of time in seconds that the job is
+    * allowed to execute. If the specified duration is invalid (null, negative, or
+    * exceeding the maximum allowed value), an exception will be thrown. Additionally,
+    * if the execution duration exceeds a policy-defined maximum runtime, an exception is raised.
+    *
+    * @param jobId the unique identifier of the job for which the execution duration is to be set.
+    * @param duration the duration in seconds for the job's execution; must be non-null, non-negative,
+    *                 and within the range of valid integer values.
+    * @return the actual execution duration of the job after it has been successfully updated.
+    * @throws UWSException if the job cannot be found or if the specified duration is invalid.
+    */
    @Override
    public Long setExecutionDuration(String jobId, Long duration) throws UWSException {
-      throw new UWSException("Not yet implemented");
+      BaseUWSJob job = requireJob(jobId);
+      if (duration == null || duration < 0 || duration > Integer.MAX_VALUE) {
+         throw new UWSException("Execution duration must be between 0 and " + Integer.MAX_VALUE + " seconds");
+      }
+      int maxRunTime = job.getExecutionPolicy().getMaxRunTime();
+      if (maxRunTime > 0 && duration > maxRunTime) {
+         throw new UWSException("Execution duration cannot exceed the policy maximum of " + maxRunTime + " seconds");
+      }
+      job.setExecutionDuration(duration.intValue());
+      jobStore.store(job);
+      return (long) job.getExecutionDuration();
    }
 
+   /**
+    * Retrieves a job by its unique identifier and ensures its existence.
+    * If the job does not exist, an exception is thrown.
+    *
+    * @param jobId the unique identifier of the job to be retrieved; must not be null or empty.
+    * @return the {@link BaseUWSJob} instance corresponding to the specified job ID.
+    * @throws UWSException if the job cannot be found or retrieved.
+    */
+   private BaseUWSJob requireJob(String jobId) throws UWSException {
+      BaseUWSJob job = jobStore.retrieve(jobId);
+      if (job == null) {
+         throw new UWSException("Job with id " + jobId + " not found");
+      }
+      return job;
+   }
 
+   /**
+    * Submits a {@link RunnableUWSJob} for execution while ensuring proper lifecycle management.
+    * The job is prepared, tracked, and handled based on its execution state. If a job with the
+    * same ID is already active, an exception is thrown.
+    *
+    * @param job the {@link RunnableUWSJob} to be submitted for execution; must not be null.
+    *            The job must implement all required lifecycle operations including preparation,
+    *            execution, and termination handling.
+    *
+    * @throws IllegalStateException if a job with the same ID is already active.
+    * @throws RuntimeException if an error occurs during job preparation, submission to the
+    *                          executor service, or final state persistence.
+    */
+   private void submitRunnableJob(RunnableUWSJob job) {
+      String jobId = job.getID();
+
+      if (activeJobs.putIfAbsent(jobId, job) != null) {
+         throw new IllegalStateException("Job is already active: " + jobId);
+      }
+
+      try {
+         job.prepareForSubmission();
+
+         job.getWorkerTermination().whenComplete((ignored, error) -> {
+            synchronized (job) {
+               activeJobs.remove(jobId, job);
+               try {
+                  if (pendingDeletion.remove(jobId)) {
+                     jobStore.delete(jobId);
+                  } else {
+                     jobStore.store(job);
+                  }
+               } catch (RuntimeException e) {
+                  log.error("Failed to persist final state for job {}", jobId, e);
+               }
+            }
+         });
+
+         //Once the job is prepared, submit it to the executor service for execution
+         job.submitJobToRun(executorService);
+      } catch (RuntimeException e) {
+         activeJobs.remove(jobId, job);
+         throw e;
+      }
+   }
+
+   /**
+    * Checks the execution durations of all active jobs and takes appropriate action if a job exceeds
+    * its allowed execution time. The allowed execution time is determined by the lesser of the job's
+    * specific execution duration limit and the global execution policy's maximum runtime.
+    * <p>
+    * The method iterates through all active jobs and performs the following:
+    * - Skips jobs that are not in the EXECUTING phase.
+    * - Calculates the effective execution time limit for each job.
+    * - If the job has exceeded its effective duration, logs a warning message and requests the job's cancellation.
+    * - Handles any runtime exceptions encountered during this process by logging an error without interrupting
+    *   the overall iteration.
+    * <p>
+    * This method is designed to ensure that jobs adhere to their allocated runtime constraints and
+    * that long-running jobs are terminated to comply with policy requirements.
+    * <p>
+    * Note: This method is invoked periodically to enforce execution time limits effectively.
+    */
+   private void checkExecutionDurations() {
+      ZonedDateTime now = ZonedDateTime.now();
+
+      for (RunnableUWSJob job : activeJobs.values()) {
+         try {
+            if (job.getExecutionPhase() != ExecutionPhase.EXECUTING) {
+               continue;
+            }
+
+            int jobLimit = job.getExecutionDuration();
+            int policyLimit = job.getExecutionPolicy().getMaxRunTime();
+
+            int effectiveLimit = jobLimit <= 0 ? policyLimit
+                    : policyLimit <= 0 ? jobLimit
+                    : Math.min(jobLimit, policyLimit);
+
+            ZonedDateTime startTime = job.getStartTime();
+
+            if (effectiveLimit > 0
+                    && startTime != null
+                    && !now.isBefore(startTime.plusSeconds(effectiveLimit))) {
+               log.warn("Execution duration exceeded for job {}; requesting cancellation", job.getID());
+               job.abortForExecutionTimeout();
+            }
+         } catch (RuntimeException e) {
+            log.error("Failed to check execution duration for job {}", job.getID(), e);
+         }
+      }
+   }
+
+   /**
+    * Cleans up and removes jobs that have expired based on their destruction times.
+    * Expired jobs are jobs whose destruction times are in the past relative to the
+    * current system time. The method handles both active and stored jobs.
+    * <p>
+    * Processing logic includes:
+    * - Retrieving all stored jobs that may potentially need clean-up (with optimisations flagged for improvement).
+    * - Checking each job's destruction time against the current system time.
+    * - If the job is still active, marking it for pending deletion and requesting its abortion.
+    * - If the job is not active, deleting it directly from the job store and logging the clean-up.
+    * <p>
+    * If an exception occurs during processing, an error is logged, and the method ensures
+    * the overall clean-up execution continues for remaining jobs.
+    */
+   private void destroyExpiredJobs() {
+      try {
+         ZonedDateTime now = ZonedDateTime.now();
+         for (BaseUWSJob storedJob : jobStore.getJobs(null, null, null)) { //TODO make this more efficient by only retrieving jobs within a reduced time window that may have expired
+            ZonedDateTime destructionTime = storedJob.getDestructionTime();
+            if (destructionTime == null || destructionTime.isAfter(now)) {
+               continue;
+            }
+
+            String jobId = storedJob.getID();
+            RunnableUWSJob activeJob = activeJobs.get(jobId);
+            synchronized (activeJob == null ? storedJob : activeJob) {
+               if (activeJob != null) {
+                  pendingDeletion.add(jobId);
+                  activeJob.abort();
+               } else {
+                  if (jobStore.delete(jobId)) {
+                     log.info("Destroyed expired job {}", jobId);
+                  }
+               }
+            }
+         }
+      } catch (RuntimeException e) {
+         log.error("Failed to destroy expired UWS jobs", e);
+      }
+   }
+
+   /**
+    * Deletes a job from the job store based on the provided job identifier. If the job
+    * is active, it will be aborted and marked for pending deletion before being removed.
+    * If the job does not exist, the method will return false.
+    *
+    * @param jobId the unique identifier of the job to be deleted; must not be null or empty.
+    * @return true if the job was successfully deleted, false if the job was not found.
+    * @throws UWSException if any error occurs during the operation, such as retrieval
+    *                      or deletion of the job from the store.
+    */
    @Override
    public boolean deleteJob(String jobId) throws UWSException {
       BaseUWSJob thisJob = jobStore.retrieve(jobId);
-      if(thisJob instanceof RunnableUWSJob runnableJob) {
-         runnableJob.abort();
+      if (thisJob == null) {
+         return false;
       }
-      return jobStore.delete(jobId);
+      RunnableUWSJob activeJob = activeJobs.get(jobId);
+      synchronized (activeJob == null ? thisJob : activeJob) {
+         if (activeJob != null) {
+            pendingDeletion.add(jobId);
+            activeJob.abort();
+         }
+         return jobStore.delete(jobId);
+      }
    }
 
    @Override
@@ -163,7 +404,7 @@ public class JobManager implements ExecutionControl, UWSCore {
    public void runJob(String jobId) throws UWSException {
       BaseUWSJob job = jobStore.retrieve(jobId);
       if(job instanceof RunnableUWSJob runnableUWSJob) {
-         runnableUWSJob.submitJobToRun(executorService);
+         submitRunnableJob(runnableUWSJob);
       }
       else {
          throw new UWSException("cannot run job  "+ jobId + " it does not exist in main memory - copy and recreate job");
@@ -177,9 +418,19 @@ public class JobManager implements ExecutionControl, UWSCore {
       if(job instanceof RunnableUWSJob runnableUWSJob)
       {
          runnableUWSJob.abort();
+         jobStore.store(job);
       }
       else {
          log.warn("attempt to abort a job that is not running, jobid="+jobId);
       }
+   }
+
+   /**
+    * Stops the manager's execution monitor and worker pool.
+    */
+   @Override
+   public void close() {
+      jobMonitor.shutdownNow();
+      executorService.shutdownNow();
    }
 }

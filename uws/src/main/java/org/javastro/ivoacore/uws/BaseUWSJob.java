@@ -11,6 +11,7 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.*;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,12 +34,20 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
    protected volatile ExecutionPhase executionPhase; //TODO think about thread safety of executionPhase - should it be volatile? should we use an AtomicReference? should we synchronize access to it?
    /** The time at which this job was created. */
    protected ZonedDateTime creationTime;
+   /** The time at which this job should be destroyed. */
+   protected volatile ZonedDateTime destructionTime;
+   /** The maximum execution duration for this job, in seconds. */
+   protected volatile int executionDuration;
    /** The time at which this job started executing. */
-   protected ZonedDateTime startTime;
+   protected volatile ZonedDateTime startTime;
    /** The time at which this job finished executing. */
    protected volatile ZonedDateTime endTime;
    /** The specification describing this job's parameters and type. */
    protected final JobSpecification jobSpecification;
+   /** The execution environment for this job. */
+   protected final ExecutionEnvironment executionEnvironment;
+   /** The execution policy for this job. */
+   protected final ExecutionPolicy executionPolicy;
    /** The list of result parameter values produced by this job. */
    protected List<ParameterValue> results = new ArrayList<>();
 
@@ -51,18 +60,18 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     * @param jobID the unique identifier for this job.
     * @param jobSpecification the specification describing the job's parameters and type.
     * @param executionEnvironment execution context for filesystem and security resources.
+    * @param executionPolicy execution policy governing job execution.
     */
-   protected BaseUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment) {
+   protected BaseUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment, ExecutionPolicy executionPolicy) {
       this.jobSpecification = jobSpecification;
       this.jobID = jobID;
       this.executionEnvironment = executionEnvironment;
+      this.executionPolicy = executionPolicy;
       this.executionPhase = ExecutionPhase.PENDING;
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
+      this.destructionTime = creationTime.plusSeconds(executionPolicy.getDefaultLifetime());
+      this.executionDuration = executionPolicy.getMaxRunTime();
    }
-
-   /** The execution environment for this job. */
-   protected final ExecutionEnvironment executionEnvironment;
-
 
    /**
     * Returns the unique identifier for this job.
@@ -114,7 +123,53 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
     */
    public ZonedDateTime getEndTime() {return endTime; }
 
+   /**
+    * Retrieves the destruction time of this job.
+    * @return the destruction time as a {@link ZonedDateTime} instance.
+    */
+   public ZonedDateTime getDestructionTime() { return destructionTime; }
 
+   /**
+    * Sets the destruction time of this job.
+    * @param destructionTime the new destruction time.
+    */
+   public void setDestructionTime(ZonedDateTime destructionTime) { this.destructionTime = destructionTime; }
+
+   /**
+    * Retrieves the maximum execution duration for this job, in seconds.
+    * @return the execution duration.
+    */
+   public int getExecutionDuration() { return executionDuration; }
+
+   /**
+    * Sets the maximum execution duration for this job, in seconds.
+    * @param executionDuration the new execution duration.
+    */
+   public void setExecutionDuration(int executionDuration) { this.executionDuration = executionDuration; }
+
+   /**
+    * Retrieves the execution policy associated with this job.
+    * The execution policy defines constraints and behaviours, such as
+    * maximum runtime, concurrency limits, and lifecycle management,
+    * that govern the job's execution within the system.
+    *
+    * @return the {@link ExecutionPolicy} instance associated with this job.
+    */
+   public ExecutionPolicy getExecutionPolicy() {return executionPolicy; }
+
+   /**
+    * Returns the execution environment used by this job.
+    * @return the execution environment.
+    */
+   public ExecutionEnvironment getExecutionEnvironment() { return executionEnvironment; }
+
+   /**
+    * Returns the job failure message, if the job failed.
+    * @return the failure message, or {@code null} if there is no recorded failure.
+    */
+   public String getErrorMessage() {
+      return exception == null ? null : exception.getMessage();
+   }
 
 
    /**
@@ -126,6 +181,8 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
             .withJobId(jobID)
             .withPhase(executionPhase)
             .withCreationTime(creationTime)
+            .withDestruction(destructionTime)
+            .withExecutionDuration(executionDuration)
             .withParameters(new Parameters(jobSpecification.getParameters().stream()
                   .map(p->{return new Parameter(p.getValue(),false,p.getId(),false);//FIXME parameters can be much more nuanced  - need to think about refactor of org.javastro.ivoacore.uws.description.parameter
                   }).toList()

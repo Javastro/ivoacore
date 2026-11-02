@@ -140,14 +140,18 @@ public abstract class BaseUWSResource implements UWS {
    @POST
    @Path("{jobid}/destruction")
    public Response setDestruction(@PathParam("jobid")String jobId, @FormParam("DESTRUCTION") ZonedDateTime destructionTime) throws UWSException {
-      throw new UWSException("Not implemented");
+      //TODO determine whether to handle potential UWSException from setDestruction, or let it propagate
+      getJobManager().setDestruction(jobId, destructionTime);
+      return redirectToJob(jobId);
    }
 
    @POST
    @Path("{jobid}/executionduration")
    @Override
    public Response setExecutionDuration(@PathParam("jobid")String jobId, @FormParam("EXECUTIONDURATION") Long executionDuration) throws UWSException {
-      throw new UWSException("Not implemented");
+      //TODO determine whether to handle potential UWSException from setExecutionDuration, or let it propagate
+      getJobManager().setExecutionDuration(jobId, executionDuration);
+      return redirectToJob(jobId);
    }
 
    @Override

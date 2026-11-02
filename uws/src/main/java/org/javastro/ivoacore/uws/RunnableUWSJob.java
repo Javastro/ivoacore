@@ -3,11 +3,16 @@ package org.javastro.ivoacore.uws;
 
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoacore.uws.environment.ExecutionEnvironment;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
+import org.javastro.ivoacore.uws.environment.execution.ParameterValue;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.function.Supplier;
 
 
@@ -19,8 +24,22 @@ import java.util.function.Supplier;
  * @author Paul Harrison (paul.harrison@manchester.ac.uk) */
 public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
 
-   /** The future representing the asynchronous execution of this job. */
-   protected CompletableFuture<ExecutionPhase> jobFuture;
+   //Separate the actual worker's execution from the UWS's reported outcome.
+   //The worker may be executing, but the UWS may have already reported the job as ABORTED or ERROR.
+
+   /** UWS's reported outcome such as ABORTED, ERROR, COMPLETED, etc. */
+   protected volatile CompletableFuture<ExecutionPhase> jobFuture;
+   /** The actual worker that may still be running after the UWS state has changed (for example to ABORTED) */
+   private volatile CompletableFuture<Void> workerTermination;
+
+   private volatile Future<?> executionTask;
+   private volatile boolean cancellationRequested;
+   private volatile String terminationReason;
+
+   private final Object workerStartLock = new Object();
+   private boolean workerStarted;
+
+   private boolean prepared;
 
    /**
     * Returns the future representing the asynchronous execution of this job.
@@ -31,39 +50,167 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
    }
 
    /**
+    * Returns a future that completes when the worker executing this job has terminated.
+    * @return the {@link CompletableFuture} that completes when the worker has terminated.
+    */
+   public CompletableFuture<Void> getWorkerTermination() {
+      return workerTermination;
+   }
+
+   /**
+    * Returns the reason for the termination of this job, if any.
+    * @return the termination reason, or {@code null} if the job has not terminated.
+    */
+   public String getTerminationReason() {
+      return terminationReason;
+   }
+
+   /**
     * Creates a runnable UWS job.
     *
     * @param jobID unique job identifier.
     * @param jobSpecification job configuration and parameters.
     * @param executionEnvironment execution environment for job artifacts.
+    * @param executionPolicy execution policy governing job execution constraints.
     */
-   protected RunnableUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment) {
-      super(jobID, jobSpecification, executionEnvironment);
+   protected RunnableUWSJob(String jobID, JobSpecification jobSpecification, ExecutionEnvironment executionEnvironment, ExecutionPolicy executionPolicy) {
+      super(jobID, jobSpecification, executionEnvironment, executionPolicy);
+   }
+
+   synchronized void prepareForSubmission() {
+      if (prepared) {
+         throw new IllegalStateException(
+                 "Job " + jobID + " has already been prepared for submission");
+      }
+
+      if (executionPhase != ExecutionPhase.PENDING) {
+         throw new IllegalStateException(
+                 "Job " + jobID + " is not pending");
+      }
+
+      prepared = true;
+      cancellationRequested = false;
+      workerStarted = false;
+      terminationReason = null;
+
+      jobFuture = new CompletableFuture<>();
+      workerTermination = new CompletableFuture<>();
    }
 
    /**
     * Submits this job for asynchronous execution using the given executor service.
     * @param executorService the executor service to use for running the job.
     */
-   void submitJobToRun(ExecutorService executorService)  {
-      jobFuture = CompletableFuture.supplyAsync(getJobCallable(),executorService).thenApply(e ->{logger.info("Job {} completed with phase {}", jobID, e); return e;});//TODO perhaps the API should really deal with the CompletableFuture, with that stored in the JobStore
+   synchronized void submitJobToRun(ExecutorService executorService) {
+      if (!prepared) {
+         throw new IllegalStateException(
+                 "Job " + jobID + " has not been prepared for submission");
+      }
+
+      if (executionPhase != ExecutionPhase.PENDING) {
+         throw new IllegalStateException(
+                 "Job " + jobID + " is not pending");
+      }
+
+      FutureTask<Void> task = new FutureTask<>(() -> {
+         try {
+            ExecutionPhase phase = getJobCallable().get();
+            jobFuture.complete(phase);
+            return null;
+         } catch (RuntimeException | Error e) {
+            jobFuture.completeExceptionally(e);
+            throw e;
+         }
+      }) {
+         @Override
+         public void run() {
+            synchronized (workerStartLock) {
+               if (isCancelled()) {
+                  return;
+               }
+               workerStarted = true;
+            }
+
+            try {
+               super.run();
+            } finally {
+               workerTermination.complete(null);
+            }
+         }
+
+         @Override
+         public boolean cancel(boolean mayInterruptIfRunning) {
+            synchronized (workerStartLock) {
+               boolean cancelled = super.cancel(mayInterruptIfRunning);
+               if (cancelled && !workerStarted) {
+                  workerTermination.complete(null);
+               }
+               return cancelled;
+            }
+         }
+      };
+
+      executionTask = task;
+
+      try {
+         executorService.execute(task);
+      } catch (RuntimeException e) {
+         failSubmission(e);
+         task.cancel(false);
+         jobFuture.completeExceptionally(e);
+         throw e;
+      }
+   }
+
+   synchronized void failSubmission(RuntimeException cause) {
+      if (workerStarted || executionPhase != ExecutionPhase.PENDING) {
+         return;
+      }
+
+      exception = new UWSException("Failed to submit job " + jobID + ": " + cause.getMessage(), cause);
+
+      executionPhase = ExecutionPhase.ERROR;
+      endTime = ZonedDateTime.now(ZoneId.of("UTC"));
    }
 
    /**
     * Aborts this job.
     */
-   public void abort() {
-      //if it has not started just set the phase to aborted and end time to now, otherwise try to cancel the future
-      boolean cancelled = jobFuture!= null?jobFuture.cancel(true):true;//TODO need to set the status when this happens
-      if (cancelled) {
-         logger.info("Job {} aborted", jobID);
-         executionPhase = ExecutionPhase.ABORTED;
-         endTime = ZonedDateTime.now(ZoneId.of("UTC"));
+   public synchronized void abort() {
+      cancel(ExecutionPhase.ABORTED, "aborted");
+   }
+
+   /**
+    * Requests interruption of this job after it exceeds its execution duration.
+    */
+   public synchronized void abortForExecutionTimeout() {
+      cancel(ExecutionPhase.ABORTED, "exceeded its execution duration");
+   }
+
+   private void cancel(ExecutionPhase terminalPhase, String reason) {
+      if (executionPhase == ExecutionPhase.COMPLETED
+              || executionPhase == ExecutionPhase.ERROR
+              || executionPhase == ExecutionPhase.ABORTED) {
+         return;
       }
-      else  {
-         executionPhase = ExecutionPhase.UNKNOWN;
-         logger.error("Failed to abort job {}", jobID);
+
+      cancellationRequested = true;
+      terminationReason = reason;
+
+      Future<?> task = executionTask;
+      if (task != null) {
+         task.cancel(true);
       }
+
+      executionPhase = terminalPhase;
+      endTime = ZonedDateTime.now(ZoneId.of("UTC"));
+
+      CompletableFuture<ExecutionPhase> outcome = jobFuture;
+      if (outcome != null) {
+         outcome.complete(terminalPhase);
+      }
+
+      logger.info("Job {} {}", jobID, reason);
    }
 
    /**
@@ -76,32 +223,64 @@ public abstract class RunnableUWSJob extends BaseUWSJob implements Job {
       if (jobFuture == null) {
          throw new IllegalStateException("Job " + jobID + " has not been submitted for execution");
       }
-      try {
-         jobFuture.join(); // blocks until the future completes (normally or exceptionally)
-      } catch (java.util.concurrent.CancellationException e) {
-         logger.warn("Job {} was cancelled while waiting for finish", jobID);
-      }
+      jobFuture.join();
    }
 
-
+   /**
+    * Creates a callable supplier that is responsible for managing the execution
+    * of the job. The callable handles job states including execution, cancellation,
+    * error handling, and completion.
+    * <p>
+    * The job's execution phase is updated based on its progress or issues encountered
+    * during execution, and critical operations are synchronised to ensure thread safety.
+    *
+    * @return a {@code Supplier} that, when invoked, returns the {@link ExecutionPhase}
+    *         representing the current or final state of the job's execution.
+    */
    private Supplier<ExecutionPhase> getJobCallable() {
       return () -> {
-         logger.info("Starting job execution of {}", jobID);
-         executionPhase = ExecutionPhase.EXECUTING;
-         startTime = ZonedDateTime.now(ZoneId.of("UTC"));
+         synchronized (this) {
+            if (cancellationRequested || executionPhase != ExecutionPhase.PENDING) {
+               return executionPhase;
+            }
+            logger.info("Starting job execution of {}", jobID);
+            startTime = ZonedDateTime.now(ZoneId.of("UTC"));
+            executionPhase = ExecutionPhase.EXECUTING;
+         }
          try {
-            results = performAction();
-            executionPhase = ExecutionPhase.COMPLETED;
-            endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-            logger.info("Finished execution of {}", jobID);
-            return executionPhase;
+            List<ParameterValue> jobResults = performAction();
+            synchronized (this) {
+               if (!cancellationRequested) {
+                  results = jobResults;
+                  executionPhase = ExecutionPhase.COMPLETED;
+                  endTime = ZonedDateTime.now(ZoneId.of("UTC"));
+               }
+               logger.info("Finished execution of {}", jobID);
+               return executionPhase;
+            }
          }
          catch (UWSException e) {
-            logger.error("Error during execution of job {}: {}\n", jobID, e.getMessage(), e);
-            executionPhase = ExecutionPhase.ERROR;
-            endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-            exception = e;
-            return executionPhase;
+            synchronized (this) {
+               if (!cancellationRequested) {
+                  logger.error("Error during execution of job {}: {}\n", jobID, e.getMessage(), e);
+                  executionPhase = ExecutionPhase.ERROR;
+                  endTime = ZonedDateTime.now(ZoneId.of("UTC"));
+                  exception = e;
+               }
+               return executionPhase;
+            }
+         }
+         catch (RuntimeException e) {
+            synchronized (this) {
+               if (!cancellationRequested) {
+                  UWSException jobException = new UWSException("Unexpected error during job execution", e);
+                  logger.error("Error during execution of job {}", jobID, e);
+                  executionPhase = ExecutionPhase.ERROR;
+                  endTime = ZonedDateTime.now(ZoneId.of("UTC"));
+                  exception = jobException;
+               }
+               throw e;
+            }
          }
 
       };

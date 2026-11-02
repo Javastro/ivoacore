@@ -30,7 +30,8 @@ public class CachedStoreTest {
         JobFactoryAggregator agg = new JobFactoryAggregator();
         agg.addFactory( new SimpleLambdaJob.JobFactory(
                 CachedStoreTest::runLambdaJob,
-                new DefaultEnvironmentFactory(tmpDir)
+                new DefaultEnvironmentFactory(tmpDir),
+                new DefaultExecutionPolicy()
         ));
 
         jobManager = new JobManager(agg, new MemoryBasedJobStore(), new DefaultExecutionPolicy());

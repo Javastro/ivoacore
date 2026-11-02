@@ -6,6 +6,8 @@ import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.uws.*;
 import org.javastro.ivoacore.uws.description.JobType;
 import org.javastro.ivoacore.uws.environment.DefaultEnvironmentFactory;
+import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
+import org.javastro.ivoacore.uws.environment.ExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.parameter.ImmutableStringValue;
 
 import java.io.IOException;
@@ -25,12 +27,12 @@ public class MockJob extends BaseUWSJob {
    /**
     * Constructs a new BaseUWSJob with the given job ID and specification.
     *
-    * @param jobID     the unique identifier for this job.
-    * @param cDate
-    * @param phase
+    * @param jobID   the unique identifier for this job.
+    * @param cDate   the creation date of the job.
+    * @param phase   the execution phase of the job.
     */
    protected MockJob(String jobID, String runid, ZonedDateTime cDate, ExecutionPhase phase) {
-      super(jobID, new Specification(runid), envFactory.create(jobID));
+      super(jobID, new Specification(runid), envFactory.create(jobID), new DefaultExecutionPolicy());
       this.creationTime = cDate;
       this.executionPhase = phase;
    }
@@ -81,8 +83,8 @@ public class MockJob extends BaseUWSJob {
    private final static DefaultEnvironmentFactory envFactory;
 
    public static class JobFactory extends BaseJobFactory<JobType, Class<Specification>> {
-      public JobFactory() {
-         super(jobType, Specification.class,envFactory);
+      public JobFactory(ExecutionPolicy policy) {
+         super(jobType, Specification.class,envFactory, policy);
       }
       @Override
       public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
@@ -90,19 +92,11 @@ public class MockJob extends BaseUWSJob {
       }
    }
 
-
-
-
-      static {
+   static {
       try {
          envFactory = new DefaultEnvironmentFactory(Files.createTempDirectory("mock").toFile());
       } catch (IOException e) {
          throw new RuntimeException(e);
       }
    }
-
-
-
-
-
 }
