@@ -9,6 +9,7 @@ import org.javastro.ivoa.entities.vosi.capabilities.Capabilities;
 /**
 provides the basic VOSI interface
  */
+@FunctionalInterface
 public interface VOSIProvider {
       /**
        * Returns the VOSI capabilities for this service.
