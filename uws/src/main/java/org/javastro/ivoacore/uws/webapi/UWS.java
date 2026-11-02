@@ -6,6 +6,8 @@ package org.javastro.ivoacore.uws.webapi;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Parameters;
 import org.javastro.ivoa.entities.uws.Results;
@@ -13,6 +15,7 @@ import org.javastro.ivoacore.uws.UWSControl;
 import org.javastro.ivoacore.uws.UWSException;
 
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 
 /**
@@ -42,6 +45,7 @@ public interface UWS extends UWSControl {
      */
     @GET
     @Path("{jobid}/executionduration")
+    @Produces(MediaType.TEXT_PLAIN)
     default Long getExecutionDuration(@PathParam("jobid")String jobid) throws UWSException
     {
         return (long) jobDetail(jobid).getExecutionDuration();
@@ -50,14 +54,17 @@ public interface UWS extends UWSControl {
     /**
      * Get the destruction time for a job.
      * @param jobid the identifier of the job.
-     * @return the destruction time as a {@link ZonedDateTime}.
+     * @return the destruction time as a strubg.
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
     @Path("{jobid}/destruction")
-    default ZonedDateTime getJobDestruction(@PathParam("jobid") String jobid) throws UWSException
+    @Produces(MediaType.TEXT_PLAIN)
+    default String getJobDestruction(@PathParam("jobid") String jobid) throws UWSException
     {
-        return jobDetail(jobid).getDestruction();
+        //IMPL made the return a string as that was the easiest way to get the ZonedDateTime to be returned in the correct format.
+        return jobDetail(jobid).getDestruction().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)
+              .withZoneSameInstant(java.time.ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
     }
 
 
