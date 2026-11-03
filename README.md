@@ -25,12 +25,20 @@ then there are client libraries for the protocols in the [clients](clients) dire
 
 versioning is managed with the [axion release plugin](https://axion-release-plugin.readthedocs.io/en/latest/)
 
+*note* make sure that ssh keys are loaded into the ssh agent before running the release command - otherwise the release will fail when it tries to push to the remote repository.
+
+```shell
+./gradlew release
+```
+
+```shell
+
 ### published versions
 ```kotlin
 implementation("org.javastro.ivoa.core:common:0.9.0")
-implementation("org.javastro.ivoa.core:dal:0.9.1")
-implementation("org.javastro.ivoa.core:uws:0.9.1")
-implementation("org.javastro.ivoa.core:tap:0.9.2")
+implementation("org.javastro.ivoa.core:dal:0.9.2")
+implementation("org.javastro.ivoa.core:uws:0.9.2")
+implementation("org.javastro.ivoa.core:tap:0.9.3")
 implementation("org.javastro.ivoa.core:pgsphere:0.9.2")
 implementation("org.javastro.ivoa.core.clients:registry-client:0.9.0")
 implementation("org.javastro.ivoa.core.clients:tap-client:0.9.0")

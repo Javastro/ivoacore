@@ -23,7 +23,7 @@ scmVersion {
         pre("fileUpdate", mapOf(
             "encoding" to "utf-8",
             "file" to rootDir.resolve("README.md").toString(),
-            "pattern" to KotlinClosure2<String, HookContext,String>({ v, c -> "/${project.name}:${v}/" } ),
+            "pattern" to KotlinClosure2<String, HookContext,String>({ v, c -> "${project.name}:${v}" } ),
             "replacement" to KotlinClosure2<String, HookContext,String>( {v, c -> "${project.name}:${v}" })
         ))
         pre("commit" , KotlinClosure2<String, ScmPosition,String>({ v, p-> "Updating README for version ${v}" }))
