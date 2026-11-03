@@ -6,12 +6,12 @@ package org.javastro.ivoacore.uws.environment;
  */
 public class DefaultExecutionPolicy implements ExecutionPolicy {
    @Override
-   public int getMaxRunTime() {
+   public long getMaxRunTime() {
       return 86400;
    }
 
    @Override
-   public int getDefaultRunTime() {
+   public long getDefaultRunTime() {
       return 3600;
    }
 
@@ -21,12 +21,12 @@ public class DefaultExecutionPolicy implements ExecutionPolicy {
    }
 
    @Override
-   public int getDefaultLifetime() {
+   public long getDefaultLifetime() {
       return 86400*14;
    }
 
    @Override
-   public int getMaxLifetime() {
+   public long getMaxLifetime() {
       return 86400*180;
    }
 

@@ -164,7 +164,7 @@ class JobManagerTest {
 
       ExecutionPolicy policy = new DefaultExecutionPolicy() {
          @Override
-         public int getMaxRunTime() {
+         public long getMaxRunTime() {
             return 3;
          }
 
@@ -253,7 +253,7 @@ class JobManagerTest {
 
       ExecutionPolicy policy = new DefaultExecutionPolicy() {
          @Override
-         public int getMaxRunTime() {
+         public long getMaxRunTime() {
             return 3;
          }
 
@@ -306,7 +306,7 @@ class JobManagerTest {
 
       ExecutionPolicy policy = new DefaultExecutionPolicy() {
          @Override
-         public int getMaxRunTime() {
+         public long getMaxRunTime() {
             return 30;
          }
 

@@ -71,7 +71,7 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
       this.executionPhase = ExecutionPhase.PENDING;
       this.creationTime = ZonedDateTime.now(ZoneId.of("UTC"));
       this.destructionTime = creationTime.plusSeconds(executionPolicy.getDefaultLifetime());
-      this.executionDuration = executionPolicy.getDefaultRunTime();
+      this.executionDuration = Math.toIntExact(executionPolicy.getDefaultRunTime());
    }
 
    /**

@@ -14,19 +14,22 @@ public interface ExecutionPolicy {
 
     /**
      * Returns the maximum run time for applications in seconds. A value of 0 implies unlimited run times;
+     *
      * @return the maximum run time in seconds, or 0 for unlimited.
      */
-    int getMaxRunTime();
+    long getMaxRunTime();
 
     /**
      * Returns the default run time for applications in seconds. A value of 0 implies unlimited run times;
+     *
      * @return the default run time in seconds, or 0 for unlimited.
      */
-    int getDefaultRunTime();
+    long getDefaultRunTime();
     
     /**
      * Returns the period of the checks for overrunning applications.
      * How often the system checks for jobs that have exceeded their runtime limit.
+     *
      * @return the period in seconds
      */
     int getKillPeriod();
@@ -34,19 +37,22 @@ public interface ExecutionPolicy {
     
     /**
      * Returns the default lifetime for a job record in seconds.
+     *
      * @return the default lifetime in seconds.
      */
-    int getDefaultLifetime();
+    long getDefaultLifetime();
 
     /**
      * The maximum lifetime that a job record can exist for.
+     *
      * @return The maximum time in seconds.
      */
-    int getMaxLifetime();
+    long getMaxLifetime();
 
     /**
      * Returns the period of the checks for jobs that should be destroyed.
      * How often the system checks for jobs whose destruction time has passed and deletes them.
+     *
      * @return the period in seconds
      */
     int getDestroyPeriod();
@@ -54,6 +60,7 @@ public interface ExecutionPolicy {
 
     /**
      * The maximum number of jobs that can run concurrently
+     *
      * @return the maximum number of concurrently running jobs.
      */
     int getMaxConcurrent();

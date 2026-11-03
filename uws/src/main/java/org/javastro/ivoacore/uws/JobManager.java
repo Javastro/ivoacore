@@ -187,7 +187,7 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       if (duration == null || duration < 0 || duration > Integer.MAX_VALUE) {
          throw new UWSException("Execution duration must be between 0 and " + Integer.MAX_VALUE + " seconds");
       }
-      int maxRunTime = job.getExecutionPolicy().getMaxRunTime();
+      long maxRunTime = job.getExecutionPolicy().getMaxRunTime();
       if (maxRunTime > 0 && duration > maxRunTime) {
          throw new UWSException("Execution duration cannot exceed the policy maximum of " + maxRunTime + " seconds");
       }
@@ -284,10 +284,10 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
                continue;
             }
 
-            int jobLimit = job.getExecutionDuration();
-            int policyLimit = job.getExecutionPolicy().getMaxRunTime();
+            long jobLimit = job.getExecutionDuration();
+            long policyLimit = job.getExecutionPolicy().getMaxRunTime();
 
-            int effectiveLimit = jobLimit <= 0 ? policyLimit
+            long effectiveLimit = jobLimit <= 0 ? policyLimit
                     : policyLimit <= 0 ? jobLimit
                     : Math.min(jobLimit, policyLimit);
 
