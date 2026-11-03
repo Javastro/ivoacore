@@ -39,7 +39,7 @@ class CapabilityBuilderTest {
     public void testTapCapabilities() throws MalformedURLException, JAXBException, ParserConfigurationException {
 
         URL baseUrl = new URL("http://localhost:8080/");
-        final List<Capability> caps = CapabilityBuilder.createTAPCapabilities(baseUrl);
+        final List<Capability> caps = CapabilityBuilder.createTAPCapabilities(baseUrl, 1000L, 1000L, 1000L, 1000L);
         doValidation(caps);
 
     }

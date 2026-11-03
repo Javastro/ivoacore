@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.Long.min;
+
 /**
  * The TapQueryProcessor class processes queries written in the Astronomical Data Query
  * Language (ADQL), translating them into SQL queries that can be executed against a database.
@@ -26,11 +28,14 @@ import java.util.regex.Pattern;
 public class TapQueryProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(TapQueryProcessor.class);
+    private final Long systemMaxRec;
 
     /**
      * Constructs a new instance of TapQueryProcessor.
+     * @param systemMaxRec The maximum number of records that can be returned by the system.
      */
-    public TapQueryProcessor() {
+    public TapQueryProcessor(Long systemMaxRec) {
+        this.systemMaxRec = systemMaxRec;
     }
 
     /**
@@ -94,18 +99,18 @@ public class TapQueryProcessor {
      *                              or unsupported operations in the ADQL query.
      */
     private String translateADQLToSQL(ADQLSet query, TAPJobSpecification jobSpec) throws TranslationException {
-        if (jobSpec.maxrec != null && jobSpec.maxrec >= 0) {
-            // Apply MAXREC at SQL level to avoid fetching unnecessary rows.
-            //TODO need to add system wide MAXREC - needs to get from ExecutionPolicy / environment
-            if(query.hasLimit() && query.getLimit() > jobSpec.maxrec) {
-                log.info("Applying MAXREC limit of {} to query with existing limit of {}", jobSpec.maxrec, query.getLimit());
-                query.setLimit(Math.toIntExact(jobSpec.maxrec));
-            }
-            else if (!query.hasLimit()) {
-                log.info("Applying MAXREC limit of {} to query with no existing limit", jobSpec.maxrec);
-                query.setLimit(Math.toIntExact(jobSpec.maxrec));
-            }
+
+        long maxRecForQuery = jobSpec.maxrec != null && jobSpec.maxrec >= 0 ? min(jobSpec.maxrec, systemMaxRec): systemMaxRec;
+        // Apply MAXREC at SQL level to avoid fetching unnecessary rows.
+        if(query.hasLimit() && query.getLimit() > maxRecForQuery) {
+            log.info("Applying MAXREC limit of {} to query with existing limit of {}", maxRecForQuery, query.getLimit());
+            query.setLimit(Math.toIntExact(maxRecForQuery));
         }
+        else if (!query.hasLimit()) {
+            log.info("Applying MAXREC limit of {} to query with no existing limit", maxRecForQuery);
+            query.setLimit(Math.toIntExact(maxRecForQuery));
+        }
+
         logQuery(query);     // TODO - IF log enabled
         ADQLTranslator translator = new PgSphereTranslator();
         return translator.translate(query);

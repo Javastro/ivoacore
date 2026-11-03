@@ -10,11 +10,13 @@ package org.javastro.ivoacore.vosi;
  * Created on 04/03/2026 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import jakarta.persistence.criteria.CriteriaBuilder;
 import org.javastro.ivoa.entities.resource.AccessURL;
 import org.javastro.ivoa.entities.resource.Capability;
 import org.javastro.ivoa.entities.resource.dataservice.ParamHTTP;
 import org.javastro.ivoa.entities.resource.tap.*;
 
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -52,10 +54,15 @@ public class CapabilityBuilder {
     * Creates TAP and related VOSI capability entries for a TAP service endpoint.
     *
     * @param url TAP service base URL.
+    * @param maxrecs - the maximum number of records returned.
+    * @param retentionPeriod - the period for which data is retained.
+    * @param maxRetentionPeriod - the maximum period for which data is retained.
+    * @param executionDuration - the maximum duration for which a job can run.
     * @return TAP and VOSI tables capabilities.
     * @throws MalformedURLException if relative capability endpoints cannot be resolved.
     */
-   static public List<Capability> createTAPCapabilities(URL url) throws MalformedURLException {
+   static public List<Capability> createTAPCapabilities(URL url, Long maxrecs, Long retentionPeriod, Long maxRetentionPeriod,
+                                                        Long executionDuration) throws MalformedURLException {
       List<Capability> capabilities = new ArrayList<>();
       ParamHTTP intf = ParamHTTP.builder().withVersion("1.1").build();//TODO add all the parameters
 
@@ -97,6 +104,10 @@ public class CapabilityBuilder {
                         new UploadMethod("ivo://ivoa.net/std/TAPRegExt#upload-http")
                      )
                   )
+            .withExecutionDuration(new TimeLimits(BigInteger.valueOf(executionDuration),BigInteger.valueOf(executionDuration)))
+                  .withRetentionPeriod(new TimeLimits(BigInteger.valueOf(retentionPeriod),BigInteger.valueOf(maxRetentionPeriod)))
+            .withOutputLimit(new DataLimits(new DataLimit(BigInteger.valueOf(maxrecs),"row"),
+                  new DataLimit(BigInteger.valueOf(maxrecs),"row")))
             .build()
       );
       URL tablesURL = new URL(url, "/tables");

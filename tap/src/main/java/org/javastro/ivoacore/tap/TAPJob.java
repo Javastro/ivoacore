@@ -63,7 +63,6 @@ public class TAPJob extends RunnableUWSJob {
    private final TapUploadService uploadService;
    private final TapQueryProcessor queryProcessor;
    private final AtomicReference<Connection> thisConnection = new AtomicReference<>();
-
    /**
     * Constructs a new TAPJob with the given identifier, specification and data source.
     *
@@ -74,13 +73,13 @@ public class TAPJob extends RunnableUWSJob {
     * @param schemaProvider       the schema provider for the TAP job.
     * @param executionPolicy       the execution policy governing job execution.
     */
-   public TAPJob(String id, TAPJobSpecification spec, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider, ExecutionPolicy executionPolicy) {
+   public TAPJob(String id, TAPJobSpecification spec, ExecutionEnvironment executionEnvironment, DataSource ds, SchemaProvider schemaProvider, TapExecutionPolicy executionPolicy) {
       super(id, spec, executionEnvironment, executionPolicy);
       this.dataSource = ds;
       this.tapJobSpec = spec;
       this.schemaProvider = schemaProvider;
       this.uploadService = new TapUploadService(ds);
-      this.queryProcessor = new TapQueryProcessor();
+      this.queryProcessor = new TapQueryProcessor(executionPolicy.maxRec());
       cacheUploads();
    }
 
@@ -266,7 +265,7 @@ public class TAPJob extends RunnableUWSJob {
        * @param environmentFactory factory creating job execution environments.
        * @param executionPolicy the execution policy governing job execution.
        */
-      public JobFactory(DataSource ds, SchemaProvider schemaProvider, EnvironmentFactory environmentFactory, ExecutionPolicy executionPolicy)  {
+      public JobFactory(DataSource ds, SchemaProvider schemaProvider, EnvironmentFactory environmentFactory, TapExecutionPolicy executionPolicy)  {
          super(TAPJobSpecification.jobType, TAPJobSpecification.class, environmentFactory, executionPolicy);
          this.ds = ds;
          this.schemaProvider = schemaProvider;
@@ -276,7 +275,7 @@ public class TAPJob extends RunnableUWSJob {
       public RunnableUWSJob createJob(JobSpecification jobDescription) throws UWSException {
          if (jobDescription.theJobType().jobTypeIdentifier().equals(JOB_TYPE)) {
             final String id = idProvider.generateId();
-            return new TAPJob(id, (TAPJobSpecification) jobDescription, environmentFactory.create(id), ds, schemaProvider, executionPolicy );
+            return new TAPJob(id, (TAPJobSpecification) jobDescription, environmentFactory.create(id), ds, schemaProvider, (TapExecutionPolicy) executionPolicy );
          } else throw new UWSException("Invalid job type");
 
       }
@@ -302,7 +301,7 @@ public class TAPJob extends RunnableUWSJob {
                  environmentFactory.create(id),
                  this.ds,
                  this.schemaProvider,
-                 executionPolicy
+                 (TapExecutionPolicy) executionPolicy
          );
        }
     }
@@ -313,11 +312,11 @@ public class TAPJob extends RunnableUWSJob {
     */
     public long getMaxRecords()
     {
-       if(tapJobSpec.maxrec != null && tapJobSpec.maxrec > 0) { // TODO take into account MAXREC from the environment.
+       if(tapJobSpec.maxrec != null && tapJobSpec.maxrec > 0) {
           return tapJobSpec.maxrec;
        }
        else {
-          return 0;
+          return ((TapExecutionPolicy)this.executionPolicy).maxRec();
        }
     }
 }

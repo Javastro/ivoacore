@@ -37,7 +37,7 @@ class TAPJobTest extends AbstractBaseDSTest{
       schemaProvider.writeDataBaseDDL(ds.getConnection());
       schemaProvider.populateDataBase(ds.getConnection());
 
-      agg.addFactory(new TAPJob.JobFactory(ds,schemaProvider,new DefaultEnvironmentFactory(tmpdir), new DefaultExecutionPolicy()));
+      agg.addFactory(new TAPJob.JobFactory(ds,schemaProvider,new DefaultEnvironmentFactory(tmpdir), new DefaultTapExecutionPolicy()));
       MemoryBasedJobStore store = new MemoryBasedJobStore();
       DefaultExecutionPolicy policy = new DefaultExecutionPolicy();
       jobManager = new JobManager( agg, store, policy);
