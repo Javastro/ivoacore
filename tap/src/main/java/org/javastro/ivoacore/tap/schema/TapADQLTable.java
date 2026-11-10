@@ -38,10 +38,17 @@ public class TapADQLTable extends DBIdentifier implements DBTable {
     */
    public TapADQLTable(Schema s, Table table, boolean dbCaseSensitive) {
 
-      super(dbCaseSensitive?table.getTable_name():table.getTable_name().toUpperCase());//TODO worry about case....
+      super(dbCaseSensitive?cleanTableName(table.getTable_name()):cleanTableName(table.getTable_name()).toUpperCase());//TODO worry about case....
       this.schema = s;
       this.table = table;
       this.adqlCaseSensitive = dbCaseSensitive;
+   }
+
+   private static String cleanTableName(String name){
+      if(name.contains(".")){
+         return name.substring(name.lastIndexOf(".")+1);
+      }
+      return name;
    }
 
 
