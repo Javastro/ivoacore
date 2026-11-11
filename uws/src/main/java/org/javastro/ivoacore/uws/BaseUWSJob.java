@@ -20,6 +20,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -176,11 +177,22 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
    public ExecutionEnvironment getExecutionEnvironment() { return executionEnvironment; }
 
    /**
-    * Returns the job failure message, if the job failed.
+    * Returns the detailed job failure message, if the job failed.
     * @return the failure message, or {@code null} if there is no recorded failure.
     */
-   public String getErrorMessage() {
-      return exception == null ? null : exception.getMessage();
+   public List<String> getErrorMessage() {
+      if( exception == null ) {
+         return Collections.emptyList();
+      } else {
+         ArrayList<String> retval = new ArrayList<>();
+         retval.add(exception.getMessage());
+         Throwable cause = exception.getCause();
+         while( cause != null ) {
+            retval.add(cause.getMessage());
+            cause = cause.getCause();
+         }
+         return retval;
+      }
    }
 
 

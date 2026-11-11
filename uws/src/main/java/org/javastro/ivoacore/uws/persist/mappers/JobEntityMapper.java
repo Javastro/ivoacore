@@ -37,7 +37,7 @@ public abstract class JobEntityMapper {
     @Mapping(target = "jobId", source = "ID")
     @Mapping(target = "jobSpecificationJson", expression = "java(serializeSpec(job.getJobSpecification()))")
     @Mapping(target = "workdir", expression = "java(job.getExecutionEnvironment().getWorkDir())")
-    @Mapping(target = "errorMessage", source = "errorMessage")
+    @Mapping(target = "errorMessage", expression = "java(job.getErrorMessage().stream().reduce((s1, s2) -> String.join(\"\\n\", s1, s2)).orElse(null))")
     public abstract UWSJobEntity toEntity(BaseUWSJob job);
 
     /**
