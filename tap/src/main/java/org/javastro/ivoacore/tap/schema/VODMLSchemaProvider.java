@@ -63,14 +63,9 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
     */
    private List<Schema> readSchema(InputStream is) throws jakarta.xml.bind.JAXBException {
       if (is != null) {
-         TapschemaModel model = new TapschemaModel();
-         JAXBContext jc = model.management().contextFactory();
-         Unmarshaller unmarshaller = jc.createUnmarshaller();
-         JAXBElement<TapschemaModel> el = unmarshaller.unmarshal(new StreamSource(is), TapschemaModel.class);
-         TapschemaModel model_in = el.getValue();
+         TapschemaModel model_in = TAPSchemaUtils.readModelFromXML(new StreamSource(is));
          if (model_in != null) {
-            TAPSchemaUtils.normalizeFromSerialization(model_in);
-            List<Schema> schemas = model_in.getContent(Schema.class);
+            List<Schema> schemas = model_in.getSchema();
             for(var s:schemas){
                log.info("loaded tap schema {} from VO-DML model",s.getSchema_name());
             }
