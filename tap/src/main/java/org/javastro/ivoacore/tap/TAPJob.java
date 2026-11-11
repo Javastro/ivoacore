@@ -136,9 +136,6 @@ public class TAPJob extends RunnableUWSJob {
       return resultParameter(votable);
    }
 
-   UWSException getException() {
-      return exception;
-   }
 
    @Override
    public Results createExternalJobResult() {
