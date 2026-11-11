@@ -12,8 +12,8 @@ package org.javastro.ivoacore.tap.schema;
 
 import jakarta.xml.bind.*;
 import org.ivoa.dm.tapschema.Schema;
+import org.ivoa.dm.tapschema.TAPSchemaUtils;
 import org.ivoa.dm.tapschema.TapschemaModel;
-import org.ivoa.dm.tapschema.XMLNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +69,7 @@ public class VODMLSchemaProvider extends BaseSchemaProvider implements SchemaPro
          JAXBElement<TapschemaModel> el = unmarshaller.unmarshal(new StreamSource(is), TapschemaModel.class);
          TapschemaModel model_in = el.getValue();
          if (model_in != null) {
-            new XMLNormalizer().prepareForDB(model_in);
+            TAPSchemaUtils.normalizeFromSerialization(model_in);
             List<Schema> schemas = model_in.getContent(Schema.class);
             for(var s:schemas){
                log.info("loaded tap schema {} from VO-DML model",s.getSchema_name());

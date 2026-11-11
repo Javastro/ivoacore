@@ -106,12 +106,8 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
          for(var s:getSchemas()){
             model.addContent(s);
          }
-         JAXBContext jc = TapschemaModel.contextFactory();
-         Marshaller mar = jc.createMarshaller();
-         StringWriter sw = new StringWriter();
-         mar.marshal(model, sw);
-         VOSIWriter vosiWriter = new VOSIWriter();
-         String swo =  vosiWriter.convertToVOSI(new StreamSource(new StringReader(sw.toString())), VOSIWriter.VOSIDataType.TAP);
+         VOSIWriter vosiWriter = new VOSIWriter(model);
+         String swo =  vosiWriter.convertToVOSI( useTapTypes? VOSIWriter.VOSIDataType.TAP : VOSIWriter.VOSIDataType.VOTABLE);
          JAXBContext context = IvoaJAXBContextFactory.newInstance();
          Unmarshaller unmarshaller = context.createUnmarshaller();
          Object rv = unmarshaller.unmarshal(new StringReader(swo));
