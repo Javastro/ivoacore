@@ -23,6 +23,7 @@ import org.javastro.ivoa.entities.vosi.tables.Tableset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -82,7 +83,7 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
       if(tableSet == null){ //lazy initialization
          try {
             this.tableSet = writeVOSI();
-         } catch (SaxonApiException | JAXBException e) {
+         } catch (SaxonApiException | JAXBException | ParserConfigurationException e) {
             log.error("problem writing as VOSI",e);
             throw new RuntimeException(e);
          }
@@ -100,7 +101,7 @@ public abstract class BaseSchemaProvider implements SchemaProvider {
          https://stackoverflow.com/questions/56590224/is-it-possible-to-create-an-xsl-transformer-output-stream
          so go via string representations.
           */
-   private Tableset writeVOSI() throws SaxonApiException, JAXBException {
+   private Tableset writeVOSI() throws SaxonApiException, JAXBException, ParserConfigurationException {
 
          TapschemaModel model = new TapschemaModel();
          for(var s:getSchemas()){

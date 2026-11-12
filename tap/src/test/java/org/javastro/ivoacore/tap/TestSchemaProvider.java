@@ -62,12 +62,12 @@ public class TestSchemaProvider extends BaseSchemaProvider implements SchemaProv
          t.table_name = "test_table";
          t.columns = List.of(Column.createColumn(c -> {
                   c.column_name = "id";
-                  c.datatype = TAPType.INTEGER;
+                  c.datatype = "INTEGER";
                   c.description = "The unique identifier for the record";
                   c.indexed = 1; //IMPL need this as primary key heuristic if no joins
                }), Column.createColumn(c -> {
                   c.column_name = "avalue";
-                  c.datatype = TAPType.VARCHAR;
+                  c.datatype = "VARCHAR";
                   c.description = "A string value associated with the record";
                })
          );

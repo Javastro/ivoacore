@@ -9,7 +9,6 @@ import adql.db.DBTable;
 import adql.db.DBType;
 import adql.db.DefaultDBColumn;
 import adql.db.DefaultDBTable;
-import org.ivoa.dm.tapschema.TAPType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.ColumnInfo;
@@ -76,20 +75,20 @@ public class MetadataTransformer {
    //---------------------------------------- Map from class to dbType -----------------------------
    private record TypeMapping(
            Predicate<Class<?>> matcher,
-           TAPType tapType) {
+           String tapType) {
    }
 
    private static final List<TypeMapping> CLASS_TO_TAP = List.of(
-           new TypeMapping(Objects::isNull, TAPType.VARCHAR),
-           new TypeMapping(c -> String.class.isAssignableFrom(c) || Character.class.isAssignableFrom(c), TAPType.VARCHAR),
-           new TypeMapping(c -> Integer.class.isAssignableFrom(c) || c == int.class, TAPType.INTEGER),
-           new TypeMapping(c -> Long.class.isAssignableFrom(c) || c == long.class, TAPType.BIGINT),
-           new TypeMapping(c -> Double.class.isAssignableFrom(c) || c == double.class, TAPType.DOUBLE),
-           new TypeMapping(c -> Float.class.isAssignableFrom(c) || c == float.class, TAPType.REAL),
-           new TypeMapping(c -> Boolean.class.isAssignableFrom(c) || c == boolean.class, TAPType.BOOLEAN),
-           new TypeMapping(c -> Short.class.isAssignableFrom(c) || c == short.class, TAPType.SMALLINT),
-           new TypeMapping(byte[].class::isAssignableFrom, TAPType.VARBINARY), new TypeMapping(BigDecimal.class::isAssignableFrom, TAPType.DOUBLE),
-           new TypeMapping(c -> java.sql.Timestamp.class.isAssignableFrom(c) || java.util.Date.class.isAssignableFrom(c), TAPType.TIMESTAMP)
+           new TypeMapping(Objects::isNull, "VARCHAR"),
+           new TypeMapping(c -> String.class.isAssignableFrom(c) || Character.class.isAssignableFrom(c), "VARCHAR"),
+           new TypeMapping(c -> Integer.class.isAssignableFrom(c) || c == int.class, "INTEGER"),
+           new TypeMapping(c -> Long.class.isAssignableFrom(c) || c == long.class, "BIGINT"),
+           new TypeMapping(c -> Double.class.isAssignableFrom(c) || c == double.class, "DOUBLE"),
+           new TypeMapping(c -> Float.class.isAssignableFrom(c) || c == float.class, "REAL"),
+           new TypeMapping(c -> Boolean.class.isAssignableFrom(c) || c == boolean.class, "BOOLEAN"),
+           new TypeMapping(c -> Short.class.isAssignableFrom(c) || c == short.class, "SMALLINT"),
+           new TypeMapping(byte[].class::isAssignableFrom, "VARBINARY"), new TypeMapping(BigDecimal.class::isAssignableFrom, "DOUBLE"),
+           new TypeMapping(c -> java.sql.Timestamp.class.isAssignableFrom(c) || java.util.Date.class.isAssignableFrom(c), "TIMESTAMP")
    );
 
    /**
@@ -97,16 +96,16 @@ public class MetadataTransformer {
     * @param columnInfo The ColumnInfo derived from a VOTable.
     * @return the TAP Type.
     */
-   public static TAPType mapVOTableToTAPType(ColumnInfo  columnInfo) {
-      TAPType retval = mapContentClassToTAPType(columnInfo != null ? columnInfo.getContentClass() : null);
+   public static String mapVOTableToTAPType(ColumnInfo  columnInfo) {
+      String retval = mapContentClassToTAPType(columnInfo != null ? columnInfo.getContentClass() : null);
       if(columnInfo.getXtype() != null) {
          switch (columnInfo.getXtype().toUpperCase()) {
-            case "TIMESTAMP" -> retval = TAPType.TIMESTAMP;
-            case "POINT" -> retval = TAPType.POINT;
-            case "REGION" -> retval = TAPType.REGION;
-            case "POLYGON" -> retval = TAPType.POLYGON; //FIXME these below are not "standard"
-            case "CIRCLE" -> retval = TAPType.CIRCLE;
-            case "ELLIPSE" -> retval = TAPType.ELLIPSE;
+            case "TIMESTAMP" -> retval = "TIMESTAMP";
+            case "POINT" -> retval = "POINT";
+            case "REGION" -> retval = "REGION";
+            case "POLYGON" -> retval = "POLYGON"; //FIXME these below are not "standard"
+            case "CIRCLE" -> retval = "CIRCLE";
+            case "ELLIPSE" -> retval = "ELLIPSE";
          }
       }
       return retval;
@@ -116,10 +115,10 @@ public class MetadataTransformer {
     * Maps a Java content class to a TAP_SCHEMA datatype.
     *
     * @param contentClass Java class to map.
-    * @return matching TAP datatype, defaulting to {@link TAPType#VARCHAR}.
+    * @return matching TAP datatype, defaulting to VARCHAR.
     *
     */
-   public static TAPType mapContentClassToTAPType(Class<?> contentClass) {
+   public static String mapContentClassToTAPType(Class<?> contentClass) {
       return CLASS_TO_TAP.stream()
               .filter(m -> m.matcher().test(contentClass))
               .map(TypeMapping::tapType)
@@ -127,31 +126,31 @@ public class MetadataTransformer {
               .orElseGet(() -> {
                  log.warn("Unknown content class {}, defaulting to VARCHAR",
                          contentClass != null ? contentClass.getName() : "null");
-                 return TAPType.VARCHAR;
+                 return "VARCHAR";
               });
    }
 
    // --------------------------- Map between TAPType and DBType --------------------------------------
-   private static final Map<TAPType, DBType.DBDatatype> TAP_TO_DB =
+   private static final Map<String, DBType.DBDatatype> TAP_TO_DB =
            Map.ofEntries(
-                   Map.entry(TAPType.VARCHAR, DBType.DBDatatype.VARCHAR),
-                   Map.entry(TAPType.CHAR, DBType.DBDatatype.CHAR),
-                   Map.entry(TAPType.INTEGER, DBType.DBDatatype.INTEGER),
-                   Map.entry(TAPType.BIGINT, DBType.DBDatatype.BIGINT),
-                   Map.entry(TAPType.SMALLINT, DBType.DBDatatype.SMALLINT),
-                   Map.entry(TAPType.REAL, DBType.DBDatatype.REAL),
-                   Map.entry(TAPType.DOUBLE, DBType.DBDatatype.DOUBLE),
-                   Map.entry(TAPType.BOOLEAN, DBType.DBDatatype.SMALLINT), // ADQL workaround
-                   Map.entry(TAPType.BINARY, DBType.DBDatatype.BINARY),
-                   Map.entry(TAPType.VARBINARY, DBType.DBDatatype.VARBINARY),
-                   Map.entry(TAPType.BLOB, DBType.DBDatatype.BLOB),
-                   Map.entry(TAPType.CLOB, DBType.DBDatatype.CLOB),
-                   Map.entry(TAPType.TIMESTAMP, DBType.DBDatatype.TIMESTAMP),
-                   Map.entry(TAPType.POINT, DBType.DBDatatype.POINT),
-                   Map.entry(TAPType.REGION, DBType.DBDatatype.REGION)
+                   Map.entry("VARCHAR", DBType.DBDatatype.VARCHAR),
+                   Map.entry("CHAR", DBType.DBDatatype.CHAR),
+                   Map.entry("INTEGER", DBType.DBDatatype.INTEGER),
+                   Map.entry("BIGINT", DBType.DBDatatype.BIGINT),
+                   Map.entry("SMALLINT", DBType.DBDatatype.SMALLINT),
+                   Map.entry("REAL", DBType.DBDatatype.REAL),
+                   Map.entry("DOUBLE", DBType.DBDatatype.DOUBLE),
+                   Map.entry("BOOLEAN", DBType.DBDatatype.SMALLINT), // ADQL workaround
+                   Map.entry("BINARY", DBType.DBDatatype.BINARY),
+                   Map.entry("VARBINARY", DBType.DBDatatype.VARBINARY),
+                   Map.entry("BLOB", DBType.DBDatatype.BLOB),
+                   Map.entry("CLOB", DBType.DBDatatype.CLOB),
+                   Map.entry("TIMESTAMP", DBType.DBDatatype.TIMESTAMP),
+                   Map.entry("POINT", DBType.DBDatatype.POINT),
+                   Map.entry("REGION", DBType.DBDatatype.REGION)
            );
 
-   private static DBType.DBDatatype db(TAPType type) {
+   private static DBType.DBDatatype db(String type) {
       DBType.DBDatatype resolved = TAP_TO_DB.get(type);
 
       if (resolved == null) {
@@ -168,7 +167,7 @@ public class MetadataTransformer {
     * @param tapType TAP datatype.
     * @return ADQLLib database type.
     */
-   public static DBType mapDbType(TAPType tapType) {
+   public static DBType mapDbType(String tapType) {
       return new DBType(db(tapType));
    }
 
@@ -191,7 +190,7 @@ public class MetadataTransformer {
     * @param tapType TAP datatype.
     * @return SQL type name suitable for DDL generation.
     */
-   public static String mapTAPTypeToSqlType(TAPType tapType) {
+   public static String mapTAPTypeToSqlType(String tapType) {
       return toSql(db(tapType));
    }
 }
