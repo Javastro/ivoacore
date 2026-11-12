@@ -84,14 +84,17 @@ public interface UWS extends UWSControl {
     /**
      * Get the quote (estimated completion time) for a job.
      * @param jobid the identifier of the job.
-     * @return the quoted completion time as a {@link ZonedDateTime}.
+     * @return the quoted completion time as a string.
      * @throws UWSException if the job cannot be found or accessed.
      */
     @GET
     @Path("{jobid}/quote")
-    default ZonedDateTime getJobQuote(@PathParam("jobid") String jobid) throws UWSException
+    default String getJobQuote(@PathParam("jobid") String jobid) throws UWSException
     {
-        return jobDetail(jobid).getQuote();
+
+        return jobDetail(jobid).getQuote() != null?
+              jobDetail(jobid).getQuote().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)
+              .withZoneSameInstant(java.time.ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT):null;
     }
 
     /**

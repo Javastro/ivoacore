@@ -56,6 +56,24 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
    /** Any exception that occurred during the execution of this job. */
    protected UWSException exception;
 
+   /** Quote */
+    protected ZonedDateTime quote; //TODO nothing sets this yet
+
+   /**
+    * Sets the quote for the job.
+    * @param quote the new quote for the job
+    */
+   public void setQuote(ZonedDateTime quote) {
+      this.quote = quote;
+   }
+
+   /**
+    * gets the quote for the job
+    * @return quote.
+    */
+   public ZonedDateTime getQuote() {
+      return quote;
+   }
 
    /**
     * Constructs a new BaseUWSJob with the given job ID and specification.
@@ -217,6 +235,9 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
       }
       if (endTime != null) {
          builder.withEndTime(endTime);
+      }
+      if(quote != null) {
+         builder.withQuote(quote);
       }
       if (exception != null) {
          builder.withErrorSummary(new ErrorSummary(exception.getMessage(),ErrorType.FATAL,true));

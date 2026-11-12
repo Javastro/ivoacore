@@ -43,6 +43,8 @@ public class UWSJobEntity {
     @Column(name = "error_message", columnDefinition = "text")
     public String errorMessage;
 
+    /** the job quote **/
+    public ZonedDateTime quote;
     /**
      * The job specification as a JSON string.
      */
