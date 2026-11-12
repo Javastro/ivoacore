@@ -273,4 +273,11 @@ public abstract class BaseUWSJob  { //IMPL should probably pull some of the meth
             ;
       return builder.build();
    }
+   /**
+    * Sets the run ID for this job's specification.
+    * @param runId the new run ID to set.
+    */
+   void setRunId(String runId) {
+      ((BaseJobSpecification)jobSpecification).setRunId(runId);
+   }
 }

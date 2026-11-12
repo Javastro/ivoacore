@@ -5,6 +5,7 @@ package org.javastro.ivoacore.uws;
  * Created on 04/09/2025 by Paul Harrison (paul.harrison@manchester.ac.uk).
  */
 
+import jdk.jfr.Experimental;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 import org.javastro.ivoa.entities.uws.Jobs;
 import org.javastro.ivoa.entities.uws.ShortJobDescription;
@@ -112,7 +113,7 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
    }
 
    @Override
-   public ExecutionPhase setPhase(String jobId, String newPhase) throws UWSException {
+   public synchronized ExecutionPhase setPhase(String jobId, String newPhase) throws UWSException {
       BaseUWSJob job = jobStore.retrieve(jobId);
       if(job instanceof RunnableUWSJob runnableUWSJob) {
          switch (newPhase.toUpperCase()) {//IMPL
@@ -425,6 +426,24 @@ public class JobManager implements ExecutionControl, UWSCore, AutoCloseable {
       }
    }
 
+
+   /**
+    * Sets the run ID of a job.
+    * @param jobId the identifier of the job.
+    * @param runID the new run ID.
+    * @throws UWSException if the job cannot be found or accessed.
+    */
+   public synchronized void setRunId(String jobId, String runID) throws UWSException {
+
+      BaseUWSJob job = jobStore.retrieve(jobId);
+      if(job.executionPhase == ExecutionPhase.PENDING)
+      {
+         job.setRunId(runID);
+      }
+      else{
+         throw new UWSException("Cannot set run ID for job " + jobId + " in phase " + job.executionPhase);
+      }
+   }
    /**
     * Stops the manager's execution monitor and worker pool.
     */

@@ -12,6 +12,7 @@ package org.javastro.ivoacore.uws.webapi;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
+import org.hibernate.query.sqm.spi.DelegatingSqmSelectionQueryImplementor;
 import org.javastro.ivoa.entities.uws.*;
 import org.javastro.ivoacore.uws.JobManager;
 import org.javastro.ivoacore.uws.UWSException;
@@ -168,4 +169,41 @@ public abstract class BaseUWSResource implements UWS {
                .build();
       }
    }
+
+   //TODO - this is really incomplete - it needs to be implemented in the sub-class for the specific UWS implementation
+   @POST
+   @Path("{jobid}/parameters")
+   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+   public Response setParameters(@PathParam("jobid")String jobid,MultivaluedMap<String, String> formParams) throws UWSException {
+
+      Job detail = getJobManager().jobDetail(jobid);
+      if(detail.getPhase() == ExecutionPhase.PENDING) {
+         if (formParams == null || formParams.isEmpty()) {
+            throw new BadRequestException("No parameters provided to set for job " + jobid);
+         }
+
+         if(formParams.keySet().stream().anyMatch(param -> param.equalsIgnoreCase("RUNID"))){
+            String runid = formParams.entrySet().stream()
+                  .filter(entry -> entry.getKey().equalsIgnoreCase("RUNID"))
+                  .map(entry -> entry.getValue().get(0)) // Assuming single value for RUNID
+                  .findFirst()
+                  .orElse(null);
+            getJobManager().setRunId(jobid, runid);
+            return redirectToJob(jobid);
+         }
+         else{
+            //TODO - this is a placeholder - the actual implementation will depend on the specific UWS JOB implementation and how it handles parameters - need to think of a general API design
+            // For now, we just return a 501 Not Implemented response
+            return Response.status(Response.Status.NOT_IMPLEMENTED)
+                  .entity("Setting general parameters is not implemented for this UWS implementation.")
+                  .build();
+         }
+      }
+      else {
+         throw new BadRequestException("Cannot set parameters for job " + jobid + " in phase " + detail.getPhase());
+      }
+
+   }
+
+
 }
