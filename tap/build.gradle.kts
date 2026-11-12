@@ -5,8 +5,8 @@ description = "IVOA TAP server library"
 
 dependencies {
     api(project(":uws"))
-    api("uk.ac.starlink:stil")
-    api("org.javastro.ivoa.dm:tapschema:0.9.14")
+    api("uk.ac.starlink:stil:4.3.6")
+    api("org.javastro.ivoa.dm:tapschema:0.9.15")
     api("org.javastro.ivoa:ADQLLib:2.1")
     implementation(project(":common"))
     implementation("net.sf.saxon:Saxon-HE:12.10")
