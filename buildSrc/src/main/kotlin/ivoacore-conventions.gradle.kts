@@ -26,7 +26,7 @@ scmVersion {
             "pattern" to KotlinClosure2<String, HookContext,String>({ v, c -> "${project.name}:${v}" } ),
             "replacement" to KotlinClosure2<String, HookContext,String>( {v, c -> "${project.name}:${v}" })
         ))
-        pre("commit" , KotlinClosure2<String, ScmPosition,String>({ v, p-> "Updating README for version ${v}" }))
+        pre("commit" , KotlinClosure2<String, ScmPosition,String>({ v, p-> "Updating README for ${project.path} version ${v}" }))
         pre("push")
 
 
