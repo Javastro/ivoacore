@@ -53,6 +53,9 @@ public class CapabilityBuilder {
    /**
     * Creates TAP and related VOSI capability entries for a TAP service endpoint.
     *
+    * it assumes that the tap service endpoint has sync, async and tables endpoints.
+    *
+    *
     * @param url TAP service base URL.
     * @param maxrecs - the maximum number of records returned.
     * @param retentionPeriod - the period for which data is retained.
@@ -110,7 +113,7 @@ public class CapabilityBuilder {
                   new DataLimit(BigInteger.valueOf(maxrecs),"row")))
             .build()
       );
-      URL tablesURL = new URL(url, "/tables");
+      URL tablesURL = new URL(url, "tables");
       capabilities.add(Capability.builder().withStandardID("ivo://ivoa.net/std/VOSI#tables")
             .withInterfaces(List.of(
                   intf.newCopyBuilder().addAccessURLs(new AccessURL(tablesURL.toString(), "full")).build()
