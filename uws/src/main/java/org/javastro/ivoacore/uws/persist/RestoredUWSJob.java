@@ -8,6 +8,8 @@ import org.javastro.ivoacore.uws.UWSException;
 import org.javastro.ivoacore.uws.environment.DefaultExecutionPolicy;
 import org.javastro.ivoacore.uws.environment.ExistingExecutionEnvironment;
 
+import java.io.File;
+
 
 /**
  * A Job that is restored from long term storage. It cannot be directly executed,
@@ -22,7 +24,7 @@ public class RestoredUWSJob extends BaseUWSJob {
     * @param jobSpecification deserialized job specification.
     */
    protected RestoredUWSJob(UWSJobEntity entity, JobSpecification jobSpecification) {
-      super(entity.jobId, jobSpecification, new ExistingExecutionEnvironment(null,entity.workdir), new DefaultExecutionPolicy());
+      super(entity.jobId, jobSpecification, new ExistingExecutionEnvironment(null,new File(entity.workdir)), new DefaultExecutionPolicy());
       executionPhase = entity.executionPhase;
       creationTime = entity.creationTime;
       destructionTime = entity.destructionTime != null

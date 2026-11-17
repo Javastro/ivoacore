@@ -3,7 +3,7 @@ package org.javastro.ivoacore.uws.persist;
 import jakarta.persistence.*;
 import org.javastro.ivoa.entities.uws.ExecutionPhase;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.time.ZonedDateTime;
 
 /**
@@ -52,7 +52,8 @@ public class UWSJobEntity {
     public String jobSpecificationJson;
     /**
      * The working directory for the job.
+     * FIXME - this actually should not be necessary as the job should be able to determine its own working directory from the environment.
      */
-    public File workdir;
+    public String workdir;
 
 }
