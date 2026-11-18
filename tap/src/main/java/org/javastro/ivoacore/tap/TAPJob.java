@@ -34,6 +34,7 @@ import org.javastro.ivoacore.tap.upload.TapUploadService.UploadContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
+import uk.ac.starlink.table.formats.CsvTableWriter;
 import uk.ac.starlink.table.jdbc.*;
 import uk.ac.starlink.votable.DataFormat;
 import uk.ac.starlink.votable.ResourceType;
@@ -238,10 +239,18 @@ public class TAPJob extends RunnableUWSJob {
       }
 
       final OutputStream outputStream = Files.newOutputStream(votable.toPath());
-      DataFormat dataformat = getDataformat();
-      TAPWriter tableWriter = new TAPWriter(dataformat, true, this);
-      tableWriter.setResourceType(ResourceType.RESULTS);
-      STAR_TABLE_OUTPUT.writeStarTable(table, outputStream, tableWriter);
+      StarTableWriter handler;
+      if(tapJobSpec.responseFormat != null && tapJobSpec.responseFormat.equalsIgnoreCase("csv")) {
+        handler = new CsvTableWriter();
+      } else {
+         DataFormat dataformat = getDataformat();
+         TAPWriter tableWriter = new TAPWriter(dataformat, true, this);
+         tableWriter.setResourceType(ResourceType.RESULTS);
+         handler = tableWriter;
+      }
+
+
+      STAR_TABLE_OUTPUT.writeStarTable(table, outputStream, handler);
    }
 
    @Nonnull

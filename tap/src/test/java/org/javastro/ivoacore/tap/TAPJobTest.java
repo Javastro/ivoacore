@@ -56,6 +56,14 @@ class TAPJobTest extends AbstractBaseDSTest{
       runSimpleTap(spec);
    }
 
+   @Test
+   public void doTablecsv() throws UWSException, InterruptedException {
+      TAPJobSpecification spec = new TAPJobSpecification("select * from test_table");
+      spec.responseFormat = "csv";
+      runSimpleTap(spec);
+   }
+
+
    private static void runSimpleTap(TAPJobSpecification spec) throws UWSException, InterruptedException {
       BaseUWSJob job = jobManager.createJob(spec);
       assertNotNull(job);
@@ -74,7 +82,7 @@ class TAPJobTest extends AbstractBaseDSTest{
       job.getResults().forEach(r->System.out.println(r.getValue()));//TODO this needs to be an indirect result of course...
       String votable = job.getResults().stream().filter(r -> r.getId().equals("result")).findFirst().orElseThrow(() -> new RuntimeException("No result with id 'result'")).getValue();
       //print content of file pointed to by votable result
-      System.out.println("VOTable content:");
+      System.out.println("Table content:");
       try {
          Files.lines(new File(votable).toPath()).forEach(System.out::println);
       } catch (IOException e) {
