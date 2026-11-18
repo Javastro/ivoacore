@@ -44,8 +44,19 @@ class TAPJobTest extends AbstractBaseDSTest{
    }
 
    @Test
-   public void performAction() throws UWSException, InterruptedException {
+   public void doTableData() throws UWSException, InterruptedException {
       TAPJobSpecification spec = new TAPJobSpecification("select * from test_table");
+      runSimpleTap(spec);
+   }
+
+   @Test
+   public void doTableBinary2() throws UWSException, InterruptedException {
+      TAPJobSpecification spec = new TAPJobSpecification("select * from test_table");
+      spec.responseFormat = "application/x-votable+xml;serialization=BINARY2";
+      runSimpleTap(spec);
+   }
+
+   private static void runSimpleTap(TAPJobSpecification spec) throws UWSException, InterruptedException {
       BaseUWSJob job = jobManager.createJob(spec);
       assertNotNull(job);
       String id = job.getID();

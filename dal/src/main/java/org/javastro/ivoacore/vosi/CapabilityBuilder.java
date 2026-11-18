@@ -98,7 +98,8 @@ public class CapabilityBuilder {
                   .build())
                   .withOutputFormats(List.of(
                         new OutputFormat("application/x-votable+xml;serialization=TABLEDATA", List.of("votable"), "ivo://ivoa.net/std/TAPRegExt#output-votable-td"),
-                        new OutputFormat("text/csv", List.of("csv"), "ivo://ivoa.net/std/TAPRegExt#output-csv")
+                              new OutputFormat("application/x-votable+xml;serialization=BINARY2", List.of("binary2"), "ivo://ivoa.net/std/TAPRegExt#output-votable-binary2"),
+                              new OutputFormat("text/csv", List.of("csv"), null)
                   )
                   )
                   .withUploadMethods(List.of(

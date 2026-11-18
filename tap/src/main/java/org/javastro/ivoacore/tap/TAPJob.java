@@ -15,6 +15,7 @@ import adql.db.DBTable;
 import adql.parser.grammar.ParseException;
 import adql.query.ADQLSet;
 import adql.translator.TranslationException;
+import jakarta.annotation.Nonnull;
 import org.javastro.ivoa.entities.uws.ResultReference;
 import org.javastro.ivoa.entities.uws.Results;
 import org.javastro.ivoacore.tap.schema.MetadataTransformer;
@@ -34,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.starlink.table.*;
 import uk.ac.starlink.table.jdbc.*;
+import uk.ac.starlink.votable.DataFormat;
 import uk.ac.starlink.votable.ResourceType;
 
 import javax.sql.DataSource;
@@ -45,6 +47,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A UWS {@link Job} that executes a TAP (Table Access Protocol) query.
@@ -57,6 +61,9 @@ public class TAPJob extends RunnableUWSJob {
    private static final Logger log = LoggerFactory.getLogger(TAPJob.class);
    /** Human-readable description of TAP jobs. */
    public static final String JOB_TYPE_DESCRIPTION = "Runs TAP jobs";
+   public static final StarTableOutput STAR_TABLE_OUTPUT = new StarTableOutput();
+   private static final Pattern SERIALIZATION_PATTERN =
+         Pattern.compile("(?i)(?:^|;\\s*)serialization\\s*=\\s*[\"']?([^;\"'\\s]+)[\"']?");
    private final DataSource dataSource;
    private final TAPJobSpecification tapJobSpec;
    private final SchemaProvider schemaProvider;
@@ -231,9 +238,36 @@ public class TAPJob extends RunnableUWSJob {
       }
 
       final OutputStream outputStream = Files.newOutputStream(votable.toPath());
-      TAPWriter tableWriter = new TAPWriter(this);
+      DataFormat dataformat = getDataformat();
+      TAPWriter tableWriter = new TAPWriter(dataformat, true, this);
       tableWriter.setResourceType(ResourceType.RESULTS);
-      new StarTableOutput().writeStarTable(table, outputStream, tableWriter);
+      STAR_TABLE_OUTPUT.writeStarTable(table, outputStream, tableWriter);
+   }
+
+   @Nonnull
+   private DataFormat getDataformat() {
+      DataFormat dataformat = DataFormat.TABLEDATA;
+      if(tapJobSpec.responseFormat != null && !tapJobSpec.responseFormat.isBlank()) {
+         if(tapJobSpec.responseFormat.equalsIgnoreCase("votable")) {
+            dataformat = DataFormat.TABLEDATA;
+         } else if (tapJobSpec.responseFormat.equalsIgnoreCase("binary2")) {
+            dataformat = DataFormat.BINARY2;
+         } else if (tapJobSpec.responseFormat.equalsIgnoreCase("fits")) { //TODO fits is not advertised in the capabilities....
+            dataformat = DataFormat.FITS;
+         } else if (tapJobSpec.responseFormat.startsWith("application/x-votable+xml")) {
+            Matcher matcher = SERIALIZATION_PATTERN.matcher(tapJobSpec.responseFormat);
+            if (matcher.find()) {
+               dataformat = switch(matcher.group(1).toUpperCase()) { // Returns "BINARY2", "TABLEDATA", etc.
+                  case "BINARY2" -> DataFormat.BINARY2;
+                  case "FITS" -> DataFormat.FITS;
+                  default -> DataFormat.TABLEDATA;
+               };
+            }
+         } else {
+            log.warn("Unknown response format {}, defaulting to TABLEDATA", tapJobSpec.responseFormat);
+         }
+      }
+      return dataformat;
    }
 
    private void validateRequest() throws UWSException {
