@@ -170,7 +170,15 @@ public abstract class BaseUWSResource implements UWS {
       }
    }
 
-   //TODO - this is really incomplete - it needs to be implemented in the sub-class for the specific UWS implementation
+
+   /**
+    * set the parameters for a job. This is a placeholder implementation that only supports setting the RUNID parameter.
+    * The actual implementation will depend on the specific UWS JOB implementation and how it handles parameters
+    * @param jobid the job identifier.
+    * @param formParams the form parameters.
+    * @return a redirect if successful.
+    * @throws UWSException on errors.
+    */
    @POST
    @Path("{jobid}/parameters")
    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)

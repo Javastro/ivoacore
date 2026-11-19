@@ -62,7 +62,7 @@ public class TAPJob extends RunnableUWSJob {
    private static final Logger log = LoggerFactory.getLogger(TAPJob.class);
    /** Human-readable description of TAP jobs. */
    public static final String JOB_TYPE_DESCRIPTION = "Runs TAP jobs";
-   public static final StarTableOutput STAR_TABLE_OUTPUT = new StarTableOutput();
+   private static final StarTableOutput STAR_TABLE_OUTPUT = new StarTableOutput();
    private static final Pattern SERIALIZATION_PATTERN =
          Pattern.compile("(?i)(?:^|;\\s*)serialization\\s*=\\s*[\"']?([^;\"'\\s]+)[\"']?");
    private final DataSource dataSource;
