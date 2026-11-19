@@ -5,19 +5,6 @@ plugins {
     id("pl.allegro.tech.build.axion-release")
 }
 
-//TODO when finished with SNAPSHOT phase revert to publishing to maven-central
-
-//publishing
-//nexusPublishing {
-//    repositories {
-//        //TODO this is a rather unsatisfactory kludge, but still seems better than the suggested JReleaser which is not really gradle friendly
-//        // see https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/#configuration
-//        sonatype {
-//            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
-//            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
-//        }
-//    }
-//}
 
 tasks.register("publishSnapshots") {
     group = "publishing"
@@ -36,44 +23,6 @@ tasks.register("publishSnapshots") {
     }
 }
 
-val publishnew = tasks.register("publishnew") {
-    group = "publishing"
-    description = "Publishes subproject artifacts only when their version is newer than the destination repository."
-}
-
-subprojects {
-    plugins.withId("maven-publish") {
-        tasks.withType<PublishToMavenRepository>().all {
-            val publishTask = this
-            publishnew.configure {
-                dependsOn(publishTask)
-            }
-            onlyIf("the publication is newer than the destination repository when using publishnew") {
-                if (!gradle.taskGraph.hasTask(publishnew.get())) {
-                    true
-                } else {
-                    val publication = publishTask.publication
-                    val repository = publishTask.repository
-                    val credentials = repository.credentials
-                    val newer = PublishedVersions.isNewer(
-                        repository.url,
-                        publication.groupId,
-                        publication.artifactId,
-                        publication.version,
-                        credentials.username,
-                        credentials.password
-                    )
-                    logger.lifecycle(
-                        "${if (newer) "Publishing" else "Skipping"} " +
-                            "${publication.groupId}:${publication.artifactId}:${publication.version} " +
-                            "in ${repository.name}"
-                    )
-                    newer
-                }
-            }
-        }
-    }
-}
 
 tasks.register("documentVersions") {
     group = "publishing"

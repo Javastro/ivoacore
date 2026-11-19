@@ -1,5 +1,6 @@
 plugins {
-    id("ivoacore-conventions")
+    id("org.javastro.build.module.lib")
+
 }
 description = "Library that implements some core IVOA DAI conventions"
 dependencies   {

@@ -1,5 +1,5 @@
 plugins {
-    id("ivoacore-conventions")
+    id("org.javastro.build.module.lib")
 }
 
 group = "org.javastro.ivoa.core.clients"

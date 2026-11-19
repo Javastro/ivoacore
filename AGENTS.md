@@ -28,7 +28,7 @@
 - Publishing expects `UKSRC_REPO_USERNAME` and `UKSRC_REPO_PASSWORD` env vars (`./gradlew publish`).
 
 ## Project-Specific Conventions
-- Apply shared Gradle convention plugin (`id("ivoacore-conventions")`) in each module.
+- Apply shared Gradle convention plugin (`id("org.javastro.build.module.lib")`) in each module.
 - Default group/version come from `buildSrc` (`org.javastro.ivoa.core`, snapshot-driven publishing/signing behavior).
 - Tests use JUnit 5; `integrationTest` suite is preconfigured by conventions plugin.
 - Prefer extension by composition/interfaces: provide concrete `*Provider` or `JobFactory` implementations instead of embedding protocol logic in endpoints.

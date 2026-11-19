@@ -1,6 +1,6 @@
 plugins {
-    id("ivoacore-conventions")
-    id("org.kordamp.gradle.jandex") version "2.3.0"
+    id("org.javastro.build.module.lib")
+    id("org.kordamp.gradle.jandex")
 }
 description = "IVOA Spherical Geometry library"
 
