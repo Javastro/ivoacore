@@ -1,3 +1,5 @@
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+
 plugins {
 //    id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
     id("pl.allegro.tech.build.axion-release")
@@ -31,6 +33,45 @@ tasks.register("publishSnapshots") {
                 logger.lifecycle("Subproject [${subproj.name}] is unchanged since release. Skipping.")
             }
 
+    }
+}
+
+val publishnew = tasks.register("publishnew") {
+    group = "publishing"
+    description = "Publishes subproject artifacts only when their version is newer than the destination repository."
+}
+
+subprojects {
+    plugins.withId("maven-publish") {
+        tasks.withType<PublishToMavenRepository>().all {
+            val publishTask = this
+            publishnew.configure {
+                dependsOn(publishTask)
+            }
+            onlyIf("the publication is newer than the destination repository when using publishnew") {
+                if (!gradle.taskGraph.hasTask(publishnew.get())) {
+                    true
+                } else {
+                    val publication = publishTask.publication
+                    val repository = publishTask.repository
+                    val credentials = repository.credentials
+                    val newer = PublishedVersions.isNewer(
+                        repository.url,
+                        publication.groupId,
+                        publication.artifactId,
+                        publication.version,
+                        credentials.username,
+                        credentials.password
+                    )
+                    logger.lifecycle(
+                        "${if (newer) "Publishing" else "Skipping"} " +
+                            "${publication.groupId}:${publication.artifactId}:${publication.version} " +
+                            "in ${repository.name}"
+                    )
+                    newer
+                }
+            }
+        }
     }
 }
 
