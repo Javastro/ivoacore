@@ -25,7 +25,7 @@ tasks.register("publishSnapshots") {
         val subproj = this
         if(subproj.version.toString().endsWith("SNAPSHOT")) {
             logger.lifecycle("Subproject [${subproj.name}] is a SNAPSHOT version. Registering for release.")
-            dependsOn("{${subproj.name}:publish}")
+            dependsOn("${subproj.name}:publish")
 
             } else {
                 logger.lifecycle("Subproject [${subproj.name}] is unchanged since release. Skipping.")
@@ -57,7 +57,7 @@ tasks.register("documentVersions") {
 // Aggregated Javadoc across all Java submodules
 // ---------------------------------------------------------------------------
 
-val aggregateJavadoc by tasks.registering(Javadoc::class) {
+val aggregateJavadoc = tasks.register("aggregateJavadoc", Javadoc::class) {
     description = "Generates aggregated Javadoc API documentation for all modules."
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     setDestinationDir(layout.buildDirectory.dir("docs/javadoc").get().asFile)
